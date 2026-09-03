@@ -70,6 +70,10 @@
   padding: 0;
 }
 
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 html {
   font-size: 16px;
   scroll-behavior: smooth;
@@ -1328,8 +1332,10 @@ rt {
   background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);
   color: var(--white);
   border: none;
-  font-size: 0.98rem;
-  font-weight: 800;
+  font-family: var(--font-ui);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   padding: 13px 26px;
   border-radius: var(--radius-full);
   cursor: pointer;
