@@ -535,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     els.btnSubmitAssignment.addEventListener('click', () => {
       const answered = countAnswered();
       if (answered < 3) {
-        alert("Bạn ơi, hãy hoàn thành ít nhất các phần trắc nghiệm trước khi nộp bài cho cô nhé!");
+        alert("Bạn ơi, hãy hoàn thành ít nhất các phần trắc nghiệm trước khi nộp bài nhé!");
         return;
       }
 
