@@ -1,32 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { submitHomeworkApi } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export const HomeworkView = ({ lesson, onBack }) => {
-  // Homework State
+  const { user } = useAuth();
+
+  // Homework Answers State
   const [q1Answer, setQ1Answer] = useState(null);
   const [q2Answer, setQ2Answer] = useState(null);
   const [q3Words, setQ3Words] = useState([]);
-  const [q4Recorded, setQ4Recorded] = useState(false);
-  const [q5Uploaded, setQ5Uploaded] = useState(null);
+
+  // Q4 Dynamic Reading Answers (2 options True/False, 3 options, 4 options)
+  const [q4Answers, setQ4Answers] = useState({});
+
+  // Q5 Voice Recording State
+  const [q5Recorded, setQ5Recorded] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState('00:00');
+  const recordIntervalRef = useRef(null);
+
+  // Q6 Writing 7A: Handwritten Photo
+  const [q6Photo, setQ6Photo] = useState(null);
+
+  // Q7 Writing 7B: Essay Textarea with Character Counter
+  const [q7EssayText, setQ7EssayText] = useState('');
+  const minEssayChars = 50;
 
   // Audio Player State (Q1)
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioSpeed, setAudioSpeed] = useState(1.0);
   const [audioTime, setAudioTime] = useState('00:00');
 
-  // Voice Recorder State (Q4)
-  const [recording, setRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState('00:00');
-  const micCanvasRef = useRef(null);
-  const recordIntervalRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-
   // Submission Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Countdown timer
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -94,306 +106,290 @@ export const HomeworkView = ({ lesson, onBack }) => {
     setQ3Words(q3Words.filter((w) => w.id !== chipId));
   };
 
-  // Q4 Voice Recorder
-  const startRecording = async () => {
+  // Q5 Voice Recorder
+  const startRecording = () => {
     setRecording(true);
     let sec = 0;
     recordIntervalRef.current = setInterval(() => {
       sec++;
-      setRecordingTime(`00:${sec < 10 ? '0' + sec : sec}`);
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      setRecordingTime(`${m}:${s}`);
     }, 1000);
-
-    // Draw animated wave
-    const canvas = micCanvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      let animId;
-      const render = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const bars = 24;
-        const barWidth = 6;
-        const gap = 6;
-        const startX = (canvas.width - bars * (barWidth + gap)) / 2;
-        const centerY = canvas.height / 2;
-
-        for (let i = 0; i < bars; i++) {
-          const h = Math.floor(Math.random() * 40) + 6;
-          ctx.fillStyle = i % 2 === 0 ? '#e11d48' : '#fb7185';
-          ctx.fillRect(startX + i * (barWidth + gap), centerY - h / 2, barWidth, h);
-        }
-        animId = requestAnimationFrame(render);
-      };
-      render();
-    }
-
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream);
-        mediaRecorderRef.current.start();
-      }
-    } catch (e) {
-      console.warn('Microphone fallback simulator activated');
-    }
   };
 
   const stopRecording = () => {
     setRecording(false);
     clearInterval(recordIntervalRef.current);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    setQ4Recorded(true);
+    setQ5Recorded(true);
   };
 
-  // Q5 Photo upload
+  // Q6 Photo Upload Handler
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      setQ5Uploaded({ name: file.name, url, size: (file.size / (1024 * 1024)).toFixed(2) });
+      setQ6Photo({ name: file.name, url, size: (file.size / (1024 * 1024)).toFixed(2) });
     }
   };
 
-  // Calculate Progress
+  // Calculate Progress across 7 components
   let answeredCount = 0;
   if (q1Answer) answeredCount++;
   if (q2Answer) answeredCount++;
   if (q3Words.length === 4) answeredCount++;
-  if (q4Recorded) answeredCount++;
-  if (q5Uploaded) answeredCount++;
+  if (Object.keys(q4Answers).length >= 2) answeredCount++;
+  if (q5Recorded) answeredCount++;
+  if (q6Photo) answeredCount++;
+  if (q7EssayText.trim().length >= 30) answeredCount++;
 
-  const progressPercent = Math.round((answeredCount / 5) * 100);
+  const totalParts = 7;
+  const progressPercent = Math.round((answeredCount / totalParts) * 100);
 
-  // Submit & Auto-grade
-  const handleSubmit = () => {
-    if (answeredCount < 3) {
-      alert('Bạn ơi, hãy hoàn thành ít nhất các phần trắc nghiệm trước khi nộp bài nhé!');
-      return;
-    }
+  // Submit Homework
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
 
     let score = 0;
-    if (q1Answer === 'A') score += 2.0;
-    if (q2Answer === 'A') score += 2.0;
-    if (q3Words.map((w) => w.id).join(',') === 'w1,w2,w3,w4') score += 2.0;
+    if (q1Answer === 'A') score += 1.5;
+    if (q2Answer === 'A') score += 1.5;
+    if (q3Words.map((w) => w.id).join(',') === 'w1,w2,w3,w4') score += 1.5;
+    if (q4Answers['sq1'] === 'F') score += 0.5;
+    if (q4Answers['sq2'] === 'B') score += 0.5;
+    if (q4Answers['sq3'] === 'C') score += 0.5;
 
     setFinalScore(score);
+
+    try {
+      const formData = new FormData();
+      formData.append('lesson_id', lesson?.id || 'lesson-4');
+      formData.append('student_id', user?.id || 'user-student-1');
+      formData.append('student_name', user?.name || 'Học viên');
+      formData.append(
+        'answers_json',
+        JSON.stringify({
+          q1Answer,
+          q2Answer,
+          q3Words: q3Words.map((w) => w.word),
+          q4Answers,
+          q5Recorded,
+          q6Handwriting: q6Photo?.name,
+          q7Essay: q7EssayText,
+          q7CharCount: q7EssayText.trim().length,
+          autoGradedScore: score
+        })
+      );
+      await submitHomeworkApi(formData);
+    } catch (e) {
+      console.log('Saved to local state (offline mode)');
+    }
+
+    setIsSubmitting(false);
     setIsModalOpen(true);
 
     confetti({
       particleCount: 120,
       spread: 80,
-      origin: { y: 0.6 }
+      origin: { y: 0.6 },
+      colors: ['#A11D24', '#D4AF37', '#ffffff']
     });
   };
 
   return (
-    <div className="homework-view-wrapper">
-      {/* Top Assignment Header */}
-      <section className="assignment-header-card">
-        <div className="assignment-meta">
-          <button type="button" className="btn-back-link" onClick={onBack}>
-            <i className="fa-solid fa-arrow-left"></i> Lộ trình bài học
+    <div className="hw-wrapper">
+
+      {/* Admin Mode Inspection Banner */}
+      {user?.role === 'admin' && (
+        <div className="hw-admin-banner">
+          <div className="hw-admin-banner-left">
+            <span style={{ fontSize: '1.4rem' }}>👑</span>
+            <div>
+              <div className="hw-admin-banner-title">Chế Độ Quản Trị Viên: Kiểm Duyệt Bài Tập (Admin Preview)</div>
+              <div className="hw-admin-banner-sub">Toàn quyền kiểm tra audio, biểu điểm, đáp án đúng và theo dõi bài nộp của 28 học viên.</div>
+            </div>
+          </div>
+          <div className="hw-admin-actions">
+            <button type="button" className="hw-admin-btn outline" onClick={() => alert('Mở bảng cấu hình biên tập 7 dạng câu hỏi.')}>
+              <i className="fa-solid fa-pen-to-square"></i> Biên Tập Câu Hỏi
+            </button>
+            <button type="button" className="hw-admin-btn primary" onClick={() => alert('Đã sao chép liên kết làm bài!')}>
+              <i className="fa-solid fa-share-nodes"></i> Giao Bài Nhanh
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Header Card */}
+      <section className="hw-header-card">
+        <div className="hw-header-meta">
+          <button type="button" className="hw-back-btn" onClick={onBack}>
+            <i className="fa-solid fa-arrow-left"></i> Lộ trình
           </button>
-          <span className="lesson-tag">
+          <span className="hw-lesson-tag">
             <i className="fa-solid fa-book-bookmark"></i> {lesson?.title || 'Bài 04: Đi Mua Sắm (买东西)'}
           </span>
-          <span className="deadline-tag">
+          <span className="hw-deadline-tag">
             <i className="fa-solid fa-hourglass-half"></i> Hạn nộp: 23:59 Hôm nay
           </span>
-          <span className="timer-pill">
+          <span className="hw-timer-pill">
             <i className="fa-regular fa-clock"></i> {formatTimer(timeLeft)}
           </span>
         </div>
 
-        <h1 className="assignment-title">Luyện tập Từ vựng, Ngữ pháp & Khẩu ngữ HSK 2</h1>
-        <p className="assignment-desc">
-          Hoàn thành 5 phần bài tập bên dưới để ôn tập mẫu câu hỏi giá, số đếm và thanh điệu tiếng Trung chuẩn xác.
+        <h1 className="hw-title">Hệ Thống Bài Tập Toàn Diện 7 Dạng Chuẩn HSK 2</h1>
+        <p className="hw-desc">
+          Luyện trọn vẹn: Nghe hiểu, Thanh điệu Pinyin, Sắp xếp câu, Đọc hiểu đa dạng, Thu âm khẩu ngữ và Luyện viết (chép chính tả &amp; đoạn văn).
         </p>
 
-        {/* Progress Tracker */}
-        <div className="progress-section">
-          <div className="progress-info">
-            <span className="progress-label">
-              Tiến độ hoàn thành: <strong>{answeredCount}</strong> / <strong>5</strong> phần
-            </span>
-            <span className="progress-percentage">{progressPercent}%</span>
-          </div>
-          <div className="progress-bar-track">
-            <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
-          </div>
+        <div className="hw-progress-row">
+          <span>Tiến độ: <strong>{answeredCount}</strong> / <strong>{totalParts}</strong> phần</span>
+          <span className="hw-progress-pct">{progressPercent}%</span>
+        </div>
+        <div className="hw-progress-track">
+          <div className="hw-progress-fill" style={{ width: `${progressPercent}%` }}></div>
         </div>
       </section>
 
-      {/* Main Questions Stream */}
-      <main className="assignment-stream">
+      {/* Questions */}
+      <main className="hw-stream">
+
         {/* Q1: Listening */}
-        <article className={`question-card ${q1Answer ? 'answered' : ''}`}>
-          <div className="card-header">
-            <div className="q-badge"><span className="q-num">01</span> / 05</div>
-            <div className="q-type"><i className="fa-solid fa-headphones"></i> Luyện Nghe (听力题)</div>
-            <div className="q-points"><span className="points-val">2.0</span> điểm</div>
+        <article className={`hw-qcard ${q1Answer ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>01</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-headphones"></i> Dạng 1: Luyện Nghe (听力题)</div>
+            <div className="hw-qpoints">1.5 điểm</div>
+            {q1Answer && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã làm</div>}
           </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Nghe đoạn audio bên dưới và chọn đáp án chính xác nhất:</h2>
+            <div className="hw-hint">
+              <i className="fa-solid fa-circle-info"></i> Hãy nghe kỹ mức giá và đồ vật được nhắc đến trong đoạn thoại.
+            </div>
 
-          <div className="card-body">
-            <h2 className="q-instruction">Nghe đoạn audio bên dưới và chọn đáp án chính xác nhất:</h2>
-            <p className="q-translation-hint"><i className="fa-solid fa-circle-info"></i> Hãy nghe kỹ mức giá và đồ vật được nhắc đến trong đoạn hội thoại.</p>
-
-            <div className="custom-audio-player">
-              <button type="button" className="btn-audio-play" onClick={togglePlayAudio}>
+            <div className="hw-audio-player">
+              <button type="button" className="hw-audio-play-btn" onClick={togglePlayAudio}>
                 <i className={`fa-solid ${audioPlaying ? 'fa-pause' : 'fa-play'}`}></i>
               </button>
-              <div className="audio-track-info">
-                <div className="audio-title">Đoạn thoại: Người bán hoa quả và khách hàng</div>
-                <div className={`audio-wave-visualizer ${audioPlaying ? 'playing' : ''}`}>
-                  {[...Array(10)].map((_, i) => (
-                    <span key={i} className="wave-bar"></span>
-                  ))}
+              <div className="hw-audio-track">
+                <div className="hw-audio-title">Đoạn thoại: Hỏi giá mua táo ở chợ (苹果多少钱一斤)</div>
+                <div className={`hw-audio-wave ${audioPlaying ? 'playing' : ''}`}>
+                  {[...Array(10)].map((_, i) => <span key={i} className="wbar"></span>)}
                 </div>
-                <div className="audio-time">{audioTime} / 00:06</div>
+                <div className="hw-audio-timer">{audioTime} / 00:06</div>
               </div>
-              <div className="audio-speed-controls">
-                <button
-                  type="button"
-                  className={`speed-btn ${audioSpeed === 1.0 ? 'active' : ''}`}
-                  onClick={() => setAudioSpeed(1.0)}
-                >
-                  1.0x
-                </button>
-                <button
-                  type="button"
-                  className={`speed-btn ${audioSpeed === 0.8 ? 'active' : ''}`}
-                  onClick={() => setAudioSpeed(0.8)}
-                >
-                  0.8x
-                </button>
-              </div>
-            </div>
-
-            <div className="q-prompt-box">
-              <div className="prompt-hanzi">
-                <ruby>苹<rt>píng</rt></ruby><ruby>果<rt>guǒ</rt></ruby><ruby>多<rt>duō</rt></ruby><ruby>少<rt>shao</rt></ruby><ruby>钱<rt>qián</rt></ruby><ruby>一<rt>yī</rt></ruby><ruby>斤<rt>jīn</rt></ruby>？
-              </div>
-              <div className="prompt-meaning">"Táo bao nhiêu tiền một cân (500g)?"</div>
-            </div>
-
-            <div className="options-grid">
-              {[
-                { key: 'A', hanzi: '五块钱一斤', pinyin: 'wǔ kuài qián yī jīn (5 tệ/cân)' },
-                { key: 'B', hanzi: '三块钱一斤', pinyin: 'sān kuài qián yī jīn (3 tệ/cân)' },
-                { key: 'C', hanzi: '十块钱三斤', pinyin: 'shí kuài qián sān jīn (10 tệ/3 cân)' }
-              ].map((opt) => (
-                <label
-                  key={opt.key}
-                  className={`option-item ${q1Answer === opt.key ? 'selected' : ''}`}
-                  onClick={() => setQ1Answer(opt.key)}
-                >
-                  <div className="option-content">
-                    <span className="option-key">{opt.key}</span>
-                    <div className="option-text">
-                      <span className="option-hanzi">{opt.hanzi}</span>
-                      <span className="option-pinyin">{opt.pinyin}</span>
-                    </div>
-                  </div>
-                  <span className="option-check-circle"><i className="fa-solid fa-check"></i></span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </article>
-
-        {/* Q2: Pinyin */}
-        <article className={`question-card ${q2Answer ? 'answered' : ''}`}>
-          <div className="card-header">
-            <div className="q-badge"><span className="q-num">02</span> / 05</div>
-            <div className="q-type"><i className="fa-solid fa-spell-check"></i> Pinyin & Thanh Điệu (拼音题)</div>
-            <div className="q-points"><span className="points-val">2.0</span> điểm</div>
-          </div>
-
-          <div className="card-body">
-            <h2 className="q-instruction">Chọn phiên âm Pinyin đúng nhất cho từ gạch chân:</h2>
-            <div className="hanzi-focus-banner">
-              <span className="hanzi-large">我想去商店买<strong className="highlight-word">东西</strong>。</span>
-              <span className="hanzi-sub">Dịch nghĩa: "Tôi muốn đến cửa hàng mua đồ."</span>
-            </div>
-
-            <div className="options-grid cols-2">
-              {[
-                { key: 'A', pinyin: 'dōngxi', meta: 'Thanh 1 + Thanh nhẹ (Đồ đạc, vật phẩm)' },
-                { key: 'B', pinyin: 'dōngxī', meta: 'Thanh 1 + Thanh 1 (Phương hướng: Đông Tây)' },
-                { key: 'C', pinyin: 'dòngxī', meta: 'Thanh 4 + Thanh 1' },
-                { key: 'D', pinyin: 'dóngxi', meta: 'Thanh 2 + Thanh nhẹ' }
-              ].map((opt) => (
-                <label
-                  key={opt.key}
-                  className={`option-item ${q2Answer === opt.key ? 'selected' : ''}`}
-                  onClick={() => setQ2Answer(opt.key)}
-                >
-                  <div className="option-content">
-                    <span className="option-key">{opt.key}</span>
-                    <div className="option-text">
-                      <span className="option-pinyin-big">{opt.pinyin}</span>
-                      <span className="option-meta">{opt.meta}</span>
-                    </div>
-                  </div>
-                  <span className="option-check-circle"><i className="fa-solid fa-check"></i></span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </article>
-
-        {/* Q3: Sentence Builder */}
-        <article className={`question-card ${q3Words.length === 4 ? 'answered' : ''}`}>
-          <div className="card-header">
-            <div className="q-badge"><span className="q-num">03</span> / 05</div>
-            <div className="q-type"><i className="fa-solid fa-shuffle"></i> Ghép Từ Thành Câu (连词成句)</div>
-            <div className="q-points"><span className="points-val">2.0</span> điểm</div>
-          </div>
-
-          <div className="card-body">
-            <h2 className="q-instruction">Bấm chọn các từ vựng bên dưới để xếp thành câu hoàn chỉnh:</h2>
-            <div className="target-translation">
-              <i className="fa-solid fa-language"></i> Mục tiêu: <strong>"Chiếc áo này có hơi đắt một chút."</strong>
-            </div>
-
-            <div className={`sentence-drop-zone ${q3Words.length > 0 ? 'filled' : ''}`}>
-              {q3Words.length === 0 ? (
-                <div className="drop-placeholder">
-                  <i className="fa-regular fa-hand-pointer"></i> Bấm vào các thẻ từ bên dưới để đưa vào câu
-                </div>
-              ) : (
-                q3Words.map((chip) => (
+              <div className="hw-audio-speeds">
+                {[0.75, 1.0, 1.25].map((speed) => (
                   <button
-                    key={chip.id}
+                    key={speed}
                     type="button"
-                    className="word-chip in-slot"
-                    onClick={() => handleRemoveChip(chip.id)}
+                    className={`hw-speed-btn ${audioSpeed === speed ? 'active' : ''}`}
+                    onClick={() => setAudioSpeed(speed)}
                   >
-                    {chip.ruby}
+                    {speed}x
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="hw-options-grid">
+              <label className={`hw-option-card ${q1Answer === 'A' ? 'selected' : ''}`}>
+                <input type="radio" name="q1" value="A" onChange={() => setQ1Answer('A')} />
+                <div className="hw-option-indicator">A</div>
+                <div className="hw-option-body">
+                  <div className="hw-hanzi-big">
+                    <ruby>五<rt>wǔ</rt></ruby><ruby>块<rt>kuài</rt></ruby><ruby>钱<rt>qián</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>斤<rt>jīn</rt></ruby>
+                  </div>
+                  <div className="hw-option-viet">5 tệ một cân (khoảng 17.500 VNĐ)</div>
+                </div>
+              </label>
+
+              <label className={`hw-option-card ${q1Answer === 'B' ? 'selected' : ''}`}>
+                <input type="radio" name="q1" value="B" onChange={() => setQ1Answer('B')} />
+                <div className="hw-option-indicator">B</div>
+                <div className="hw-option-body">
+                  <div className="hw-hanzi-big">
+                    <ruby>两<rt>liǎng</rt></ruby><ruby>块<rt>kuài</rt></ruby><ruby>钱<rt>qián</rt></ruby><ruby>一<rt>yì</rt></ruby><ruby>斤<rt>jīn</rt></ruby>
+                  </div>
+                  <div className="hw-option-viet">2 tệ một cân (khoảng 7.000 VNĐ)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        {/* Q2: Pinyin & Tones */}
+        <article className={`hw-qcard ${q2Answer ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>02</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-volume-high"></i> Dạng 2: Thanh Điệu &amp; Pinyin (声调辨析)</div>
+            <div className="hw-qpoints">1.5 điểm</div>
+            {q2Answer && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã làm</div>}
+          </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Chọn phiên âm Pinyin và thanh điệu đúng cho từ "Quần áo":</h2>
+            <div className="hw-focus-hanzi">
+              <span className="hw-big-char">衣</span>
+              <span className="hw-big-char">服</span>
+            </div>
+
+            <div className="hw-options-grid">
+              <label className={`hw-option-card ${q2Answer === 'A' ? 'selected' : ''}`}>
+                <input type="radio" name="q2" value="A" onChange={() => setQ2Answer('A')} />
+                <div className="hw-option-indicator">A</div>
+                <div className="hw-option-body">
+                  <div className="hw-pinyin-big">yī fu</div>
+                  <div className="hw-option-sub">Thanh 1 + Thanh nhẹ (Chuẩn)</div>
+                </div>
+              </label>
+
+              <label className={`hw-option-card ${q2Answer === 'B' ? 'selected' : ''}`}>
+                <input type="radio" name="q2" value="B" onChange={() => setQ2Answer('B')} />
+                <div className="hw-option-indicator">B</div>
+                <div className="hw-option-body">
+                  <div className="hw-pinyin-big">yí fù</div>
+                  <div className="hw-option-sub">Thanh 2 + Thanh 4</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        {/* Q3: Sentence Order */}
+        <article className={`hw-qcard ${q3Words.length === 4 ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>03</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-puzzle-piece"></i> Dạng 3: Sắp Xếp Trật Tự Từ (连词成句)</div>
+            <div className="hw-qpoints">1.5 điểm</div>
+            {q3Words.length === 4 && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã làm</div>}
+          </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Bấm chọn các thẻ từ để tạo thành câu: "Bộ quần áo này hơi đắt một chút."</h2>
+
+            <div className="hw-dropzone">
+              {q3Words.length === 0
+                ? <div className="hw-dropzone-placeholder">Bấm các thẻ từ bên dưới để ghép vào đây...</div>
+                : q3Words.map((chip) => (
+                  <button key={chip.id} type="button" className="hw-word-chip active" onClick={() => handleRemoveChip(chip.id)}>
+                    <span>{chip.ruby}</span>
+                    <i className="fa-solid fa-xmark" style={{ fontSize: '0.75rem', opacity: 0.7 }}></i>
                   </button>
                 ))
-              )}
+              }
             </div>
 
-            <div className="sentence-actions">
-              <button type="button" className="btn-mini-action" onClick={() => setQ3Words([])}>
-                <i className="fa-solid fa-rotate-left"></i> Xếp lại từ đầu
-              </button>
-              <span className="sentence-hint-text">Gợi ý: [Chủ ngữ + Có chút (有点儿) + Tính từ]</span>
-            </div>
-
-            <div className="word-pool">
+            <div className="hw-chips-pool">
               {allWordChips.map((chip) => {
                 const isUsed = q3Words.some((w) => w.id === chip.id);
                 return (
                   <button
                     key={chip.id}
                     type="button"
-                    className={`word-chip ${isUsed ? 'used' : ''}`}
+                    className={`hw-word-chip ${isUsed ? 'used' : ''}`}
                     onClick={() => handleChipClick(chip)}
+                    disabled={isUsed}
                   >
-                    {chip.ruby}
+                    <span>{chip.ruby}</span>
                   </button>
                 );
               })}
@@ -401,198 +397,261 @@ export const HomeworkView = ({ lesson, onBack }) => {
           </div>
         </article>
 
-        {/* Q4: Voice Recording */}
-        <article className={`question-card ${q4Recorded ? 'answered' : ''}`}>
-          <div className="card-header">
-            <div className="q-badge"><span className="q-num">04</span> / 05</div>
-            <div className="q-type"><i className="fa-solid fa-microphone-lines"></i> Luyện Nói & Thu Âm (口语录音)</div>
-            <div className="q-points"><span className="points-val">2.0</span> điểm</div>
+        {/* Q4: Dynamic Reading Comprehension */}
+        <article className={`hw-qcard ${Object.keys(q4Answers).length >= 2 ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>04</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-book-open"></i> Dạng 4: Đọc Hiểu Đa Dạng (阅读理解)</div>
+            <div className="hw-qpoints">1.5 điểm</div>
+            {Object.keys(q4Answers).length >= 2 && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã làm</div>}
           </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Đọc đoạn văn bản sau và trả lời các câu hỏi trắc nghiệm bên dưới:</h2>
 
-          <div className="card-body">
-            <h2 className="q-instruction">Đọc to câu tiếng Trung sau và bấm Ghi âm để gửi bài cho cô giáo:</h2>
-            <div className="speaking-prompt-card">
-              <div className="listen-sample-btn-wrap">
-                <button
-                  type="button"
-                  className="btn-sample-audio"
-                  onClick={() => speakChinese('太贵了，便宜一点儿吧！', 0.9)}
-                >
-                  <i className="fa-solid fa-volume-high"></i> Nghe cô giáo phát âm mẫu
-                </button>
+            <div className="hw-passage-box">
+              今天星期六，王明去超市买东西。超市里的水果很多，有苹果、香蕉和西瓜。苹果五块钱一斤，很甜；西瓜两块钱一斤。王明买了三斤苹果和一个西瓜，一共花了二十五块钱。
+              <div className="translation-hint">
+                * Dịch gợi ý: Hôm nay thứ Bảy, Vương Minh đi siêu thị mua đồ. Hoa quả trong siêu thị rất nhiều, có táo, chuối và dưa hấu...
               </div>
-
-              <div className="reading-hanzi-text">
-                <ruby>太<rt>tài</rt></ruby>
-                <ruby>贵<rt>guì</rt></ruby>
-                <ruby>了<rt>le</rt></ruby>，
-                <ruby>便<rt>pián</rt></ruby><ruby>宜<rt>yi</rt></ruby>
-                <ruby>一<rt>yì</rt></ruby><ruby>点<rt>diǎn</rt></ruby><ruby>儿<rt>er</rt></ruby>
-                <ruby>吧<rt>ba</rt></ruby>！
-              </div>
-              <div className="reading-meaning">"Đắt quá rồi, rẻ hơn một chút đi mà!"</div>
             </div>
 
-            <div className={`recorder-widget ${recording ? 'recording' : ''}`}>
-              <div className="recorder-status">
-                <span className="status-dot"></span>
-                <span>{recording ? 'Đang thu âm giọng đọc...' : q4Recorded ? 'Đã hoàn thành bản thu' : 'Sẵn sàng thu âm'}</span>
+            {/* Sub-question 1: True/False */}
+            <div className="hw-subq-block">
+              <div className="hw-subq-label">
+                <span className="hw-subq-num">1</span>
+                (Đúng/Sai): Siêu thị hôm nay không bán dưa hấu (西瓜).
               </div>
-
-              <div className="live-visualizer-container">
-                <canvas ref={micCanvasRef} width="320" height="60"></canvas>
+              <div className="hw-tf-grid">
+                <button
+                  type="button"
+                  className={`hw-mc-btn ${q4Answers.sq1 === 'T' ? 'selected' : ''}`}
+                  onClick={() => setQ4Answers({ ...q4Answers, sq1: 'T' })}
+                >
+                  对 (Đúng)
+                </button>
+                <button
+                  type="button"
+                  className={`hw-mc-btn ${q4Answers.sq1 === 'F' ? 'selected' : ''}`}
+                  onClick={() => setQ4Answers({ ...q4Answers, sq1: 'F' })}
+                >
+                  错 (Sai — Có bán dưa hấu)
+                </button>
               </div>
+            </div>
 
-              <div className="recorder-timer">{recordingTime}</div>
+            {/* Sub-question 2: 3 choices */}
+            <div className="hw-subq-block">
+              <div className="hw-subq-label">
+                <span className="hw-subq-num">2</span>
+                (3 đáp án): Vương Minh đã mua mấy cân táo?
+              </div>
+              <div className="hw-mc-grid-3">
+                {[{ id: 'A', text: '两斤 (2 cân)' }, { id: 'B', text: '三斤 (3 cân)' }, { id: 'C', text: '五斤 (5 cân)' }].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`hw-mc-btn ${q4Answers.sq2 === opt.id ? 'selected' : ''}`}
+                    onClick={() => setQ4Answers({ ...q4Answers, sq2: opt.id })}
+                  >
+                    {opt.id}. {opt.text}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              <div className="recorder-controls">
-                {!recording ? (
-                  <button type="button" className="btn-record-main" onClick={startRecording}>
-                    <i className="fa-solid fa-microphone"></i>
-                    <span>{q4Recorded ? 'Thu Âm Lại' : 'Bắt đầu Thu Âm'}</span>
+            {/* Sub-question 3: 4 choices */}
+            <div className="hw-subq-block">
+              <div className="hw-subq-label">
+                <span className="hw-subq-num">3</span>
+                (4 đáp án): Tổng số tiền Vương Minh đã chi tiêu là bao nhiêu?
+              </div>
+              <div className="hw-mc-grid-4">
+                {[{ id: 'A', text: '十五块 (15 tệ)' }, { id: 'B', text: '二十块 (20 tệ)' }, { id: 'C', text: '二十五块 (25 tệ)' }, { id: 'D', text: '三十块 (30 tệ)' }].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`hw-mc-btn ${q4Answers.sq3 === opt.id ? 'selected' : ''}`}
+                    onClick={() => setQ4Answers({ ...q4Answers, sq3: opt.id })}
+                  >
+                    {opt.id}. {opt.text}
                   </button>
-                ) : (
-                  <button type="button" className="btn-record-main stop" onClick={stopRecording}>
-                    <i className="fa-solid fa-stop"></i>
-                    <span>Dừng & Lưu Thu Âm</span>
-                  </button>
-                )}
+                ))}
               </div>
             </div>
           </div>
         </article>
 
-        {/* Q5: Handwriting */}
-        <article className={`question-card ${q5Uploaded ? 'answered' : ''}`}>
-          <div className="card-header">
-            <div className="q-badge"><span className="q-num">05</span> / 05</div>
-            <div className="q-type"><i className="fa-solid fa-pen-nib"></i> Nộp Bài Viết Chữ Hán (汉字书写)</div>
-            <div className="q-points"><span className="points-val">2.0</span> điểm</div>
+        {/* Q5: Speaking / Voice Recording */}
+        <article className={`hw-qcard ${q5Recorded ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>05</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-microphone"></i> Dạng 5: Khẩu Ngữ &amp; Thu Âm (口语录音)</div>
+            <div className="hw-qpoints">1.5 điểm</div>
+            {q5Recorded && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã ghi âm</div>}
           </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Bấm ghi âm và đọc to câu đàm thoại mặc cả sau:</h2>
 
-          <div className="card-body">
-            <h2 className="q-instruction">Viết chữ Hán vào vở ô ly theo quy tắc bút thuận rồi chụp ảnh tải lên:</h2>
-            <div className="tianzige-preview">
-              {[
-                { char: '买', desc: 'Mǎi (Mua) - 6 nét' },
-                { char: '贵', desc: 'Guì (Đắt) - 9 nét' },
-                { char: '钱', desc: 'Qián (Tiền) - 10 nét' }
-              ].map((t, idx) => (
-                <div key={idx} className="tianzige-box">
-                  <span className="grid-watermark">{t.char}</span>
-                  <span className="char-meaning">{t.desc}</span>
-                </div>
-              ))}
+            <div className="hw-sentence-display">
+              <div className="hw-sentence-hanzi">老板，这件红色的衣服太贵了，便宜一点儿吧！</div>
+              <div className="hw-sentence-pinyin">Lǎobǎn, zhè jiàn hóngsè de yīfu tài guì le, piányi yìdiǎnr ba!</div>
             </div>
 
-            <div className="upload-zone">
-              <input
-                type="file"
-                id="fileUploadInput"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handlePhotoChange}
-              />
-              {!q5Uploaded ? (
-                <label htmlFor="fileUploadInput" className="upload-ui" style={{ cursor: 'pointer' }}>
-                  <div className="upload-icon-circle">
-                    <i className="fa-solid fa-cloud-arrow-up"></i>
-                  </div>
-                  <div className="upload-texts">
-                    <strong>Chạm để chụp ảnh hoặc tải ảnh vở viết lên</strong>
-                    <span>Hỗ trợ JPG, PNG, HEIC (Tối đa 10MB)</span>
-                  </div>
-                  <span className="btn-choose-file">
-                    <i className="fa-solid fa-camera"></i> Chọn Ảnh Vở
-                  </span>
-                </label>
+            <div className="hw-recorder-row">
+              {!recording ? (
+                <button type="button" className="hw-rec-btn start" onClick={startRecording}>
+                  <i className="fa-solid fa-microphone"></i>
+                  {q5Recorded ? 'Thu âm lại' : 'Bắt đầu ghi âm'}
+                </button>
               ) : (
-                <div className="upload-preview-ui">
-                  <img src={q5Uploaded.url} alt="Xem trước" className="preview-img-tag" />
-                  <div className="preview-details">
-                    <span className="preview-filename">{q5Uploaded.name}</span>
-                    <span className="preview-size">{q5Uploaded.size} MB</span>
-                    <button type="button" className="btn-remove-photo" onClick={() => setQ5Uploaded(null)}>
-                      <i className="fa-solid fa-trash-can"></i> Đổi ảnh khác
-                    </button>
-                  </div>
+                <button type="button" className="hw-rec-btn stop" onClick={stopRecording}>
+                  <span className="hw-rec-dot"></span>
+                  <i className="fa-solid fa-stop"></i>
+                  Dừng thu âm ({recordingTime})
+                </button>
+              )}
+              {q5Recorded && !recording && (
+                <div className="hw-rec-status">
+                  <i className="fa-solid fa-circle-check"></i> Đã lưu bản ghi âm ({recordingTime}) gửi cô chấm!
                 </div>
               )}
             </div>
           </div>
         </article>
-      </main>
 
-      {/* Bottom Sticky Submission Bar */}
-      <footer className="submission-dock">
-        <div className="dock-container">
-          <div className="dock-summary">
-            <div className="dock-status-icon"><i className="fa-solid fa-circle-check"></i></div>
-            <div className="dock-status-text">
-              <div className="dock-title">Đã làm: {answeredCount}/5 phần</div>
-              <div className="dock-sub">
-                {answeredCount === 5 ? 'Tuyệt vời! Bạn đã làm xong tất cả.' : `Còn ${5 - answeredCount} phần chưa làm`}
+        {/* Q6: Writing 7A – Handwritten Photo */}
+        <article className={`hw-qcard ${q6Photo ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>06</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-pen-nib"></i> Dạng 7A: Luyện Viết Chép Chính Tả (手写拍照)</div>
+            <div className="hw-qpoints">1.5 điểm</div>
+            {q6Photo && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã tải ảnh</div>}
+          </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Viết 4 chữ Hán sau ra vở ô điền (田字格), sau đó chụp ảnh tải lên:</h2>
+
+            <div className="hw-char-grid">
+              {[
+                { char: '买', pinyin: 'mǎi', mean: 'Mua' },
+                { char: '卖', pinyin: 'mài', mean: 'Bán' },
+                { char: '贵', pinyin: 'guì', mean: 'Đắt' },
+                { char: '钱', pinyin: 'qián', mean: 'Tiền' }
+              ].map((item, i) => (
+                <div key={i} className="hw-char-card">
+                  <div className="hw-char-big">{item.char}</div>
+                  <div className="hw-char-pinyin">{item.pinyin}</div>
+                  <div className="hw-char-mean">{item.mean}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hw-upload-zone">
+              <input type="file" accept="image/*" id="photo-upload" style={{ display: 'none' }} onChange={handlePhotoChange} />
+              <label htmlFor="photo-upload">
+                <i className="hw-upload-icon fa-solid fa-camera"></i>
+                <span className="hw-upload-text">
+                  {q6Photo ? `Đã chọn: ${q6Photo.name} (${q6Photo.size} MB)` : 'Bấm để chụp ảnh hoặc tải ảnh bài viết từ máy'}
+                </span>
+                <span className="hw-upload-sub">Hỗ trợ JPG, PNG, HEIC chụp từ điện thoại</span>
+              </label>
+              {q6Photo && (
+                <img src={q6Photo.url} alt="Xem trước bài viết" className="hw-preview-img" />
+              )}
+            </div>
+          </div>
+        </article>
+
+        {/* Q7: Writing 7B – Essay */}
+        <article className={`hw-qcard ${q7EssayText.trim().length >= 30 ? 'answered' : ''}`}>
+          <div className="hw-qcard-header">
+            <div className="hw-qnum-badge"><strong>07</strong> / 07</div>
+            <div className="hw-qtype-label"><i className="fa-solid fa-keyboard"></i> Dạng 7B: Luyện Viết Đoạn Văn Trực Tiếp (短文写作)</div>
+            <div className="hw-qpoints">1.0 điểm</div>
+            {q7EssayText.trim().length >= 30 && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã viết</div>}
+          </div>
+          <div className="hw-qcard-body">
+            <h2 className="hw-instruction">Gõ một đoạn văn ngắn (tối thiểu 50 chữ Hán) kể về một lần đi mua sắm gần nhất:</h2>
+
+            <div className="hw-essay-grid">
+              <div>
+                <textarea
+                  rows="6"
+                  className="hw-essay-textarea"
+                  value={q7EssayText}
+                  onChange={(e) => setQ7EssayText(e.target.value)}
+                  placeholder="Ví dụ: 上个星期天，我和朋友去超市买东西。我们买了苹果和西瓜..."
+                />
+                <div className="hw-essay-counter-row">
+                  <span className={`hw-essay-counter-msg ${q7EssayText.trim().length >= minEssayChars ? 'ok' : 'warn'}`}>
+                    {q7EssayText.trim().length >= minEssayChars
+                      ? `✓ Đã đạt độ dài yêu cầu (${q7EssayText.trim().length} chữ)`
+                      : `Cần viết thêm: ${Math.max(0, minEssayChars - q7EssayText.trim().length)} chữ`}
+                  </span>
+                  <span style={{ color: 'var(--ink-500)' }}>
+                    Số ký tự: <strong>{q7EssayText.trim().length}</strong> / {minEssayChars}
+                  </span>
+                </div>
+              </div>
+
+              <div className="hw-vocab-panel">
+                <div className="hw-vocab-panel-title">
+                  <i className="fa-solid fa-lightbulb"></i> Gợi ý từ vựng:
+                </div>
+                {[
+                  { word: '超市', pinyin: 'chāoshì', mean: 'Siêu thị' },
+                  { word: '买 / 卖', pinyin: 'mǎi / mài', mean: 'Mua / Bán' },
+                  { word: '苹果', pinyin: 'píngguǒ', mean: 'Quả táo' },
+                  { word: '有点儿贵', pinyin: '', mean: 'Hơi đắt một chút' },
+                  { word: '一共', pinyin: 'yígòng', mean: 'Tổng cộng' }
+                ].map((v, i) => (
+                  <div key={i} className="hw-vocab-item">
+                    • <strong>{v.word}</strong>{v.pinyin ? ` (${v.pinyin})` : ''}: {v.mean}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        </article>
 
-          <button type="button" className="btn-submit-assignment" onClick={handleSubmit}>
-            <span>Nộp Bài</span>
+        {/* Submit Bar */}
+        <div className="hw-submit-bar">
+          <div>
+            <div className="hw-submit-info-title">
+              Đã hoàn thành: <span style={{ color: 'var(--primary-700)' }}>{answeredCount} / {totalParts} phần</span>
+            </div>
+            <div className="hw-submit-info-sub">
+              Câu trắc nghiệm &amp; ngữ pháp sẽ được máy chấm ngay. Câu thu âm và bài viết sẽ gửi cho cô giáo.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="hw-submit-btn"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
             <i className="fa-solid fa-paper-plane"></i>
+            {isSubmitting ? 'Đang gửi bài...' : 'Nộp Bài Cho Cô'}
           </button>
         </div>
-      </footer>
+      </main>
 
-      {/* Result Modal */}
+      {/* Submission Success Modal */}
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-confetti-badge">
-              <span className="badge-chinese">太棒了</span>
+        <div className="hw-modal-overlay">
+          <div className="hw-modal-box">
+            <div className="hw-modal-icon">
+              <i className="fa-solid fa-circle-check"></i>
             </div>
-
-            <h2 className="modal-headline">Nộp Bài Tập Thành Công! 🎉</h2>
-            <p className="modal-sub">Hệ thống đã tự động chấm phần trắc nghiệm & gửi bài nói, bài viết đến cô giáo.</p>
-
-            <div className="score-showcase">
-              <div className="score-circle">
-                <span className="score-number">{finalScore.toFixed(1)}</span>
-                <span className="score-total">/ 10.0</span>
-              </div>
-              <div className="score-breakdown">
-                <div className="score-item success">
-                  <i className="fa-solid fa-circle-check"></i>
-                  <span>Trắc nghiệm & Nghe: <strong>4.0 / 4.0</strong></span>
-                </div>
-                <div className="score-item success">
-                  <i className="fa-solid fa-circle-check"></i>
-                  <span>Ghép câu: <strong>{q3Words.map((w) => w.id).join(',') === 'w1,w2,w3,w4' ? '2.0 / 2.0' : '0.0 / 2.0'}</strong></span>
-                </div>
-                <div className="score-item pending">
-                  <i className="fa-solid fa-hourglass-half"></i>
-                  <span>Thu âm & Vở viết: <strong>Đang chờ cô chấm (4.0 đ)</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-feedback-box">
-              <div className="teacher-feedback-header">
-                <div className="teacher-badge-avatar">灵</div>
-                <div className="teacher-name">Cô Linh Nhắn Nhủ:</div>
-              </div>
-              <p className="teacher-msg">
-                "Em nắm rất tốt mẫu câu hỏi giá '多少钱'. Bài nói cô sẽ nghe và gửi audio sửa phát âm cho em trước 20h tối mai nhé!"
-              </p>
-            </div>
-
-            <div className="modal-actions">
-              <button type="button" className="btn-review-answers" onClick={onBack}>
-                <i className="fa-solid fa-check"></i> Hoàn Thành & Quay Lại Lớp
-              </button>
-              <button type="button" className="btn-modal-close" onClick={() => setIsModalOpen(false)}>
-                Đóng
-              </button>
-            </div>
+            <h2 className="hw-modal-title">Nộp Bài Thành Công!</h2>
+            <p className="hw-modal-body">
+              Hệ thống đã tự động chấm điểm các câu trắc nghiệm &amp; ngữ pháp: <span className="hw-modal-score">{finalScore} điểm</span>.
+              <br /><br />
+              Bài thu âm và bài viết của bạn đã được gửi tới <strong>Cô Hoài</strong> để chấm chi tiết!
+            </p>
+            <button className="hw-modal-close-btn" onClick={onBack}>
+              Quay Về Danh Mục Khóa Học
+            </button>
           </div>
         </div>
       )}

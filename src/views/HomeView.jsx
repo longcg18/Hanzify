@@ -1,0 +1,1034 @@
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { CLASSES_LIST, LEADERBOARD_DATA, INITIAL_FORUM_POSTS } from '../data/gamificationData';
+
+export const HomeView = ({ 
+  courses, 
+  classrooms = [],
+  onOpenCreateClass,
+  onOpenJoinClass,
+  streakData, 
+  onOpenStreakModal, 
+  onNavigate, 
+  onSelectCourse, 
+  onOpenLesson 
+}) => {
+  const { user, setIsAuthModalOpen } = useAuth();
+  const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+
+  const [selectedClassId, setSelectedClassId] = useState('all');
+  const [copiedCodeClassId, setCopiedCodeClassId] = useState(null);
+
+  const handleCopyClassCode = (code, classId, e) => {
+    e?.stopPropagation();
+    navigator.clipboard.writeText(code);
+    setCopiedCodeClassId(classId);
+    setTimeout(() => setCopiedCodeClassId(null), 2500);
+  };
+
+  // Active course
+  const currentCourse = courses?.[0];
+  const nextLesson = currentCourse?.lessons?.find((l) => l.status === 'active') || currentCourse?.lessons?.[0];
+
+  // Leaderboard data for preview
+  const classLeaderboard = selectedClassId === 'all' 
+    ? LEADERBOARD_DATA.weekly.slice(0, 3) 
+    : (LEADERBOARD_DATA.byClass[selectedClassId] || []).slice(0, 3);
+
+  // Latest forum posts
+  const hotQuestion = INITIAL_FORUM_POSTS.find((p) => p.category === 'bai-kho');
+  const fixedBug = INITIAL_FORUM_POSTS.find((p) => p.category === 'bao-loi');
+
+  return (
+    <div className="home-view-container" style={{ maxWidth: '1180px', margin: '0 auto', padding: '1.5rem 1rem 3.5rem' }}>
+      
+      {/* ========================================================================= */}
+      {/* 1. HERO BANNER: NÂNG CAO MỖI NGÀY - TIẾN BỘ KHÔNG NGỪNG */}
+      {/* ========================================================================= */}
+      <section style={{
+        background: 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%)',
+        borderRadius: '26px',
+        padding: '2.5rem 2.25rem',
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 20px 45px -12px rgba(127, 29, 29, 0.35)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        marginBottom: '2rem'
+      }}>
+        {/* Background Chinese Calligraphy Watermark */}
+        <span style={{
+          position: 'absolute',
+          right: '25px',
+          top: '-35px',
+          fontSize: '12rem',
+          fontFamily: 'Noto Serif SC, serif',
+          color: 'rgba(255, 255, 255, 0.04)',
+          pointerEvents: 'none',
+          userSelect: 'none'
+        }}>
+          学
+        </span>
+
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: '640px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(8px)',
+            padding: '0.35rem 0.85rem',
+            borderRadius: '999px',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            color: '#fde68a',
+            marginBottom: '0.85rem'
+          }}>
+            <i className="fa-solid fa-sparkles"></i>
+            <span>Trung Tâm Hoa Ngữ Trực Tuyến Hanzify</span>
+          </div>
+
+          <h1 style={{ margin: '0 0 0.5rem', fontSize: '2.4rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            {user?.role === 'teacher' ? (
+              <>Chào Cô Hoài! 🌸<br/><span style={{ color: '#fed7aa', fontSize: '1.9rem' }}>Chúc cô một ngày giảng dạy tràn ngập niềm vui</span></>
+            ) : user?.role === 'admin' ? (
+              <>Bảng Điều Hành Hệ Thống 👑<br/><span style={{ color: '#fed7aa', fontSize: '1.9rem' }}>Giám sát toàn diện học viên & đề thi</span></>
+            ) : (
+              <>Nâng cao mỗi ngày,<br/><span style={{ color: '#fde68a' }}>Tiến bộ không ngừng!</span></>
+            )}
+          </h1>
+
+          <p style={{ margin: '0 0 1.5rem', fontSize: '0.96rem', color: '#fee2e2', lineHeight: 1.6, opacity: 0.95 }}>
+            {user?.role === 'teacher'
+              ? 'Hôm nay có 3 bài tập mới cần chấm điểm và 1 câu hỏi ngữ pháp học viên cần cô hỗ trợ.'
+              : user?.role === 'admin'
+              ? 'Hệ thống vận hành mượt mà 100%, ngân hàng đề thi HSK đã sẵn sàng phục vụ học viên.'
+              : 'Học tiếng Trung mỗi ngày cùng Cô Hoài giúp bạn tự tin giao tiếp và chinh phục chứng chỉ HSK chuẩn quốc tế.'}
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (nextLesson && onOpenLesson) {
+                  onOpenLesson(nextLesson);
+                } else {
+                  onNavigate('courses');
+                }
+              }}
+              style={{
+                padding: '0.8rem 1.6rem',
+                borderRadius: '14px',
+                background: '#ffffff',
+                color: '#991b1b',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.25)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fa-solid fa-play"></i>
+              <span>{user?.role === 'teacher' ? 'Quản Lý Bài Học' : 'Tiếp Tục Bài Học Ngay'}</span>
+            </button>
+
+            {/* Mở lớp mới (Teacher/Admin) HOẶC Nhập mã tham gia (Student/Guest) */}
+            {isTeacherOrAdmin ? (
+              <button
+                type="button"
+                onClick={onOpenCreateClass}
+                style={{
+                  padding: '0.8rem 1.4rem',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 6px 20px rgba(217, 119, 6, 0.35)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <i className="fa-solid fa-plus-circle"></i>
+                <span>Mở Lớp Học Mới</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenJoinClass}
+                style={{
+                  padding: '0.8rem 1.4rem',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 6px 20px rgba(217, 119, 6, 0.35)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <i className="fa-solid fa-ticket"></i>
+                <span>Tham Gia Lớp Bằng Mã</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onNavigate('exam')}
+              style={{
+                padding: '0.8rem 1.4rem',
+                borderRadius: '14px',
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fa-solid fa-flag-checkered"></i>
+              <span>Vào Phòng Thi Thử HSK</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 1.5. KHU VỰC QUẢN LÝ LỚP HỌC & LỊCH HỌC TRỰC TUYẾN */}
+      {/* ========================================================================= */}
+      <section style={{ marginBottom: '2rem' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>🏫</span>
+              <span>{isTeacherOrAdmin ? 'Danh Sách Lớp Học Đang Giảng Dạy' : 'Lớp Học & Lịch Học Của Bạn'}</span>
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+              {isTeacherOrAdmin
+                ? 'Mã lớp học không trùng lặp dùng để phát cho học sinh quét và kích hoạt vào lớp'
+                : 'Theo dõi lịch học, giáo viên phụ trách và các khóa học đã được kích hoạt'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.6rem' }}>
+            {isTeacherOrAdmin ? (
+              <button
+                type="button"
+                onClick={onOpenCreateClass}
+                style={{
+                  padding: '0.55rem 1rem',
+                  borderRadius: '10px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#991b1b',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <i className="fa-solid fa-plus"></i>
+                <span>Tạo Lớp Mới</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenJoinClass}
+                style={{
+                  padding: '0.55rem 1rem',
+                  borderRadius: '10px',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#991b1b',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <i className="fa-solid fa-qrcode"></i>
+                <span>Nhập Mã Lớp Khác</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Classes Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
+          {classrooms.map((cls) => {
+            const activatedCount = (cls.students || []).filter((s) => s.isActivated).length;
+            const totalStudents = (cls.students || []).length;
+            const isCopied = copiedCodeClassId === cls.id;
+            const isStudentInClass = user?.classId === cls.id;
+
+            return (
+              <div
+                key={cls.id}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  border: isStudentInClass ? '2px solid #b91c1c' : '1px solid #e2e8f0',
+                  padding: '1.25rem',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  {/* Top Bar: Code & Level */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span
+                        style={{
+                          fontFamily: 'monospace',
+                          fontWeight: 800,
+                          fontSize: '0.95rem',
+                          letterSpacing: '0.05em',
+                          color: '#991b1b',
+                          background: '#fef2f2',
+                          border: '1px solid #fee2e2',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '8px'
+                        }}
+                      >
+                        {cls.code}
+                      </span>
+                      <button
+                        type="button"
+                        title="Sao chép mã lớp"
+                        onClick={(e) => handleCopyClassCode(cls.code, cls.id, e)}
+                        style={{
+                          border: 'none',
+                          background: isCopied ? '#22c55e' : '#f1f5f9',
+                          color: isCopied ? '#fff' : '#475569',
+                          padding: '0.3rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <i className={`fa-solid ${isCopied ? 'fa-check' : 'fa-copy'}`}></i>
+                        <span>{isCopied ? 'Đã chép' : 'Chép mã'}</span>
+                      </button>
+                    </div>
+
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: '#f1f5f9',
+                        color: '#334155',
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '6px'
+                      }}
+                    >
+                      {cls.level}
+                    </span>
+                  </div>
+
+                  {/* Class Name */}
+                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.08rem', fontWeight: 800, color: '#0f172a' }}>
+                    {cls.name}
+                  </h3>
+
+                  {/* Schedule & Teacher Info */}
+                  <div style={{ fontSize: '0.83rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <i className="fa-regular fa-calendar" style={{ color: '#b91c1c', width: '16px' }}></i>
+                      <span>
+                        <strong>Lịch học:</strong> {cls.schedule?.days?.join(', ')} ({cls.schedule?.shift}: {cls.schedule?.timeNote})
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <i className="fa-solid fa-chalkboard-user" style={{ color: '#b91c1c', width: '16px' }}></i>
+                      <span>
+                        <strong>Giáo viên:</strong> {cls.teacher}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <i className="fa-solid fa-layer-group" style={{ color: '#b91c1c', width: '16px' }}></i>
+                      <span>
+                        <strong>Khóa học combo:</strong> {cls.courseIds?.length} khóa được mở
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Roster Status */}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', marginBottom: '0.4rem' }}>
+                    <span style={{ color: '#64748b' }}>Học viên kích hoạt:</span>
+                    <strong style={{ color: activatedCount === totalStudents ? '#16a34a' : '#0f172a' }}>
+                      {activatedCount} / {totalStudents} học sinh
+                    </strong>
+                  </div>
+
+                  <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: `${totalStudents > 0 ? (activatedCount / totalStudents) * 100 : 0}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)',
+                        borderRadius: '999px'
+                      }}
+                    />
+                  </div>
+
+                  {/* Student names preview chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.65rem' }}>
+                    {(cls.students || []).slice(0, 4).map((s) => (
+                      <span
+                        key={s.id}
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '6px',
+                          background: s.isActivated ? '#dcfce7' : '#f8fafc',
+                          color: s.isActivated ? '#166534' : '#64748b',
+                          border: s.isActivated ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                          fontWeight: 600
+                        }}
+                      >
+                        {s.name} {s.isActivated ? '✓' : ''}
+                      </span>
+                    ))}
+                    {(cls.students || []).length > 4 && (
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', alignSelf: 'center' }}>
+                        +{cls.students.length - 4} bạn khác
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 2. KHU VỰC TIỆN ÍCH TRỌNG TÂM: STREAK, LEADERBOARD THEO LỚP, DIỄN ĐÀN */}
+      {/* ========================================================================= */}
+      <section style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+        gap: '1.25rem',
+        marginBottom: '2.5rem'
+      }}>
+        
+        {/* THẺ 1: HỌC VIÊN HIỂN THỊ CHUỖI STREAK - GIÁO VIÊN HIỂN THỊ BÀN CHẤM BÀI */}
+        {user?.role === 'teacher' ? (
+          /* THẺ DÀNH CHO GIÁO VIÊN: BÀN CHẤM BÀI TẬP */
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '22px',
+            border: '1.5px solid #fecaca',
+            padding: '1.5rem',
+            boxShadow: '0 4px 20px rgba(185, 28, 28, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <i className="fa-solid fa-stamp" style={{ fontSize: '1.1rem' }}></i> Bàn Chấm Bài & Phản Hồi
+                </span>
+                <span style={{
+                  background: '#fef2f2',
+                  color: '#b91c1c',
+                  border: '1px solid #fee2e2',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700
+                }}>
+                  3 bài tập chờ chấm
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '2.4rem', fontWeight: 900, color: '#991b1b', lineHeight: 1 }}>
+                  03
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#334155' }}>
+                  bài tập cần chấm
+                </span>
+              </div>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.45 }}>
+                Học viên vừa nộp bài tập về nhà. Cô chấm điểm và gửi lời nhận xét để khích lệ các em nhé!
+              </p>
+
+              {/* Task list preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <div style={{
+                  background: '#f8fafc',
+                  padding: '0.55rem 0.75rem',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.8rem'
+                }}>
+                  <span style={{ fontWeight: 700, color: '#1e293b' }}>Bài 04: Đi Mua Sắm (买东西)</span>
+                  <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.74rem' }}>Nguyễn Văn An</span>
+                </div>
+                <div style={{
+                  background: '#f8fafc',
+                  padding: '0.55rem 0.75rem',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.8rem'
+                }}>
+                  <span style={{ fontWeight: 700, color: '#1e293b' }}>Bài 02: Gia đình & Nghề nghiệp</span>
+                  <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.74rem' }}>Trần Thị Mai</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onNavigate('grading')}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 14px rgba(185, 28, 28, 0.25)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <i className="fa-solid fa-pen-to-square"></i>
+              <span>Vào Bàn Chấm Bài Của Cô Giáo</span>
+            </button>
+          </div>
+        ) : (
+          /* THẺ DÀNH CHO HỌC VIÊN: CHUỖI NGÀY HỌC (STREAK) */
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '22px',
+            border: '1.5px solid #fed7aa',
+            padding: '1.5rem',
+            boxShadow: '0 4px 20px rgba(234, 88, 12, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#c2410c', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🔥</span> Chuỗi Ngày Học
+                </span>
+                <span style={{
+                  background: streakData?.checkedInToday ? '#ecfdf5' : '#fff7ed',
+                  color: streakData?.checkedInToday ? '#047857' : '#ea580c',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700
+                }}>
+                  {streakData?.checkedInToday ? '✓ Đã điểm danh' : 'Chưa điểm danh'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '2.4rem', fontWeight: 900, color: '#9a3412', lineHeight: 1 }}>
+                  {streakData?.currentStreak || 5}
+                </span>
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#334155' }}>
+                  ngày liên tiếp
+                </span>
+              </div>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.84rem', color: '#64748b', lineHeight: 1.45 }}>
+                Học mỗi ngày để giữ chuỗi streak và củng cố phản xạ Hoa ngữ lâu dài.
+              </p>
+
+              {/* 7 Days tracker */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '1.25rem' }}>
+                {streakData?.weekDays ? streakData.weekDays.map((d) => (
+                  <div key={d.day} style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', color: d.completed ? '#c2410c' : '#94a3b8', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                      {d.day}
+                    </span>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      margin: '0 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: d.completed ? 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)' : '#ffffff',
+                      border: d.completed ? 'none' : '1.5px dashed #cbd5e1',
+                      color: '#ffffff',
+                      fontSize: '0.8rem',
+                      boxShadow: d.completed ? '0 2px 8px rgba(234, 88, 12, 0.35)' : 'none'
+                    }}>
+                      {d.completed ? '✓' : ''}
+                    </div>
+                  </div>
+                )) : null}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenStreakModal}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 14px rgba(234, 88, 12, 0.25)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <i className="fa-solid fa-fire"></i>
+              <span>{streakData?.checkedInToday ? 'Xem Lịch Sử Chuỗi' : 'Điểm Danh Chuỗi (+50 XP)'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* THẺ 2: BẢNG XẾP HẠNG THEO LỚP HỌC (CÔNG BẰNG) */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '22px',
+          border: '1.5px solid #fef08a',
+          padding: '1.5rem',
+          boxShadow: '0 4px 20px rgba(202, 138, 4, 0.08)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#854d0e', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <i className="fa-solid fa-crown" style={{ color: '#eab308' }}></i> Bảng Xếp Hạng Lớp Học
+              </span>
+              <button
+                type="button"
+                onClick={() => onNavigate('leaderboard')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#A11D24',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Xem chi tiết ➔
+              </button>
+            </div>
+
+            {/* Quick Class Dropdown Filter */}
+            <div style={{ marginBottom: '0.85rem' }}>
+              <select
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.4rem 0.65rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #fef08a',
+                  background: '#fefce8',
+                  color: '#854d0e',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {CLASSES_LIST.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Top 3 List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1rem' }}>
+              {classLeaderboard.map((item, idx) => (
+                <div 
+                  key={item.id} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '6px 10px', 
+                    borderRadius: '10px', 
+                    background: idx === 0 ? '#fefce8' : '#f8fafc',
+                    border: idx === 0 ? '1px solid #fef08a' : '1px solid #f1f5f9'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.9rem' }}>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>{item.name}</span>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>
+                      {item.level}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.84rem', color: idx === 0 ? '#854d0e' : '#0f172a' }}>
+                      {item.xp.toLocaleString()} XP
+                    </span>
+                    {item.teacherGrade && (
+                      <span style={{ display: 'block', fontSize: '0.68rem', color: '#047857', fontWeight: 600 }}>
+                        {item.teacherGrade}đ cô chấm
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('leaderboard')}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              borderRadius: '14px',
+              background: '#fefce8',
+              color: '#854d0e',
+              border: '1.5px solid #fef08a',
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              transition: 'all 0.15s'
+            }}
+          >
+            <i className="fa-solid fa-trophy" style={{ color: '#eab308' }}></i>
+            <span>Vào Bảng Xếp Hạng Đầy Đủ</span>
+          </button>
+        </div>
+
+        {/* THẺ 3: DIỄN ĐÀN & BÁO LỖI WEB */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '22px',
+          border: '1.5px solid #fecdd3',
+          padding: '1.5rem',
+          boxShadow: '0 4px 20px rgba(161, 29, 36, 0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#9f1239', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <i className="fa-regular fa-comments" style={{ color: '#be123c' }}></i> Diễn Đàn & Báo Lỗi Web
+              </span>
+              <button
+                type="button"
+                onClick={() => onNavigate('forum')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#A11D24',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Xem tất cả ➔
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
+              {hotQuestion && (
+                <div 
+                  onClick={() => onNavigate('forum')}
+                  style={{ 
+                    padding: '8px 10px', 
+                    borderRadius: '10px', 
+                    background: '#fff1f2', 
+                    cursor: 'pointer',
+                    border: '1px solid #fecdd3'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#be123c', background: '#ffe4e6', padding: '1px 5px', borderRadius: '4px' }}>
+                      ❓ Hỏi bài khó
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
+                      • Cô Hoài đã giải đáp
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {hotQuestion.title}
+                  </div>
+                </div>
+              )}
+
+              {fixedBug && (
+                <div 
+                  onClick={() => onNavigate('forum')}
+                  style={{ 
+                    padding: '8px 10px', 
+                    borderRadius: '10px', 
+                    background: '#ecfdf5', 
+                    cursor: 'pointer',
+                    border: '1px solid #a7f3d0'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#047857', background: '#d1fae5', padding: '1px 5px', borderRadius: '4px' }}>
+                      🐛 Báo lỗi Web
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
+                      • Admin đã fix xong
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {fixedBug.title}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('forum')}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              borderRadius: '14px',
+              background: '#A11D24',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 4px 14px rgba(161, 29, 36, 0.25)',
+              transition: 'all 0.15s'
+            }}
+          >
+            <i className="fa-solid fa-pen-nib"></i>
+            <span>Đăng Bài Hỏi / Báo Lỗi (+20 XP)</span>
+          </button>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 3. LỘ TRÌNH KHÓA HỌC & KHO TÀI LIỆU CỦA BẠN */}
+      {/* ========================================================================= */}
+      <section style={{
+        background: '#ffffff',
+        borderRadius: '24px',
+        border: '1px solid #fee2e2',
+        padding: '2rem',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+        marginBottom: '2rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+              <i className="fa-solid fa-book-open-reader" style={{ color: '#A11D24', marginRight: '0.5rem' }}></i>
+              Tiến Độ Khóa Học Của Bạn
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>
+              Tiếp tục bài tập đang làm dở để không bị ngắt quãng dòng học tập.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('courses')}
+            style={{
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
+              background: '#fef2f2',
+              color: '#A11D24',
+              border: '1px solid #fecaca',
+              fontWeight: 700,
+              fontSize: '0.84rem',
+              cursor: 'pointer'
+            }}
+          >
+            Xem Tất Cả Khóa Học ➔
+          </button>
+        </div>
+
+        {currentCourse && (
+          <div style={{
+            background: 'linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)',
+            border: '1.5px solid #fecdd3',
+            borderRadius: '18px',
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '14px',
+                background: currentCourse.coverGradient || 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.8rem',
+                fontFamily: 'Noto Serif SC, serif',
+                fontWeight: 700,
+                flexShrink: 0
+              }}>
+                {currentCourse.charWatermark || '学'}
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                  <span style={{ background: '#dc2626', color: '#ffffff', padding: '1px 6px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 800 }}>
+                    {currentCourse.level}
+                  </span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {currentCourse.teacher}
+                  </span>
+                </div>
+                <h3 style={{ margin: '0 0 2px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+                  {currentCourse.title}
+                </h3>
+                <div style={{ fontSize: '0.82rem', color: '#991b1b', fontWeight: 600 }}>
+                  {currentCourse.chineseTitle} • Bài tiếp theo: <strong>{nextLesson?.title || 'Bài 04: Đi Mua Sắm'}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block' }}>Tiến độ khóa</span>
+                <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#A11D24' }}>
+                  {Math.round(((currentCourse.completedLessons || 3) / (currentCourse.totalLessons || 12)) * 100)}%
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSelectCourse) onSelectCourse(currentCourse);
+                }}
+                style={{
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '12px',
+                  background: '#A11D24',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
+                }}
+              >
+                <span>Vào Lớp Ngay</span>
+                <i className="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 4. KHO HỌC LIỆU & THÔNG TIN TRUNG TÂM CÔ HOÀI */}
+      {/* ========================================================================= */}
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+        <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #fee2e2', padding: '1.25rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#A11D24', marginBottom: '2px' }}>1.250+</div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Bài Học & Bài Tập</div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Chia theo lộ trình từ số 0</div>
+        </div>
+
+        <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #fee2e2', padding: '1.25rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#A11D24', marginBottom: '2px' }}>10.000+</div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Từ Vựng & Ngữ Pháp</div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Có audio giọng đọc bản xứ</div>
+        </div>
+
+        <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #fee2e2', padding: '1.25rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#A11D24', marginBottom: '2px' }}>450+</div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>Đề Thi Thử HSK</div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tính giờ thật chuẩn quốc tế</div>
+        </div>
+
+        <div style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #fee2e2', padding: '1.25rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#A11D24', marginBottom: '2px' }}>5 Cấp Độ</div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>HSK 1 Đến HSK 5</div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Kèm luyện thi HSKK</div>
+        </div>
+      </section>
+
+    </div>
+  );
+};

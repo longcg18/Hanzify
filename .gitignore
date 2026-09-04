@@ -1,9 +1,23 @@
+# Logs & Cache
+*.log
 .DS_Store
 Thumbs.db
-*.log
+
+# Dependencies & Build
 node_modules/
+dist/
+
+# IDE
 .vscode/
 .idea/
 
-dist/
-node_modules/
+# Environment Variables (DO NOT COMMIT SECRETS)
+.env
+.env.local
+.env.*.local
+
+# SQLite Database & Uploads
+*.db
+*.db-shm
+*.db-wal
+server/uploads/
