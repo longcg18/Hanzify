@@ -167,10 +167,8 @@ export function AppContent() {
   // Load exams từ Supabase khi mount
   useEffect(() => {
     fetchExams().then(({ data, isLiveDb }) => {
-      if (isLiveDb) {
-        setExams(data);
-        setIsExamsDbLive(true);
-      }
+      setExams(data || []);
+      setIsExamsDbLive(Boolean(isLiveDb));
     });
   }, []);
 
@@ -443,19 +441,42 @@ export function AppContent() {
     }, 4500);
   };
 
-  // Route Guard: Ensure unauthorized users never stay in admin-users or grading
+  // Route Guard: Ensure unauthenticated users are never on internal views
   useEffect(() => {
-    if (!user) return;
-    if (currentView === 'admin-users' && user.role !== 'admin') {
-      setCurrentView('courses');
+    if (!user && currentView !== 'home') {
+      setCurrentView('home');
+      setIsAuthModalOpen(true);
+      setRoleToast('Vui lòng đăng nhập để truy cập các khóa học và nội dung bên trong!');
+      setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
+    if (user && currentView === 'admin-users' && user.role !== 'admin') {
+      setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (currentView === 'grading' && user.role !== 'teacher') {
-      setCurrentView('courses');
+    } else if (user && currentView === 'grading' && user.role !== 'teacher') {
+      setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [user?.role, currentView]);
+  }, [user, user?.role, currentView]);
+
+  const handleNavigate = (view) => {
+    if (!user && view !== 'home') {
+      setIsAuthModalOpen(true);
+      setRoleToast('Vui lòng đăng nhập để truy cập tính năng này!');
+      setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
+    setCurrentView(view);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSelectCourse = (course) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      setRoleToast('Vui lòng đăng nhập để truy cập khóa học và làm bài tập!');
+      setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
     setActiveCourseId(course.id);
     setCurrentView('course-detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -545,10 +566,7 @@ export function AppContent() {
       {/* Top Bar Navigation */}
       <Navbar
         currentView={currentView}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={handleNavigate}
         activeCourse={activeCourse}
         onBack={handleBack}
         onRoleSwitched={handleRoleSwitched}
@@ -568,56 +586,68 @@ export function AppContent() {
           onDeleteClassroom={handleDeleteClassroom}
           streakData={streakData}
           onOpenStreakModal={handleOpenStreakModal}
-          onNavigate={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onNavigate={handleNavigate}
           onSelectCourse={handleSelectCourse}
           onOpenLesson={handleOpenLesson}
         />
       )}
 
       {currentView === 'courses' && (
-        <CoursesView 
-          courses={courses}
-          classrooms={classrooms}
-          onOpenCreateClass={() => setIsCreateClassModalOpen(true)}
-          onOpenJoinClass={() => setIsJoinClassModalOpen(true)}
-          onSelectCourse={handleSelectCourse} 
-          onCreateCourse={handleCreateCourse}
-          onEditCourse={handleEditCourse}
-          onDeleteCourse={handleDeleteCourse}
-          streakData={streakData}
-          onOpenStreakModal={handleOpenStreakModal}
-          onNavigate={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-        />
+        user ? (
+          <CoursesView 
+            courses={courses}
+            classrooms={classrooms}
+            onOpenCreateClass={() => setIsCreateClassModalOpen(true)}
+            onOpenJoinClass={() => setIsJoinClassModalOpen(true)}
+            onSelectCourse={handleSelectCourse} 
+            onCreateCourse={handleCreateCourse}
+            onEditCourse={handleEditCourse}
+            onDeleteCourse={handleDeleteCourse}
+            streakData={streakData}
+            onOpenStreakModal={handleOpenStreakModal}
+            onNavigate={handleNavigate}
+          />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập"
+            subtitle="Vui lòng đăng nhập vào tài khoản để xem danh sách khóa học và tham gia học tập."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+          />
+        )
       )}
 
       {currentView === 'course-detail' && (
-        <CourseDetailView
-          course={activeCourse}
-          classrooms={classrooms}
-          onOpenLesson={handleOpenLesson}
-          onOpenHomeworkEditor={(lesson) => {
-            if (!['admin', 'teacher'].includes(user?.role)) {
-              setIsAuthModalOpen(true);
-              return;
-            }
-            setActiveLesson(lesson);
-            setCurrentView('homework-editor');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onBack={() => setCurrentView('courses')}
-          onAddLesson={handleAddLesson}
-          onDeleteLesson={handleDeleteLesson}
-          onEditCourse={handleEditCourse}
-          onDeleteCourse={handleDeleteCourse}
-          onOpenClassLessonManager={(cls) => setManagingClassroom(cls)}
-          onUpdateLesson={handleUpdateLesson}
-        />
+        user ? (
+          <CourseDetailView
+            course={activeCourse}
+            classrooms={classrooms}
+            onOpenLesson={handleOpenLesson}
+            onOpenHomeworkEditor={(lesson) => {
+              if (!['admin', 'teacher'].includes(user?.role)) {
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setActiveLesson(lesson);
+              setCurrentView('homework-editor');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onBack={() => setCurrentView('courses')}
+            onAddLesson={handleAddLesson}
+            onDeleteLesson={handleDeleteLesson}
+            onEditCourse={handleEditCourse}
+            onDeleteCourse={handleDeleteCourse}
+            onOpenClassLessonManager={(cls) => setManagingClassroom(cls)}
+            onUpdateLesson={handleUpdateLesson}
+          />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập"
+            subtitle="Vui lòng đăng nhập vào tài khoản để xem chi tiết lộ trình bài học và làm bài tập."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+          />
+        )
       )}
 
       {currentView === 'homework-editor' && (
@@ -639,7 +669,7 @@ export function AppContent() {
             title="Quyền Hạn Bị Giới Hạn"
             subtitle="Trình biên soạn bài tập chỉ dành riêng cho Giáo viên và Quản trị viên."
             onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('courses')}
+            onBack={() => setCurrentView('home')}
           />
         )
       )}
@@ -655,24 +685,42 @@ export function AppContent() {
             title="Yêu Cầu Đăng Nhập Để Làm Bài Tập"
             subtitle="Bạn cần đăng nhập vào tài khoản để mở không gian làm bài tập, chấm điểm tự động và nộp bài cho giáo viên."
             onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('course-detail')}
+            onBack={() => setCurrentView('home')}
           />
         )
       )}
 
       {currentView === 'practice' && (
-        <PracticeView />
+        user ? (
+          <PracticeView />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập Để Luyện Tập"
+            subtitle="Bạn cần đăng nhập vào tài khoản để mở khu vực luyện tập phản xạ kỹ năng Nghe và Đọc hiểu."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+          />
+        )
       )}
 
       {currentView === 'exam' && (
-        <ExamView 
-          exams={exams}
-          isDbLive={isExamsDbLive}
-          onStartExam={handleStartExam} 
-          onCreateExam={handleCreateExam}
-          onEditExam={handleEditExam}
-          onDeleteExam={handleDeleteExam}
-        />
+        user ? (
+          <ExamView 
+            exams={exams}
+            isDbLive={isExamsDbLive}
+            onStartExam={handleStartExam} 
+            onCreateExam={handleCreateExam}
+            onEditExam={handleEditExam}
+            onDeleteExam={handleDeleteExam}
+          />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập Để Vào Khu Vực Thi Thử"
+            subtitle="Bạn cần đăng nhập vào tài khoản để truy cập kho đề thi chuẩn HSK và làm bài thi có bấm giờ."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+          />
+        )
       )}
 
       {currentView === 'exam-room' && (
@@ -683,20 +731,35 @@ export function AppContent() {
             title="Yêu Cầu Đăng Nhập Để Vào Phòng Thi"
             subtitle="Bạn cần đăng nhập vào tài khoản để vào phòng thi chuẩn HSK, làm bài có bấm giờ và lưu bảng điểm."
             onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('exam')}
+            onBack={() => setCurrentView('home')}
           />
         )
       )}
 
       {currentView === 'leaderboard' && (
-        <LeaderboardView classrooms={classrooms} onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }} />
+        user ? (
+          <LeaderboardView classrooms={classrooms} onNavigate={handleNavigate} />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập Để Xem Bảng Xếp Hạng"
+            subtitle="Bạn cần đăng nhập vào tài khoản để theo dõi xếp hạng thi đua tuần và điểm số của lớp."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+          />
+        )
       )}
 
       {currentView === 'forum' && (
-        <ForumView />
+        user ? (
+          <ForumView />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập Để Vào Diễn Đàn"
+            subtitle="Bạn cần đăng nhập vào tài khoản để tham gia hỏi đáp bài khó, thảo luận cùng bạn bè và giáo viên."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('home')}
+          />
+        )
       )}
 
       {currentView === 'entertainment' && (
@@ -707,7 +770,7 @@ export function AppContent() {
             title="Khu Vực Trò Chơi Giải Trí"
             subtitle="Đăng nhập tài khoản học viên để tham gia các trò chơi phản xạ chữ Hán, thanh điệu và lưu điểm số!"
             onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('courses')}
+            onBack={() => setCurrentView('home')}
           />
         )
       )}
@@ -736,7 +799,7 @@ export function AppContent() {
               </p>
               <button
                 type="button"
-                onClick={() => setCurrentView('courses')}
+                onClick={() => setCurrentView('home')}
                 style={{
                   background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
                   color: '#fff',
@@ -749,7 +812,7 @@ export function AppContent() {
                   boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
                 }}
               >
-                Quay Về Trang Khóa Học
+                Quay Về Trang Chủ
               </button>
             </div>
           </main>
@@ -780,7 +843,7 @@ export function AppContent() {
               </p>
               <button
                 type="button"
-                onClick={() => setCurrentView('courses')}
+                onClick={() => setCurrentView('home')}
                 style={{
                   background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
                   color: '#fff',
@@ -793,7 +856,7 @@ export function AppContent() {
                   boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
                 }}
               >
-                Quay Về Trang Khóa Học
+                Quay Về Trang Chủ
               </button>
             </div>
           </main>

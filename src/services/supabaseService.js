@@ -499,7 +499,13 @@ export async function deleteClassroomFromSupabase(classId) {
 export async function fetchExams() {
   try {
     const { data: exams, error: errExams } = await supabase.from('exams').select('*');
-    if (errExams || !exams || exams.length === 0) return { data: [], isLiveDb: false };
+    if (errExams) {
+      console.error('Supabase exams fetch error:', errExams);
+      return { data: [], isLiveDb: false };
+    }
+    if (!exams || exams.length === 0) {
+      return { data: [], isLiveDb: true };
+    }
 
     const { data: skills, error: skillsError } = await supabase.from('exam_skills').select('*').order('sort_order');
     const { data: parts, error: partsError } = await supabase.from('exam_parts').select('*').order('sort_order');

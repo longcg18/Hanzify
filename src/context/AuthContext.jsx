@@ -3,62 +3,6 @@ import { loginWithSupabase, logoutFromSupabase, registerStudentInSupabase } from
 
 const AuthContext = createContext();
 
-export const PRESET_USERS = {
-  admin: {
-    id: 'user-admin',
-    username: 'admin',
-    name: 'Nguyễn Phúc Long (Admin)',
-    email: 'admin@hanzify.com',
-    phone: '0901 234 567',
-    role: 'admin',
-    avatar: '👑',
-    chineseName: '龙老师',
-    badge: 'Quản trị viên tối cao',
-    joinedDate: 'Tháng 9/2026'
-  },
-  teacher: {
-    id: 'user-teacher',
-    username: 'giaovien01',
-    name: 'Cô Hoài (Giáo Viên 01)',
-    email: 'giaovien01@hanzify.com',
-    phone: '0987 654 321',
-    role: 'teacher',
-    avatar: '怀',
-    chineseName: '怀老师',
-    badge: 'Giáo viên phụ trách',
-    joinedDate: 'Năm 2026'
-  }
-};
-
-const INITIAL_REGISTERED_USERS = [
-  {
-    id: 'user-teacher',
-    username: 'giaovien01',
-    password: '123456',
-    name: 'Cô Hoài (Giáo Viên 01)',
-    email: 'giaovien01@hanzify.com',
-    phone: '0987 654 321',
-    role: 'teacher',
-    avatar: '怀',
-    chineseName: '怀老师',
-    badge: 'Giáo viên phụ trách',
-    joinedDate: 'Năm 2026'
-  },
-  {
-    id: 'user-admin',
-    username: 'admin',
-    password: '123456',
-    name: 'Nguyễn Phúc Long (Admin)',
-    email: 'admin@hanzify.com',
-    phone: '0901 234 567',
-    role: 'admin',
-    avatar: '👑',
-    chineseName: '龙老师',
-    badge: 'Quản trị viên tối cao',
-    joinedDate: 'Tháng 9/2026'
-  }
-];
-
 export const AuthProvider = ({ children }) => {
   // Persistent registered users list
   const [registeredUsers] = useState([]);

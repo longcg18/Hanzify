@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { COURSES_DATA } from '../data/coursesData';
 import { generateUniqueClassCode } from '../data/classroomsData';
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -13,7 +12,7 @@ const SHIFTS = [
 export const CreateClassModal = ({
   isOpen,
   onClose,
-  courses = COURSES_DATA,
+  courses = [],
   existingClassrooms = [],
   onCreateSuccess
 }) => {

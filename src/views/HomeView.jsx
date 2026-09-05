@@ -1193,6 +1193,10 @@ export const HomeView = ({
               <button
                 type="button"
                 onClick={() => {
+                  if (!user) {
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
                   if (onSelectCourse) onSelectCourse(currentCourse);
                 }}
                 style={{

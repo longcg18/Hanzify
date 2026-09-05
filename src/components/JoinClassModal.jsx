@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { COURSES_DATA } from '../data/coursesData';
 
 export const JoinClassModal = ({
   isOpen,
   onClose,
   classrooms = [],
-  courses = COURSES_DATA,
+  courses = [],
   onStudentActivated
 }) => {
   const { registerStudentWithClass, registeredUsers } = useAuth();
