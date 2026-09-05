@@ -8,6 +8,7 @@ export const HomeView = ({
   onOpenCreateClass,
   onOpenJoinClass,
   onOpenClassLessonManager,
+  onOpenEditClass,
   onDeleteClassroom,
   streakData, 
   onOpenStreakModal, 
@@ -422,6 +423,35 @@ export const HomeView = ({
                         >
                           {cls.level}
                         </span>
+
+                        {isTeacherOrAdmin && onOpenEditClass && (
+                          <button
+                            type="button"
+                            title="Chỉnh sửa thông tin lớp, thêm học sinh, khóa học"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenEditClass(cls);
+                            }}
+                            style={{
+                              border: 'none',
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            <i className="fa-solid fa-pen"></i>
+                            <span>Sửa</span>
+                          </button>
+                        )}
+
                         {isTeacherOrAdmin && onDeleteClassroom && (
                           <button
                             type="button"
@@ -500,28 +530,52 @@ export const HomeView = ({
                           </span>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => onOpenClassLessonManager && onOpenClassLessonManager(cls)}
-                          title="Mở hoặc khóa bài học cho lớp này"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.45rem 0.85rem',
-                            borderRadius: '8px',
-                            background: '#0f172a',
-                            color: '#ffffff',
-                            border: 'none',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)'
-                          }}
-                        >
-                          <i className="fa-solid fa-lock-open" style={{ color: '#38bdf8' }}></i>
-                          <span>Quản Lý Mở Bài</span>
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => onOpenEditClass && onOpenEditClass(cls)}
+                            title="Chỉnh sửa thông tin lớp, thêm học sinh, khóa học"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.45rem 0.75rem',
+                              borderRadius: '8px',
+                              background: '#ffffff',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <i className="fa-solid fa-pen"></i>
+                            <span>Sửa Lớp</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onOpenClassLessonManager && onOpenClassLessonManager(cls)}
+                            title="Mở hoặc khóa bài học cho lớp này"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.45rem 0.85rem',
+                              borderRadius: '8px',
+                              background: '#0f172a',
+                              color: '#ffffff',
+                              border: 'none',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)'
+                            }}
+                          >
+                            <i className="fa-solid fa-lock-open" style={{ color: '#38bdf8' }}></i>
+                            <span>Mở Bài</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

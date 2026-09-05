@@ -421,6 +421,68 @@ export async function updateClassroomUnlockedLessons(classId, unlockedLessons) {
   return { success: false };
 }
 
+export async function updateClassroomInSupabase(updatedClass) {
+  try {
+    // 1. Update classrooms table
+    const payload = {
+      name: updatedClass.name,
+      level: updatedClass.level,
+      schedule: updatedClass.schedule
+    };
+    const { error: classError } = await supabase
+      .from('classrooms')
+      .update(payload)
+      .eq('id', updatedClass.id);
+    if (classError) throw classError;
+
+    // 2. Sync courses (classroom_courses)
+    await supabase.from('classroom_courses').delete().eq('classroom_id', updatedClass.id);
+    const courseRows = (updatedClass.courseIds || []).map((courseId) => ({
+      classroom_id: updatedClass.id,
+      course_id: courseId
+    }));
+    if (courseRows.length > 0) {
+      const { error: courseError } = await supabase.from('classroom_courses').insert(courseRows);
+      if (courseError) throw courseError;
+    }
+
+    // 3. Sync students (classroom_students)
+    const currentStudentIds = (updatedClass.students || []).map((s) => s.id).filter(Boolean);
+    const { data: existingStudents } = await supabase
+      .from('classroom_students')
+      .select('id')
+      .eq('classroom_id', updatedClass.id);
+    
+    const toDelete = (existingStudents || [])
+      .map((s) => s.id)
+      .filter((id) => !currentStudentIds.includes(id));
+
+    if (toDelete.length > 0) {
+      await supabase.from('classroom_students').delete().in('id', toDelete);
+    }
+
+    if (updatedClass.students && updatedClass.students.length > 0) {
+      const studentRows = updatedClass.students.map((student) => ({
+        id: student.id,
+        classroom_id: updatedClass.id,
+        name: student.name,
+        username: student.username || null,
+        is_activated: Boolean(student.isActivated),
+        activated_at: student.activatedAt || null
+      }));
+      const { error: studentError } = await supabase
+        .from('classroom_students')
+        .upsert(studentRows, { onConflict: 'id' });
+      if (studentError) throw studentError;
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error('Error updating classroom on Supabase:', e);
+    return { success: false, error: e };
+  }
+}
+
 export async function deleteClassroomFromSupabase(classId) {
   try {
     await supabase.from('classrooms').delete().eq('id', classId);

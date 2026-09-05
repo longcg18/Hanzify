@@ -18,6 +18,7 @@ import { StreakModal } from './components/StreakModal';
 import { CreateClassModal } from './components/CreateClassModal';
 import { JoinClassModal } from './components/JoinClassModal';
 import { ClassLessonManagerModal } from './components/ClassLessonManagerModal';
+import { EditClassModal } from './components/EditClassModal';
 import { LessonHomeworkEditorView } from './views/LessonHomeworkEditorView';
 import { 
   fetchCoursesWithLessons,
@@ -27,6 +28,7 @@ import {
   deleteLessonFromSupabase,
   fetchClassrooms,
   createClassroomInSupabase,
+  updateClassroomInSupabase,
   updateClassroomUnlockedLessons,
   deleteClassroomFromSupabase,
   fetchExams,
@@ -141,6 +143,7 @@ export function AppContent() {
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeExam, setActiveExam] = useState(null);
   const [managingClassroom, setManagingClassroom] = useState(null);
+  const [editingClassroom, setEditingClassroom] = useState(null);
 
   // Load courses and classrooms directly from Supabase Cloud
   useEffect(() => {
@@ -380,6 +383,22 @@ export function AppContent() {
     setTimeout(() => setRoleToast(null), 3000);
   };
 
+  const handleEditClassroom = async (updatedClass) => {
+    const res = await updateClassroomInSupabase(updatedClass);
+    if (!res.success) {
+      setRoleToast('Không thể cập nhật thông tin lớp học trên Supabase.');
+      return;
+    }
+    setClassrooms((prev) =>
+      prev.map((c) => (c.id === updatedClass.id ? updatedClass : c))
+    );
+    if (managingClassroom?.id === updatedClass.id) {
+      setManagingClassroom(updatedClass);
+    }
+    setRoleToast(`Đã cập nhật thông tin lớp "${updatedClass.name}" thành công!`);
+    setTimeout(() => setRoleToast(null), 3500);
+  };
+
   const handleUpdateLesson = async (courseId, updatedLesson) => {
     setCourses((prev) =>
       prev.map((c) => {
@@ -545,6 +564,7 @@ export function AppContent() {
           onOpenCreateClass={() => setIsCreateClassModalOpen(true)}
           onOpenJoinClass={() => setIsJoinClassModalOpen(true)}
           onOpenClassLessonManager={(cls) => setManagingClassroom(cls)}
+          onOpenEditClass={(cls) => setEditingClassroom(cls)}
           onDeleteClassroom={handleDeleteClassroom}
           streakData={streakData}
           onOpenStreakModal={handleOpenStreakModal}
@@ -856,6 +876,15 @@ export function AppContent() {
         onToggleLesson={handleToggleClassLesson}
         onUnlockAll={handleUnlockAllClassLessons}
         onLockAll={handleLockAllClassLessons}
+      />
+
+      {/* Classroom Edit Modal (Cô Hoài / Admin) */}
+      <EditClassModal
+        isOpen={Boolean(editingClassroom)}
+        onClose={() => setEditingClassroom(null)}
+        classroom={editingClassroom}
+        courses={courses}
+        onSaveSuccess={handleEditClassroom}
       />
 
       {/* Global Auth Modal */}
