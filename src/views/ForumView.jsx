@@ -1,21 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { INITIAL_FORUM_POSTS } from '../data/gamificationData';
+import { createForumComment, createForumPost, fetchForumPosts, updateForumPost } from '../services/supabaseService';
 
 export const ForumView = () => {
   const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
 
-  const [posts, setPosts] = useState(() => {
-    const saved = localStorage.getItem('hanzify_forum_posts');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_FORUM_POSTS;
-  });
+  const [posts, setPosts] = useState([]);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    fetchForumPosts().then(({ data, error }) => {
+      setPosts(data);
+      setLoadError(error || '');
+    });
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState('all'); // 'all' | 'bai-kho' | 'bao-loi' | 'kinh-nghiem' | 'thao-luan'
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,34 +27,20 @@ export const ForumView = () => {
   const [newContent, setNewContent] = useState('');
   const [newTags, setNewTags] = useState('');
 
-  // Persist to localStorage
-  const savePosts = (newPosts) => {
-    setPosts(newPosts);
-    try {
-      localStorage.setItem('hanzify_forum_posts', JSON.stringify(newPosts));
-    } catch (e) {}
-  };
-
   // Like / Upvote handler
-  const handleToggleLike = (postId, e) => {
+  const handleToggleLike = async (postId, e) => {
     e.stopPropagation();
-    savePosts(
-      posts.map((post) => {
-        if (post.id === postId) {
-          const isLiked = !post.isLiked;
-          return {
-            ...post,
-            isLiked,
-            likesCount: isLiked ? post.likesCount + 1 : Math.max(0, post.likesCount - 1)
-          };
-        }
-        return post;
-      })
-    );
+    const post = posts.find((item) => item.id === postId);
+    if (!post) return;
+    const isLiked = !post.isLiked;
+    const likesCount = isLiked ? post.likesCount + 1 : Math.max(0, post.likesCount - 1);
+    const result = await updateForumPost(postId, { likesCount });
+    if (result.success) setPosts((prev) => prev.map((item) => item.id === postId ? { ...item, isLiked, likesCount } : item));
+    else setLoadError(result.error);
   };
 
   // Add Comment handler
-  const handleAddComment = (postId, e) => {
+  const handleAddComment = async (postId, e) => {
     e.preventDefault();
     if (!user) {
       setIsAuthModalOpen(true);
@@ -83,8 +67,9 @@ export const ForumView = () => {
       likesCount: 0
     };
 
-    savePosts(
-      posts.map((post) => {
+    const result = await createForumComment(postId, newComment, user);
+    if (!result.success) { setLoadError(result.error); return; }
+    setPosts((prev) => prev.map((post) => {
         if (post.id === postId) {
           return {
             ...post,
@@ -98,14 +83,13 @@ export const ForumView = () => {
           };
         }
         return post;
-      })
-    );
+      }));
 
     setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
   };
 
   // Create New Post handler
-  const handleCreatePost = (e) => {
+  const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!user) {
       setIsAuthModalOpen(true);
@@ -137,14 +121,16 @@ export const ForumView = () => {
           : user.badge || 'Học viên Hanzify'
       },
       createdAt: 'Vừa xong',
-      likesCount: 1,
-      isLiked: true,
+      likesCount: 0,
+      isLiked: false,
       status: 'pending',
       tags: tagList.length > 0 ? tagList : [newCategory === 'bao-loi' ? 'Báo lỗi' : 'Học tập'],
       comments: []
     };
 
-    savePosts([newPost, ...posts]);
+    const result = await createForumPost(newPost, user);
+    if (!result.success) { setLoadError(result.error); return; }
+    setPosts((prev) => [newPost, ...prev]);
     setIsNewPostModalOpen(false);
     setNewTitle('');
     setNewContent('');
@@ -153,11 +139,11 @@ export const ForumView = () => {
   };
 
   // Quick Change Post Status (Admin & Teacher)
-  const handleChangeStatus = (postId, newStatus, e) => {
+  const handleChangeStatus = async (postId, newStatus, e) => {
     e.stopPropagation();
-    savePosts(
-      posts.map((p) => (p.id === postId ? { ...p, status: newStatus } : p))
-    );
+    const result = await updateForumPost(postId, { status: newStatus });
+    if (result.success) setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, status: newStatus } : p)));
+    else setLoadError(result.error);
   };
 
   // Filter posts
@@ -181,6 +167,7 @@ export const ForumView = () => {
 
   return (
     <div className="forum-view-container" style={{ maxWidth: '1120px', margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
+      {loadError && <div role="alert" style={{ marginBottom: '1rem', padding: '0.85rem 1rem', borderRadius: 12, background: '#fef2f2', color: '#991b1b' }}>Không thể tải dữ liệu diễn đàn: {loadError}</div>}
       {/* Header Banner */}
       <section style={{
         background: 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #450a0a 100%)',

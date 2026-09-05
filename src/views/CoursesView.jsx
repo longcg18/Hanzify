@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { COURSES_DATA } from '../data/coursesData';
 
 const GRADIENT_PRESETS = [
   { label: 'Đỏ Imperial', value: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', color: '#b91c1c' },
@@ -11,7 +10,7 @@ const GRADIENT_PRESETS = [
 ];
 
 export const CoursesView = ({ 
-  courses = COURSES_DATA, 
+  courses = [], 
   classrooms = [],
   onOpenCreateClass,
   onOpenJoinClass,
@@ -138,7 +137,9 @@ export const CoursesView = ({
     setIsModalOpen(false);
   };
 
-  // Student statistics calculation
+  // Student & System statistics calculation
+  const totalStudents = classrooms.reduce((acc, c) => acc + (c.students?.length || 0), 0);
+  const totalLessons = courses.reduce((acc, c) => acc + (c.lessons?.length || 0), 0);
   const studentCompletedLessons = courses.reduce((acc, c) => acc + (c.completedLessons || 0), 0);
   const allScores = [];
   courses.forEach((c) => {
@@ -148,7 +149,7 @@ export const CoursesView = ({
   });
   const avgScore = allScores.length > 0 
     ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(1) 
-    : '9.5';
+    : '0.0';
 
   return (
     <div className="courses-view-container">
@@ -234,12 +235,16 @@ export const CoursesView = ({
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Khóa Hệ Thống</span>
               </div>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
-                <span className="stat-num" style={{ color: '#f8fafc' }}>58</span>
+                <span className="stat-num" style={{ color: '#f8fafc' }}>
+                  {totalStudents < 10 ? `0${totalStudents}` : totalStudents}
+                </span>
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Tổng Học Viên</span>
               </div>
               <div className="stat-card highlight" style={{ background: 'rgba(161, 29, 36, 0.2)', borderColor: '#A11D24' }}>
-                <span className="stat-num" style={{ color: '#fca5a5' }}>100%</span>
-                <span className="stat-label" style={{ color: '#fca5a5' }}>Hệ Thống Sẵn Sàng</span>
+                <span className="stat-num" style={{ color: '#fca5a5' }}>
+                  {totalLessons < 10 ? `0${totalLessons}` : totalLessons}
+                </span>
+                <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Tập Thiết Lập</span>
               </div>
             </>
           ) : user?.role === 'teacher' ? (
@@ -251,12 +256,16 @@ export const CoursesView = ({
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Khóa Đang Dạy</span>
               </div>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
-                <span className="stat-num" style={{ color: '#f8fafc' }}>58</span>
+                <span className="stat-num" style={{ color: '#f8fafc' }}>
+                  {totalStudents < 10 ? `0${totalStudents}` : totalStudents}
+                </span>
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Tổng Học Viên</span>
               </div>
               <div className="stat-card highlight" style={{ background: 'rgba(161, 29, 36, 0.2)', borderColor: '#A11D24' }}>
-                <span className="stat-num" style={{ color: '#fca5a5' }}>98%</span>
-                <span className="stat-label" style={{ color: '#fca5a5' }}>Tỷ Lệ Đạt HSK</span>
+                <span className="stat-num" style={{ color: '#fca5a5' }}>
+                  {totalLessons < 10 ? `0${totalLessons}` : totalLessons}
+                </span>
+                <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Đang Phụ Trách</span>
               </div>
             </>
           ) : (
@@ -274,7 +283,7 @@ export const CoursesView = ({
                 <span className="stat-label">Bài Đã Hoàn Thành</span>
               </div>
               <div className="stat-card highlight">
-                <span className="stat-num">{avgScore}</span>
+                <span className="stat-num">{allScores.length > 0 ? avgScore : '--'}</span>
                 <span className="stat-label">Điểm Trung Bình</span>
               </div>
             </>
@@ -377,6 +386,9 @@ export const CoursesView = ({
           const totalL = course.lessons?.length || course.totalLessons || 1;
           const completedL = course.completedLessons || 0;
           const percent = Math.min(100, Math.round((completedL / totalL) * 100));
+          const courseStudentsCount = (classrooms || [])
+            .filter((cls) => (cls.course_ids || cls.courseIds || []).includes(course.id))
+            .reduce((acc, cls) => acc + (cls.students?.length || 0), 0);
 
           return (
             <article 
@@ -475,7 +487,7 @@ export const CoursesView = ({
                     </span>
                     <span className="progress-num">
                       {isTeacherOrAdmin ? (
-                        <strong>{course.id === 'hsk2' ? '28' : course.id === 'hsk1' ? '20' : '12'} Học Viên</strong>
+                        <strong>{courseStudentsCount} Học Viên</strong>
                       ) : (
                         <>
                           <strong>{completedL}</strong> / {totalL} bài ({percent}%)
@@ -487,7 +499,9 @@ export const CoursesView = ({
                     <div 
                       className="course-progress-fill" 
                       style={{
-                        width: isTeacherOrAdmin ? '88%' : `${percent}%`,
+                        width: isTeacherOrAdmin 
+                          ? `${courseStudentsCount > 0 ? '100%' : '0%'}` 
+                          : `${percent}%`,
                         background: isTeacherOrAdmin ? 'linear-gradient(90deg, #1e293b 0%, #A11D24 100%)' : undefined
                       }}
                     ></div>

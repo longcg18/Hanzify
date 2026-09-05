@@ -7,8 +7,9 @@
 -- 1. BẢNG TÀI KHOẢN NGƯỜI DÙNG & PHÂN QUYỀN (USERS)
 CREATE TABLE IF NOT EXISTS public.users (
   id TEXT PRIMARY KEY,
+  auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT UNIQUE,
   email TEXT UNIQUE NOT NULL,
-  password TEXT DEFAULT '123456',
   full_name TEXT NOT NULL,
   chinese_name TEXT,
   role TEXT CHECK (role IN ('admin', 'teacher', 'student')) DEFAULT 'student',
@@ -17,6 +18,18 @@ CREATE TABLE IF NOT EXISTS public.users (
   status TEXT DEFAULT 'active',
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+ALTER TABLE public.users DROP COLUMN IF EXISTS password;
+
+CREATE OR REPLACE FUNCTION public.is_hanzify_staff()
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT EXISTS (SELECT 1 FROM public.users WHERE auth_user_id = auth.uid() AND role IN ('admin', 'teacher') AND status = 'active') $$;
+
+CREATE OR REPLACE FUNCTION public.is_hanzify_admin()
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT EXISTS (SELECT 1 FROM public.users WHERE auth_user_id = auth.uid() AND role = 'admin' AND status = 'active') $$;
 
 -- 2. BẢNG KHÓA HỌC (COURSES)
 CREATE TABLE IF NOT EXISTS public.courses (
@@ -177,75 +190,83 @@ ALTER TABLE public.exam_questions ENABLE ROW LEVEL SECURITY;
 -- Policies cho phép Client (anon/authenticated) đọc và ghi dữ liệu phục vụ ứng dụng
 DROP POLICY IF EXISTS "Public Read Users" ON public.users;
 DROP POLICY IF EXISTS "Public Insert/Update Users" ON public.users;
-CREATE POLICY "Public Read Users" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Public Insert/Update Users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Users read own profile" ON public.users;
+DROP POLICY IF EXISTS "Users update own profile" ON public.users;
+DROP POLICY IF EXISTS "Users create own profile" ON public.users;
+CREATE POLICY "Users read own profile" ON public.users FOR SELECT TO authenticated USING (auth_user_id = auth.uid() OR public.is_hanzify_staff());
+CREATE POLICY "Users update own profile" ON public.users FOR UPDATE TO authenticated USING (auth_user_id = auth.uid() OR public.is_hanzify_admin()) WITH CHECK (auth_user_id = auth.uid() OR public.is_hanzify_admin());
+CREATE POLICY "Users create own profile" ON public.users FOR INSERT TO authenticated WITH CHECK (auth_user_id = auth.uid() AND role = 'student');
 
 DROP POLICY IF EXISTS "Public Read Courses" ON public.courses;
 DROP POLICY IF EXISTS "Public Manage Courses" ON public.courses;
 CREATE POLICY "Public Read Courses" ON public.courses FOR SELECT USING (true);
-CREATE POLICY "Public Manage Courses" ON public.courses FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Staff Manage Courses" ON public.courses FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Lessons" ON public.lessons;
 DROP POLICY IF EXISTS "Public Manage Lessons" ON public.lessons;
 CREATE POLICY "Public Read Lessons" ON public.lessons FOR SELECT USING (true);
-CREATE POLICY "Public Manage Lessons" ON public.lessons FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Staff Manage Lessons" ON public.lessons FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Questions" ON public.homework_questions;
 DROP POLICY IF EXISTS "Public Manage Questions" ON public.homework_questions;
 CREATE POLICY "Public Read Questions" ON public.homework_questions FOR SELECT USING (true);
-CREATE POLICY "Public Manage Questions" ON public.homework_questions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Staff Manage Questions" ON public.homework_questions FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Submissions" ON public.submissions;
 DROP POLICY IF EXISTS "Public Manage Submissions" ON public.submissions;
 CREATE POLICY "Public Read Submissions" ON public.submissions FOR SELECT USING (true);
-CREATE POLICY "Public Manage Submissions" ON public.submissions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Students create submissions" ON public.submissions FOR INSERT TO authenticated WITH CHECK (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Owners and staff read submissions" ON public.submissions FOR SELECT TO authenticated USING (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());
+CREATE POLICY "Staff grade submissions" ON public.submissions FOR UPDATE TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Match Pairs" ON public.game_match_pairs;
 DROP POLICY IF EXISTS "Public Manage Match Pairs" ON public.game_match_pairs;
 CREATE POLICY "Public Read Match Pairs" ON public.game_match_pairs FOR SELECT USING (true);
-CREATE POLICY "Public Manage Match Pairs" ON public.game_match_pairs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Match Pairs" ON public.game_match_pairs FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Tone Items" ON public.game_tone_items;
 DROP POLICY IF EXISTS "Public Manage Tone Items" ON public.game_tone_items;
 CREATE POLICY "Public Read Tone Items" ON public.game_tone_items FOR SELECT USING (true);
-CREATE POLICY "Public Manage Tone Items" ON public.game_tone_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Tone Items" ON public.game_tone_items FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Leaderboard" ON public.game_leaderboard;
 DROP POLICY IF EXISTS "Public Manage Leaderboard" ON public.game_leaderboard;
 CREATE POLICY "Public Read Leaderboard" ON public.game_leaderboard FOR SELECT USING (true);
-CREATE POLICY "Public Manage Leaderboard" ON public.game_leaderboard FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Leaderboard" ON public.game_leaderboard FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Exams" ON public.exams;
 DROP POLICY IF EXISTS "Public Manage Exams" ON public.exams;
 CREATE POLICY "Public Read Exams" ON public.exams FOR SELECT USING (true);
-CREATE POLICY "Public Manage Exams" ON public.exams FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Exams" ON public.exams FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Exam Skills" ON public.exam_skills;
 DROP POLICY IF EXISTS "Public Manage Exam Skills" ON public.exam_skills;
 CREATE POLICY "Public Read Exam Skills" ON public.exam_skills FOR SELECT USING (true);
-CREATE POLICY "Public Manage Exam Skills" ON public.exam_skills FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Exam Skills" ON public.exam_skills FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Exam Parts" ON public.exam_parts;
 DROP POLICY IF EXISTS "Public Manage Exam Parts" ON public.exam_parts;
 CREATE POLICY "Public Read Exam Parts" ON public.exam_parts FOR SELECT USING (true);
-CREATE POLICY "Public Manage Exam Parts" ON public.exam_parts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Exam Parts" ON public.exam_parts FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Exam Questions" ON public.exam_questions;
 DROP POLICY IF EXISTS "Public Manage Exam Questions" ON public.exam_questions;
 CREATE POLICY "Public Read Exam Questions" ON public.exam_questions FOR SELECT USING (true);
-CREATE POLICY "Public Manage Exam Questions" ON public.exam_questions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Manage Exam Questions" ON public.exam_questions FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 
 -- ==============================================================================
 -- DỮ LIỆU KHỞI TẠO MẪU (SEED DATA)
 -- ==============================================================================
 
 -- 1. Tài khoản mẫu: Admin Nguyễn Phúc Long, Giáo viên Cô Hoài, Học viên
-INSERT INTO public.users (id, email, password, full_name, chinese_name, role, avatar, phone)
+-- Hồ sơ mẫu chỉ dùng cho môi trường development. Tạo người dùng tương ứng trong
+-- Supabase Auth rồi gán auth_user_id trước khi đăng nhập.
+INSERT INTO public.users (id, email, full_name, chinese_name, role, avatar, phone)
 VALUES
-  ('user-admin', 'admin@hanzify.com', '123456', 'Nguyễn Phúc Long', '龙老师', 'admin', '👑', '0901 234 567'),
-  ('user-teacher', 'hoailaoshi@hanzify.com', '123456', 'Cô Hoài', '怀老师', 'teacher', '怀', '0987 654 321'),
-  ('user-student-1', 'student@hanzify.com', '123456', 'Nguyễn Văn An', '阮文安', 'student', '安', '0911 223 344'),
-  ('user-student-2', 'maitran@hanzify.com', '123456', 'Trần Thị Mai', '陈氏梅', 'student', '梅', '0933 445 566')
+  ('user-admin', 'admin@hanzify.com', 'Nguyễn Phúc Long', '龙老师', 'admin', '👑', '0901 234 567'),
+  ('user-teacher', 'hoailaoshi@hanzify.com', 'Cô Hoài', '怀老师', 'teacher', '怀', '0987 654 321'),
+  ('user-student-1', 'student@hanzify.com', 'Nguyễn Văn An', '阮文安', 'student', '安', '0911 223 344'),
+  ('user-student-2', 'maitran@hanzify.com', 'Trần Thị Mai', '陈氏梅', 'student', '梅', '0933 445 566')
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Khóa học mẫu
@@ -429,10 +450,14 @@ ALTER TABLE public.forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_comments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Cho phép đọc dữ liệu Gamification" ON public.user_streaks FOR SELECT USING (true);
+CREATE POLICY "Học viên cập nhật streak cá nhân" ON public.user_streaks FOR ALL TO authenticated
+  USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()))
+  WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Cho phép đọc bài viết diễn đàn" ON public.forum_posts FOR SELECT USING (true);
-CREATE POLICY "Cho phép ghi bài viết diễn đàn" ON public.forum_posts FOR ALL USING (true);
+CREATE POLICY "Thành viên ghi bài viết diễn đàn" ON public.forum_posts FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Chủ bài hoặc staff cập nhật diễn đàn" ON public.forum_posts FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());
 CREATE POLICY "Cho phép đọc bình luận diễn đàn" ON public.forum_comments FOR SELECT USING (true);
-CREATE POLICY "Cho phép ghi bình luận diễn đàn" ON public.forum_comments FOR ALL USING (true);
+CREATE POLICY "Thành viên ghi bình luận diễn đàn" ON public.forum_comments FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 
 -- ==============================================================================
 -- 9. BẢNG QUẢN LÝ LỚP HỌC & DANH SÁCH ĐIỂM DANH HỌC VIÊN (CLASSROOMS & ROSTER)
@@ -474,9 +499,8 @@ ALTER TABLE public.classroom_courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classroom_students ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Cho phép đọc dữ liệu lớp học" ON public.classrooms FOR SELECT USING (true);
-CREATE POLICY "Cho phép ghi dữ liệu lớp học" ON public.classrooms FOR ALL USING (true);
+CREATE POLICY "Staff ghi dữ liệu lớp học" ON public.classrooms FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 CREATE POLICY "Cho phép đọc combo khóa học lớp" ON public.classroom_courses FOR SELECT USING (true);
-CREATE POLICY "Cho phép ghi combo khóa học lớp" ON public.classroom_courses FOR ALL USING (true);
+CREATE POLICY "Staff ghi combo khóa học lớp" ON public.classroom_courses FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 CREATE POLICY "Cho phép đọc danh sách học viên lớp" ON public.classroom_students FOR SELECT USING (true);
-CREATE POLICY "Cho phép cập nhật kích hoạt học viên" ON public.classroom_students FOR ALL USING (true);
-
+CREATE POLICY "Staff cập nhật học viên lớp" ON public.classroom_students FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());

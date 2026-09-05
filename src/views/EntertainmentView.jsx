@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
+import { fetchMatchPairs, fetchToneItems, fetchLeaderboard } from '../services/supabaseService';
 
 // ==========================================
 // 1. GAME CATALOG METADATA (Danh Mục Trò Chơi)
@@ -148,9 +149,22 @@ export const EntertainmentView = () => {
   // Filters (Same pattern as PracticeView)
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [matchCards, setMatchCards] = useState([]);
+  const [toneQuestions, setToneQuestions] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  useEffect(() => {
+    Promise.all([fetchMatchPairs(), fetchToneItems(), fetchLeaderboard()]).then(([pairsResult, tonesResult, lbResult]) => {
+      setMatchCards((pairsResult.data || []).flatMap((pair) => [
+        { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean },
+        { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean }
+      ]));
+      setToneQuestions(tonesResult.data || []);
+      setLeaderboard(lbResult?.data || []);
+    });
+  }, []);
 
   // Filter games list
-  const filteredGames = GAMES_CATALOG.filter((g) => {
+  const filteredGames = GAMES_CATALOG.filter((g) => ['match', 'tone'].includes(g.id)).filter((g) => {
     const matchCat = selectedCategory === 'all' || g.category === selectedCategory;
     const matchLvl = selectedLevel === 'all' || g.level === selectedLevel;
     return matchCat && matchLvl;
@@ -176,7 +190,7 @@ export const EntertainmentView = () => {
   const [moves, setMoves] = useState(0);
 
   const initMatchGame = () => {
-    const shuffled = [...BASE_CARDS].sort(() => Math.random() - 0.5);
+    const shuffled = [...matchCards].sort(() => Math.random() - 0.5);
     setCards(shuffled);
     setFlipped([]);
     setMatched([]);
@@ -201,7 +215,7 @@ export const EntertainmentView = () => {
         setMatched((prev) => [...prev, firstCard.pairId]);
         setFlipped([]);
 
-        if (matched.length + 1 === BASE_CARDS.length / 2) {
+        if (matched.length + 1 === matchCards.length / 2) {
           confetti({
             particleCount: 120,
             spread: 80,
@@ -225,10 +239,10 @@ export const EntertainmentView = () => {
   const [toneStreak, setToneStreak] = useState(0);
   const [toneFeedback, setToneFeedback] = useState(null); // 'correct' | 'wrong'
 
-  const currentToneQ = TONE_QUESTIONS[toneIdx];
+  const currentToneQ = toneQuestions[toneIdx];
 
   const handleToneAnswer = (selectedTone) => {
-    if (toneFeedback) return;
+    if (toneFeedback || !currentToneQ) return;
 
     if (selectedTone === currentToneQ.tone) {
       setToneFeedback('correct');
@@ -249,7 +263,7 @@ export const EntertainmentView = () => {
 
     setTimeout(() => {
       setToneFeedback(null);
-      setToneIdx((prev) => (prev + 1) % TONE_QUESTIONS.length);
+      setToneIdx((prev) => (prev + 1) % toneQuestions.length);
     }, 1000);
   };
 
@@ -462,7 +476,7 @@ export const EntertainmentView = () => {
                 <div>
                   <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Tiến độ ghép đôi:</div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#A11D24' }}>
-                    {matched.length} / {BASE_CARDS.length / 2} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>cặp từ</span>
+                    {matched.length} / {matchCards.length / 2} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>cặp từ</span>
                   </div>
                 </div>
 
@@ -560,7 +574,7 @@ export const EntertainmentView = () => {
                 })}
               </div>
 
-              {matched.length === BASE_CARDS.length / 2 && (
+              {matchCards.length > 0 && matched.length === matchCards.length / 2 && (
                 <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '16px', padding: '1.5rem', textAlign: 'center' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎉</div>
                   <h3 style={{ margin: 0, color: '#16a34a', fontSize: '1.3rem' }}>Chúc mừng bạn đã hoàn thành xuất sắc!</h3>
@@ -970,12 +984,12 @@ export const EntertainmentView = () => {
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', fontSize: '0.8rem', color: '#64748b' }}>
                     <span>
-                      <i className="fa-solid fa-users" style={{ color: '#A11D24', marginRight: '0.35rem' }}></i>
-                      {game.playersCount} lượt chơi
+                      <i className="fa-regular fa-clock" style={{ color: '#A11D24', marginRight: '0.35rem' }}></i>
+                      {game.duration}
                     </span>
                     <span>
-                      <i className="fa-solid fa-trophy" style={{ color: '#d97706', marginRight: '0.35rem' }}></i>
-                      Kỷ lục: <strong>{game.topScore}</strong>
+                      <i className="fa-solid fa-layer-group" style={{ color: '#d97706', marginRight: '0.35rem' }}></i>
+                      {game.level}
                     </span>
                   </div>
 
@@ -1027,7 +1041,11 @@ export const EntertainmentView = () => {
                   Bảng Vàng Kỷ Lục Tuần Này
                 </h4>
                 <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                  Top 1: <strong>Nguyễn Minh Anh</strong> (820 điểm · Thử Thách Thanh Điệu) • Top 2: <strong>Trần Thị Mai</strong> (740 điểm)
+                  {leaderboard.length > 0 ? (
+                    <>Top 1: <strong>{leaderboard[0].user_name}</strong> ({leaderboard[0].score} điểm) {leaderboard[1] ? `• Top 2: ${leaderboard[1].user_name} (${leaderboard[1].score} điểm)` : ''}</>
+                  ) : (
+                    'Chưa có kỷ lục trong tuần này • Hãy chơi ngay để trở thành người đứng đầu!'
+                  )}
                 </div>
               </div>
             </div>

@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { INITIAL_EXAMS_DATA, countExamTotalQuestions } from '../data/examsData';
+import { countExamTotalQuestions } from '../data/examsData';
 
 export const ExamView = ({ 
-  exams = INITIAL_EXAMS_DATA,
+  exams = [],
   isDbLive = false,
   onStartExam, 
   onCreateExam, 
   onEditExam, 
   onDeleteExam 
 }) => {
-  const { user } = useAuth();
+  const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
 
   // Modal State for Exam Builder / Editor
@@ -392,7 +392,7 @@ export const ExamView = ({
               border: isDbLive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(148, 163, 184, 0.2)'
             }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isDbLive ? '#22c55e' : '#64748b', display: 'inline-block', animation: isDbLive ? 'pulse 2s infinite' : 'none' }}></span>
-              {isDbLive ? '✅ Supabase Exams: Đã Kết Nối' : '🔄 Chế Độ Offline (localStorage)'}
+              {isDbLive ? '✅ Supabase Exams: Đã Kết Nối' : '⚠️ Chưa kết nối được Supabase'}
             </span>
           </div>
         )}
@@ -561,7 +561,13 @@ export const ExamView = ({
               ) : (
                 <button
                   type="button"
-                  onClick={() => onStartExam(exam)}
+                  onClick={() => {
+                    if (!user) {
+                      setIsAuthModalOpen(true);
+                      return;
+                    }
+                    onStartExam(exam);
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.85rem',
@@ -580,8 +586,9 @@ export const ExamView = ({
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <i className="fa-solid fa-play"></i>
-                  Bắt Đầu Thi Thử Ngay
+                  {!user && <i className="fa-solid fa-lock" style={{ marginRight: '2px' }}></i>}
+                  <span>{user ? 'Bắt Đầu Thi Thử Ngay' : 'Đăng Nhập Để Thi Thử'}</span>
+                  {user && <i className="fa-solid fa-play"></i>}
                 </button>
               )}
             </div>

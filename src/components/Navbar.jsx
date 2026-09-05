@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth, PRESET_USERS } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { ProfileDropdown } from './ProfileDropdown';
 
 export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSwitched, streakData, onOpenStreakModal }) => {
-  const { user, logout, switchRole, setIsAuthModalOpen, unreadNotifsCount } = useAuth();
+  const { user, setIsAuthModalOpen, unreadNotifsCount } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [profileDropdownTab, setProfileDropdownTab] = useState('profile');
 
@@ -208,7 +208,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
               <button
                 type="button"
                 onClick={onOpenStreakModal}
-                title={`Chuỗi ngày học: ${streakData?.currentStreak || 5} ngày liên tiếp (Bấm để xem & điểm danh)`}
+                title={`Chuỗi ngày học: ${streakData?.currentStreak ?? 0} ngày liên tiếp (Bấm để xem & điểm danh)`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -226,7 +226,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
                 }}
               >
                 <span style={{ fontSize: '1.05rem', filter: 'drop-shadow(0 1px 3px rgba(234,88,12,0.4))' }}>🔥</span>
-                <span>{streakData?.currentStreak || 5}</span>
+                <span>{streakData?.currentStreak ?? 0}</span>
               </button>
             )}
 
@@ -317,16 +317,6 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
               <span className="avatar-initials">{user.avatar}</span>
               <span className="status-online"></span>
             </div>
-
-            {/* Logout Shortcut */}
-            <button
-              type="button"
-              className="btn-icon-logout"
-              title="Đăng xuất"
-              onClick={logout}
-            >
-              <i className="fa-solid fa-arrow-right-from-bracket"></i>
-            </button>
 
             {/* Compact Profile Dropdown Popover */}
             <ProfileDropdown

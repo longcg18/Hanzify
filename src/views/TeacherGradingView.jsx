@@ -1,57 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-
-const INITIAL_SUBMISSIONS = [
-  {
-    id: 'sub-sample-1',
-    lessonTitle: 'Bài 04: Đi Mua Sắm (买东西)',
-    studentId: 'user-student-2',
-    studentName: 'Trần Thị Mai',
-    studentAvatar: '梅',
-    submittedAt: '2 giờ trước',
-    status: 'pending',
-    totalScore: null,
-    answers: {
-      q1Answer: 'B',
-      q2Answer: 'C',
-      q3Sentence: '这件衣服有点儿贵。',
-      q4Answers: { 'sq-1': '错 (Sai)', 'sq-2': '三斤 (3 cân)', 'sq-3': '二十五块 (25 tệ)' },
-      q5AudioText: '老板，这件红色的衣服太贵了，便宜一点儿吧！',
-      q6HandwritingImage: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
-      q7EssayText: '上个星期天，我和妈妈去超市买东西。我们买了三斤苹果和两斤香蕉。苹果很甜，不贵。我们一共花了三十块钱，很高兴。',
-      q7CharCount: 58
-    },
-    teacherComment: ''
-  },
-  {
-    id: 'sub-sample-2',
-    lessonTitle: 'Bài 03: Thời Gian & Ngày Tháng (时间与日期)',
-    studentId: 'user-student-1',
-    studentName: 'Nguyễn Văn An',
-    studentAvatar: '安',
-    submittedAt: 'Hôm qua',
-    status: 'graded',
-    totalScore: 9.5,
-    answers: {
-      q1Answer: 'B',
-      q2Answer: 'C',
-      q3Sentence: '明天下午三点见。',
-      q4Answers: { 'sq-1': '对', 'sq-2': '3h chiều' },
-      q5AudioText: '现在差一刻八点，电影八点开始。',
-      q6HandwritingImage: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=600&auto=format&fit=crop&q=80',
-      q7EssayText: '我每天早上七点起床，八点去学校。下午五点回家。晚上我和爸爸妈妈一起吃晚饭。',
-      q7CharCount: 42
-    },
-    teacherComment: 'Em phát âm thanh 4 rất dứt khoát! Chú ý nét phẩy của chữ 贵 viết dài hơn một chút nhé.'
-  }
-];
+import { fetchSubmissions, gradeSubmission } from '../services/supabaseService';
 
 export const TeacherGradingView = () => {
-  const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
-  const [selectedSub, setSelectedSub] = useState(INITIAL_SUBMISSIONS[0]);
+  const [submissions, setSubmissions] = useState([]);
+  const [selectedSub, setSelectedSub] = useState(null);
   const [scoreInput, setScoreInput] = useState(9.0);
   const [commentInput, setCommentInput] = useState('');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  useEffect(() => {
+    fetchSubmissions().then(({ data }) => {
+      setSubmissions(data || []);
+      setSelectedSub(data?.[0] || null);
+    });
+  }, []);
 
   // Play synthetic reading sample for teacher review
   const handleReviewAudio = (text) => {
@@ -66,7 +28,10 @@ export const TeacherGradingView = () => {
     }
   };
 
-  const handleSaveGrade = () => {
+  const handleSaveGrade = async () => {
+    if (!selectedSub) return;
+    const result = await gradeSubmission(selectedSub.id, parseFloat(scoreInput), commentInput);
+    if (!result.success) { window.alert(result.error); return; }
     const updated = submissions.map((sub) => {
       if (sub.id === selectedSub.id) {
         return {
@@ -116,8 +81,27 @@ export const TeacherGradingView = () => {
         </p>
       </section>
 
-      {/* Main Split Interface: Submissions Queue vs Detailed Grading Canvas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.75rem', alignItems: 'start' }}>
+      {/* Main Split Interface or Empty State */}
+      {submissions.length === 0 ? (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '24px',
+          border: '1.5px dashed #cbd5e1',
+          padding: '3.5rem 2rem',
+          textAlign: 'center',
+          color: '#64748b',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.2rem', color: '#0f172a', fontWeight: 800 }}>
+            Hiện Tại Chưa Có Bài Nộp Cần Chấm
+          </h3>
+          <p style={{ margin: '0 auto', maxWidth: '500px', fontSize: '0.92rem', lineHeight: 1.6 }}>
+            Học viên khi hoàn thành bài tập về nhà và bấm nộp bài sẽ lập tức xuất hiện tại đây để Cô Hoài chấm điểm, nghe file đọc và gửi nhận xét.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.75rem', alignItems: 'start' }}>
         {/* Left: Queue of Submissions */}
         <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -362,6 +346,7 @@ export const TeacherGradingView = () => {
           </div>
         </div>
       </div>
+      )}
     </main>
   );
 };

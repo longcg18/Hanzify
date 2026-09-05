@@ -12,77 +12,7 @@ import {
 } from '../services/supabaseService';
 import { checkSupabaseConnection } from '../lib/supabase';
 
-const INITIAL_ACCOUNTS = [
-  {
-    id: 'user-admin',
-    name: 'Nguyễn Phúc Long',
-    email: 'admin@hanzify.com',
-    role: 'admin',
-    chineseName: '龙老师',
-    phone: '0901 234 567',
-    joinedDate: '04/09/2026',
-    status: 'active'
-  },
-  {
-    id: 'user-teacher',
-    name: 'Cô Hoài',
-    email: 'hoailaoshi@hanzify.com',
-    role: 'teacher',
-    chineseName: '怀老师',
-    phone: '0987 654 321',
-    joinedDate: '15/08/2026',
-    status: 'active'
-  },
-  {
-    id: 'user-student-1',
-    name: 'Nguyễn Văn An',
-    email: 'student@hanzify.com',
-    role: 'student',
-    chineseName: '阮文安',
-    phone: '0911 223 344',
-    joinedDate: '20/08/2026',
-    status: 'active'
-  },
-  {
-    id: 'user-student-2',
-    name: 'Trần Thị Mai',
-    email: 'maitran@hanzify.com',
-    role: 'student',
-    chineseName: '陈氏梅',
-    phone: '0933 445 566',
-    joinedDate: '25/08/2026',
-    status: 'active'
-  }
-];
 
-// Initial Memory Match Word Pairs
-const INITIAL_MATCH_PAIRS = [
-  { id: 'p-1', hanzi: '苹果', pinyin: 'píngguǒ', mean: 'Quả táo', category: 'Mua sắm HSK 2' },
-  { id: 'p-2', hanzi: '衣服', pinyin: 'yīfu', mean: 'Quần áo', category: 'Mua sắm HSK 2' },
-  { id: 'p-3', hanzi: '买', pinyin: 'mǎi', mean: 'Mua', category: 'Động từ căn bản' },
-  { id: 'p-4', hanzi: '钱', pinyin: 'qián', mean: 'Tiền', category: 'Mua sắm HSK 2' },
-  { id: 'p-5', hanzi: '超市', pinyin: 'chāoshì', mean: 'Siêu thị', category: 'Địa điểm HSK 2' },
-  { id: 'p-6', hanzi: '贵', pinyin: 'guì', mean: 'Đắt', category: 'Tính từ HSK 2' }
-];
-
-// Initial Tone Quiz Questions
-const INITIAL_TONE_ITEMS = [
-  { id: 't-1', char: '妈', pinyin: 'mā', tone: 1, mean: 'Mẹ' },
-  { id: 't-2', char: '国', pinyin: 'guó', tone: 2, mean: 'Quốc gia' },
-  { id: 't-3', char: '好', pinyin: 'hǎo', tone: 3, mean: 'Tốt / Đẹp' },
-  { id: 't-4', char: '谢', pinyin: 'xiè', tone: 4, mean: 'Cảm ơn' },
-  { id: 't-5', char: '喝', pinyin: 'hē', tone: 1, mean: 'Uống' },
-  { id: 't-6', char: '来', pinyin: 'lái', tone: 2, mean: 'Đến' },
-  { id: 't-7', char: '买', pinyin: 'mǎi', tone: 3, mean: 'Mua' },
-  { id: 't-8', char: '去', pinyin: 'qù', tone: 4, mean: 'Đi' }
-];
-
-// Game Leaderboard Mock
-const INITIAL_LEADERBOARD = [
-  { rank: 1, name: 'Nguyễn Minh Anh', role: 'Học viên', score: 820, game: 'Thử Thách Thanh Điệu', streak: 'Combo x8', date: 'Hôm nay' },
-  { rank: 2, name: 'Trần Thị Mai', role: 'Học viên', score: 740, game: 'Lật Thẻ Ghép Đôi', streak: '14 Lượt lật', date: 'Hôm qua' },
-  { rank: 3, name: 'Nguyễn Văn An', role: 'Học viên', score: 650, game: 'Thử Thách Thanh Điệu', streak: 'Combo x5', date: '02/09' }
-];
 
 export const AdminUsersView = () => {
   // Main admin sub-tab: 'users' | 'entertainment'
@@ -94,7 +24,7 @@ export const AdminUsersView = () => {
   const [copiedSql, setCopiedSql] = useState(false);
 
   // ==================== USER MANAGEMENT STATE ====================
-  const [users, setUsers] = useState(INITIAL_ACCOUNTS);
+  const [users, setUsers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -103,9 +33,9 @@ export const AdminUsersView = () => {
 
   // ==================== ENTERTAINMENT MANAGEMENT STATE ====================
   const [gameSubTab, setGameSubTab] = useState('match'); // 'match' | 'tone' | 'leaderboard'
-  const [matchPairs, setMatchPairs] = useState(INITIAL_MATCH_PAIRS);
-  const [toneItems, setToneItems] = useState(INITIAL_TONE_ITEMS);
-  const [leaderboard, setLeaderboard] = useState(INITIAL_LEADERBOARD);
+  const [matchPairs, setMatchPairs] = useState([]);
+  const [toneItems, setToneItems] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
 
   // New Match Pair Form State
   const [newPairHanzi, setNewPairHanzi] = useState('');
@@ -133,10 +63,10 @@ export const AdminUsersView = () => {
           fetchLeaderboard()
         ]);
 
-        if (usersRes?.data && usersRes.data.length > 0) setUsers(usersRes.data);
-        if (pairsRes?.data && pairsRes.data.length > 0) setMatchPairs(pairsRes.data);
-        if (toneRes?.data && toneRes.data.length > 0) setToneItems(toneRes.data);
-        if (lbRes?.data && lbRes.data.length > 0) setLeaderboard(lbRes.data);
+        setUsers(usersRes?.data || []);
+        setMatchPairs(pairsRes?.data || []);
+        setToneItems(toneRes?.data || []);
+        setLeaderboard(lbRes?.data || []);
       } catch (err) {
         console.error('Error loading Supabase data:', err);
         setDbStatus({ connected: false, loading: false });

@@ -26,9 +26,7 @@ export const CreateClassModal = ({
   const [selectedDays, setSelectedDays] = useState(['T2', 'T4', 'T6']);
   const [selectedShift, setSelectedShift] = useState('Tối');
   const [timeNote, setTimeNote] = useState('19:30 - 21:00');
-  const [rosterText, setRosterText] = useState(
-    'Trần Thị Mai\nLê Hoàng Nam\nPhạm Minh Đức\nHoàng Thùy Linh'
-  );
+  const [rosterText, setRosterText] = useState('');
 
   // Success screen state
   const [createdClass, setCreatedClass] = useState(null);
@@ -82,6 +80,15 @@ export const CreateClassModal = ({
     // Generate guaranteed unique class code
     const uniqueCode = generateUniqueClassCode(existingClassrooms);
 
+    // Default unlock the first lesson of each selected course
+    const initialUnlocked = [];
+    selectedCourseIds.forEach((courseId) => {
+      const foundCourse = (courses || []).find((c) => c.id === courseId);
+      if (foundCourse && foundCourse.lessons && foundCourse.lessons[0]) {
+        initialUnlocked.push(foundCourse.lessons[0].id);
+      }
+    });
+
     const newClass = {
       id: `class-${Date.now()}`,
       code: uniqueCode,
@@ -89,6 +96,7 @@ export const CreateClassModal = ({
       level: level,
       teacher: user?.name || 'Cô Hoài',
       courseIds: selectedCourseIds,
+      unlockedLessons: initialUnlocked,
       schedule: {
         days: selectedDays,
         shift: selectedShift,

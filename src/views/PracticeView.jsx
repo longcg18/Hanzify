@@ -181,7 +181,13 @@ export const PracticeView = () => {
     }
   };
 
+  const { user, setIsAuthModalOpen } = useAuth();
+
   const handleStartPractice = (topic) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setActiveTopic(topic);
     setCurrentQIdx(0);
     setSelectedOption(null);
@@ -218,8 +224,6 @@ export const PracticeView = () => {
       setActiveTopic(null);
     }
   };
-
-  const { user } = useAuth();
 
   return (
     <main className="main-content">
@@ -570,10 +574,11 @@ export const PracticeView = () => {
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.4rem'
+                      gap: '0.45rem'
                     }}
                   >
-                    Luyện Ngay
+                    {!user && <i className="fa-solid fa-lock" style={{ fontSize: '0.75rem' }}></i>}
+                    <span>{user ? 'Luyện Ngay' : 'Đăng nhập để luyện'}</span>
                     <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.75rem' }}></i>
                   </button>
                 </div>

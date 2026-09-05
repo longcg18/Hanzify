@@ -1,98 +1,120 @@
 import { supabase } from '../lib/supabase';
 
 // ==========================================
-// FALLBACK INITIAL DATA (Dữ liệu nền an toàn)
+// 1. AUTHENTICATION & USERS (Supabase Direct)
 // ==========================================
-export const FALLBACK_USERS = [
-  {
-    id: 'user-admin',
-    name: 'Nguyễn Phúc Long',
-    full_name: 'Nguyễn Phúc Long',
-    email: 'admin@hanzify.com',
-    role: 'admin',
-    chineseName: '龙老师',
-    chinese_name: '龙老师',
-    phone: '0901 234 567',
-    avatar: '👑',
-    joinedDate: '04/09/2026',
-    status: 'active'
-  },
-  {
-    id: 'user-teacher',
-    name: 'Cô Hoài',
-    full_name: 'Cô Hoài',
-    email: 'hoailaoshi@hanzify.com',
-    role: 'teacher',
-    chineseName: '怀老师',
-    chinese_name: '怀老师',
-    phone: '0987 654 321',
-    avatar: '怀',
-    joinedDate: '15/08/2026',
-    status: 'active'
-  },
-  {
-    id: 'user-student-1',
-    name: 'Nguyễn Văn An',
-    full_name: 'Nguyễn Văn An',
-    email: 'student@hanzify.com',
-    role: 'student',
-    chineseName: '阮文安',
-    chinese_name: '阮文安',
-    phone: '0911 223 344',
-    avatar: '安',
-    joinedDate: '20/08/2026',
-    status: 'active'
-  },
-  {
-    id: 'user-student-2',
-    name: 'Trần Thị Mai',
-    full_name: 'Trần Thị Mai',
-    email: 'maitran@hanzify.com',
-    role: 'student',
-    chineseName: '陈氏梅',
-    chinese_name: '陈氏梅',
-    phone: '0933 445 566',
-    avatar: '梅',
-    joinedDate: '25/08/2026',
-    status: 'active'
+export async function loginWithSupabase(usernameOrEmail, password) {
+  const clean = (usernameOrEmail || '').trim();
+  const cleanPass = (password || '').trim();
+
+  if (!clean) throw new Error('Vui lòng nhập tên đăng nhập hoặc địa chỉ email.');
+  if (!cleanPass) throw new Error('Vui lòng nhập mật khẩu.');
+
+  // Lookup user in public.users by email OR username (case-insensitive)
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .or(`email.ilike.${clean},username.ilike.${clean}`)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Supabase user login error:', error);
+    throw new Error('Lỗi kết nối máy chủ Supabase. Vui lòng thử lại!');
   }
-];
 
-export const FALLBACK_MATCH_PAIRS = [
-  { id: 'p-1', hanzi: '苹果', pinyin: 'píngguǒ', mean: 'Quả táo', category: 'Mua sắm HSK 2' },
-  { id: 'p-2', hanzi: '衣服', pinyin: 'yīfu', mean: 'Quần áo', category: 'Mua sắm HSK 2' },
-  { id: 'p-3', hanzi: '买', pinyin: 'mǎi', mean: 'Mua', category: 'Động từ căn bản' },
-  { id: 'p-4', hanzi: '钱', pinyin: 'qián', mean: 'Tiền', category: 'Mua sắm HSK 2' },
-  { id: 'p-5', hanzi: '超市', pinyin: 'chāoshì', mean: 'Siêu thị', category: 'Địa điểm HSK 2' },
-  { id: 'p-6', hanzi: '贵', pinyin: 'guì', mean: 'Đắt', category: 'Tính từ HSK 2' }
-];
+  if (!data) {
+    throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
+  }
 
-export const FALLBACK_TONE_ITEMS = [
-  { id: 't-1', char: '妈', pinyin: 'mā', tone: 1, mean: 'Mẹ' },
-  { id: 't-2', char: '国', pinyin: 'guó', tone: 2, mean: 'Quốc gia' },
-  { id: 't-3', char: '好', pinyin: 'hǎo', tone: 3, mean: 'Tốt / Đẹp' },
-  { id: 't-4', char: '谢', pinyin: 'xiè', tone: 4, mean: 'Cảm ơn' },
-  { id: 't-5', char: '喝', pinyin: 'hē', tone: 1, mean: 'Uống' },
-  { id: 't-6', char: '来', pinyin: 'lái', tone: 2, mean: 'Đến' },
-  { id: 't-7', char: '买', pinyin: 'mǎi', tone: 3, mean: 'Mua' },
-  { id: 't-8', char: '去', pinyin: 'qù', tone: 4, mean: 'Đi' }
-];
+  if (data.status === 'blocked') {
+    throw new Error('Tài khoản này hiện đang bị tạm khóa. Vui lòng liên hệ quản trị viên.');
+  }
 
-export const FALLBACK_LEADERBOARD = [
-  { id: 'lb-1', rank: 1, name: 'Nguyễn Minh Anh', user_name: 'Nguyễn Minh Anh', role: 'Học viên', score: 820, game: 'Thử Thách Thanh Điệu', streak: 'Combo x8', date: 'Hôm nay' },
-  { id: 'lb-2', rank: 2, name: 'Trần Thị Mai', user_name: 'Trần Thị Mai', role: 'Học viên', score: 740, game: 'Lật Thẻ Ghép Đôi', streak: '14 Lượt lật', date: 'Hôm qua' },
-  { id: 'lb-3', rank: 3, name: 'Nguyễn Văn An', user_name: 'Nguyễn Văn An', role: 'Học viên', score: 650, game: 'Thử Thách Thanh Điệu', streak: 'Combo x5', date: '02/09' }
-];
+  if (data.password !== cleanPass) {
+    throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
+  }
 
-// In-memory cache for live mutation when DB table is not yet migrated
-let localUsers = [...FALLBACK_USERS];
-let localMatchPairs = [...FALLBACK_MATCH_PAIRS];
-let localToneItems = [...FALLBACK_TONE_ITEMS];
-let localLeaderboard = [...FALLBACK_LEADERBOARD];
+  const safeUser = {
+    id: data.id,
+    username: data.username,
+    email: data.email,
+    name: data.full_name,
+    full_name: data.full_name,
+    chineseName: data.chinese_name,
+    chinese_name: data.chinese_name,
+    role: data.role,
+    avatar: data.avatar || (data.role === 'admin' ? '👑' : data.role === 'teacher' ? '怀' : '学'),
+    phone: data.phone,
+    badge: data.role === 'admin' ? 'Quản trị viên' : data.role === 'teacher' ? 'Giáo viên phụ trách' : 'Học viên',
+    status: data.status
+  };
 
-// ==========================================
-// 1. USERS SERVICE (Tài khoản & Phân quyền)
-// ==========================================
+  return { success: true, user: safeUser };
+}
+
+export async function logoutFromSupabase() {
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    // Ignore signout error if session was local
+  }
+}
+
+export async function registerStudentInSupabase({ classId, studentId, name, username, password }) {
+  const cleanUser = (username || '').trim();
+  const cleanPass = (password || '').trim();
+  const cleanName = (name || '').trim();
+  const email = `${cleanUser.toLowerCase()}@student.hanzify.com`;
+
+  // Check if username already exists
+  const { data: existing } = await supabase
+    .from('users')
+    .select('id')
+    .or(`email.ilike.${email},username.ilike.${cleanUser}`)
+    .maybeSingle();
+
+  if (existing) {
+    return { success: false, message: 'Tên đăng nhập này đã có người sử dụng. Vui lòng chọn tên khác.' };
+  }
+
+  const profile = {
+    id: `student-${Date.now()}`,
+    username: cleanUser,
+    email,
+    password: cleanPass,
+    full_name: cleanName,
+    role: 'student',
+    avatar: cleanName.slice(0, 1) || '学',
+    status: 'active'
+  };
+
+  const { error: profileError } = await supabase.from('users').insert(profile);
+  if (profileError) return { success: false, message: profileError.message };
+
+  if (classId && studentId) {
+    await supabase.from('classroom_students').update({
+      username: cleanUser,
+      is_activated: true,
+      activated_at: new Date().toISOString()
+    }).eq('id', studentId).eq('classroom_id', classId);
+  }
+
+  return {
+    success: true,
+    user: {
+      id: profile.id,
+      username: profile.username,
+      email: profile.email,
+      name: profile.full_name,
+      full_name: profile.full_name,
+      role: 'student',
+      avatar: profile.avatar,
+      badge: 'Học viên',
+      status: 'active'
+    }
+  };
+}
+
 export async function fetchUsers() {
   try {
     const { data, error } = await supabase
@@ -100,12 +122,11 @@ export async function fetchUsers() {
       .select('*')
       .order('created_at', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      return { data: localUsers, isLiveDb: false };
-    }
+    if (error || !data) return { data: [], isLiveDb: false };
 
     const formatted = data.map((u) => ({
       id: u.id,
+      username: u.username,
       name: u.full_name,
       full_name: u.full_name,
       email: u.email,
@@ -113,26 +134,28 @@ export async function fetchUsers() {
       chineseName: u.chinese_name,
       chinese_name: u.chinese_name,
       phone: u.phone,
-      avatar: u.avatar || '安',
+      avatar: u.avatar || '👑',
       joinedDate: new Date(u.created_at).toLocaleDateString('vi-VN'),
       status: u.status || 'active'
     }));
 
     return { data: formatted, isLiveDb: true };
   } catch (err) {
-    return { data: localUsers, isLiveDb: false };
+    return { data: [], isLiveDb: false };
   }
 }
 
 export async function createSupabaseUser(newUser) {
   const userPayload = {
     id: newUser.id || `user-${Date.now()}`,
+    username: newUser.username,
     email: newUser.email,
+    password: newUser.password || '123456',
     full_name: newUser.name || newUser.full_name,
     chinese_name: newUser.chineseName || newUser.chinese_name || null,
     role: newUser.role || 'student',
     avatar: newUser.avatar || '安',
-    phone: newUser.phone || '0900 000 000',
+    phone: newUser.phone || '',
     status: 'active'
   };
 
@@ -142,214 +165,60 @@ export async function createSupabaseUser(newUser) {
       return { success: true, user: data[0], isLiveDb: true };
     }
   } catch (e) {
-    console.warn('Supabase insert user fallback:', e);
+    console.error('Supabase insert user error:', e);
   }
-
-  // Local fallback
-  localUsers = [
-    ...localUsers,
-    {
-      ...userPayload,
-      name: userPayload.full_name,
-      chineseName: userPayload.chinese_name,
-      joinedDate: new Date().toLocaleDateString('vi-VN')
-    }
-  ];
-  return { success: true, user: userPayload, isLiveDb: false };
+  return { success: false };
 }
 
 // ==========================================
-// 2. MINI-GAMES SERVICE (Góc Giải Trí)
+// 2. COURSES & LESSONS (Supabase Direct)
 // ==========================================
-
-// Game 1: Match Pairs
-export async function fetchMatchPairs() {
+export async function fetchCoursesWithLessons() {
   try {
-    const { data, error } = await supabase
-      .from('game_match_pairs')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error || !data || data.length === 0) {
-      return { data: localMatchPairs, isLiveDb: false };
-    }
-    return { data, isLiveDb: true };
-  } catch (e) {
-    return { data: localMatchPairs, isLiveDb: false };
-  }
-}
-
-export async function addMatchPair(pair) {
-  const payload = {
-    id: `p-${Date.now()}`,
-    hanzi: pair.hanzi.trim(),
-    pinyin: pair.pinyin.trim(),
-    mean: pair.mean.trim(),
-    category: pair.category || 'Từ vựng HSK 2'
-  };
-
-  try {
-    const { data, error } = await supabase.from('game_match_pairs').insert([payload]).select();
-    if (!error && data && data.length > 0) {
-      return { success: true, pair: data[0], isLiveDb: true };
-    }
-  } catch (e) {
-    console.warn('Supabase addMatchPair fallback:', e);
-  }
-
-  localMatchPairs = [payload, ...localMatchPairs];
-  return { success: true, pair: payload, isLiveDb: false };
-}
-
-export async function deleteMatchPair(id) {
-  try {
-    await supabase.from('game_match_pairs').delete().eq('id', id);
-  } catch (e) {
-    console.warn('Supabase deleteMatchPair fallback:', e);
-  }
-  localMatchPairs = localMatchPairs.filter((p) => p.id !== id);
-  return { success: true };
-}
-
-// Game 2: Tone Items
-export async function fetchToneItems() {
-  try {
-    const { data, error } = await supabase
-      .from('game_tone_items')
+    const { data: courses, error: errCourses } = await supabase
+      .from('courses')
       .select('*')
       .order('created_at', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      return { data: localToneItems, isLiveDb: false };
-    }
-    return { data, isLiveDb: true };
-  } catch (e) {
-    return { data: localToneItems, isLiveDb: false };
-  }
-}
+    if (errCourses || !courses) return [];
 
-export async function addToneItem(item) {
-  const payload = {
-    id: `t-${Date.now()}`,
-    char: item.char.trim(),
-    pinyin: item.pinyin.trim(),
-    tone: parseInt(item.tone, 10) || 1,
-    mean: item.mean.trim()
-  };
-
-  try {
-    const { data, error } = await supabase.from('game_tone_items').insert([payload]).select();
-    if (!error && data && data.length > 0) {
-      return { success: true, item: data[0], isLiveDb: true };
-    }
-  } catch (e) {
-    console.warn('Supabase addToneItem fallback:', e);
-  }
-
-  localToneItems = [...localToneItems, payload];
-  return { success: true, item: payload, isLiveDb: false };
-}
-
-export async function deleteToneItem(id) {
-  try {
-    await supabase.from('game_tone_items').delete().eq('id', id);
-  } catch (e) {
-    console.warn('Supabase deleteToneItem fallback:', e);
-  }
-  localToneItems = localToneItems.filter((t) => t.id !== id);
-  return { success: true };
-}
-
-// Game Leaderboard
-export async function fetchLeaderboard() {
-  try {
-    const { data, error } = await supabase
-      .from('game_leaderboard')
+    const { data: lessons, error: errLessons } = await supabase
+      .from('lessons')
       .select('*')
-      .order('score', { ascending: false })
-      .limit(10);
+      .order('number', { ascending: true });
 
-    if (error || !data || data.length === 0) {
-      return { data: localLeaderboard, isLiveDb: false };
-    }
-    const formatted = data.map((d, idx) => ({
-      ...d,
-      rank: idx + 1,
-      name: d.user_name,
-      date: new Date(d.created_at).toLocaleDateString('vi-VN')
+    return courses.map((c) => ({
+      id: c.id,
+      title: c.title,
+      chineseTitle: c.chinese_title,
+      level: c.level,
+      description: c.description,
+      badge: c.tag || 'Đang mở',
+      teacher: c.teacher_name || 'Cô Hoài (Giáo Viên 01)',
+      totalLessons: c.total_lessons || 1,
+      coverGradient: c.level === 'HSK 1'
+        ? 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'
+        : c.level === 'HSK 2'
+        ? 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)'
+        : 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
+      lessons: (lessons || [])
+        .filter((l) => l.course_id === c.id)
+        .map((l) => ({
+          id: l.id,
+          number: String(l.number).padStart(2, '0'),
+          title: l.title,
+          chineseTitle: l.chinese_title,
+          deadline: l.description || '23:59 Chủ Nhật',
+          status: l.is_unlocked ? 'active' : 'locked',
+          questionsCount: 5
+        }))
     }));
-    return { data: formatted, isLiveDb: true };
-  } catch (e) {
-    return { data: localLeaderboard, isLiveDb: false };
+  } catch (err) {
+    console.error('Error fetching courses from Supabase:', err);
+    return [];
   }
 }
 
-export async function submitGameScore(scoreData) {
-  const payload = {
-    id: `lb-${Date.now()}`,
-    user_name: scoreData.userName || 'Học viên Hanzify',
-    role: scoreData.role || 'Học viên',
-    score: scoreData.score,
-    game: scoreData.game,
-    streak: scoreData.streak || 'Chiến thắng'
-  };
-
-  try {
-    const { data, error } = await supabase.from('game_leaderboard').insert([payload]).select();
-    if (!error && data) {
-      return { success: true, entry: data[0], isLiveDb: true };
-    }
-  } catch (e) {
-    console.warn('Supabase submitGameScore fallback:', e);
-  }
-
-  localLeaderboard = [payload, ...localLeaderboard].sort((a, b) => b.score - a.score);
-  return { success: true, entry: payload, isLiveDb: false };
-}
-
-// ==========================================
-// 3. HOMEWORK SUBMISSIONS & GRADING
-// ==========================================
-export async function fetchSubmissions() {
-  try {
-    const { data, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .order('submitted_at', { ascending: false });
-
-    if (error || !data) {
-      return { data: [], isLiveDb: false };
-    }
-    return { data, isLiveDb: true };
-  } catch (e) {
-    return { data: [], isLiveDb: false };
-  }
-}
-
-export async function submitHomeworkToSupabase(submission) {
-  const payload = {
-    id: `sub-${Date.now()}`,
-    lesson_id: submission.lessonId || 'lesson-4',
-    student_id: submission.studentId || 'user-student-1',
-    student_name: submission.studentName || 'Nguyễn Văn An',
-    status: 'pending',
-    answers_json: submission.answers || {}
-  };
-
-  try {
-    const { data, error } = await supabase.from('submissions').insert([payload]).select();
-    if (!error && data) {
-      return { success: true, submission: data[0], isLiveDb: true };
-    }
-  } catch (e) {
-    console.warn('Supabase submission fallback:', e);
-  }
-  return { success: true, submission: payload, isLiveDb: false };
-}
-
-// ==========================================
-// 4. COURSES & LESSONS MANAGEMENT (Cô giáo & Admin)
-// ==========================================
 export async function syncCourseToSupabase(course) {
   const payload = {
     id: course.id,
@@ -359,7 +228,7 @@ export async function syncCourseToSupabase(course) {
     description: course.description || '',
     tag: course.badge || 'Đang mở',
     total_lessons: course.totalLessons || (course.lessons?.length || 1),
-    teacher_name: course.teacher || 'Cô Hoài',
+    teacher_name: course.teacher || 'Cô Hoài (Giáo Viên 01)',
     teacher_avatar: '怀'
   };
   try {
@@ -369,9 +238,9 @@ export async function syncCourseToSupabase(course) {
       .select();
     if (!error) return { success: true, data };
   } catch (e) {
-    console.warn('Supabase course sync fallback:', e);
+    console.error('Supabase course sync error:', e);
   }
-  return { success: true, fallback: true };
+  return { success: false };
 }
 
 export async function deleteCourseFromSupabase(courseId) {
@@ -379,7 +248,7 @@ export async function deleteCourseFromSupabase(courseId) {
     await supabase.from('courses').delete().eq('id', courseId);
     return { success: true };
   } catch (e) {
-    console.warn('Supabase course delete fallback:', e);
+    console.error('Supabase course delete error:', e);
     return { success: false, error: e };
   }
 }
@@ -391,7 +260,7 @@ export async function syncLessonToSupabase(lesson, courseId) {
     number: parseInt(lesson.number, 10) || 1,
     title: lesson.title,
     chinese_title: lesson.chineseTitle || '',
-    description: lesson.deadline || 'Bài tập rèn luyện',
+    description: lesson.deadline || '23:59 Chủ Nhật',
     hsk_level: 'HSK 2',
     is_unlocked: lesson.status !== 'locked'
   };
@@ -402,9 +271,9 @@ export async function syncLessonToSupabase(lesson, courseId) {
       .select();
     if (!error) return { success: true, data };
   } catch (e) {
-    console.warn('Supabase lesson sync fallback:', e);
+    console.error('Supabase lesson sync error:', e);
   }
-  return { success: true, fallback: true };
+  return { success: false };
 }
 
 export async function deleteLessonFromSupabase(lessonId) {
@@ -412,207 +281,440 @@ export async function deleteLessonFromSupabase(lessonId) {
     await supabase.from('lessons').delete().eq('id', lessonId);
     return { success: true };
   } catch (e) {
-    console.warn('Supabase lesson delete fallback:', e);
+    console.error('Supabase lesson delete error:', e);
     return { success: false, error: e };
   }
 }
 
 // ==========================================
-// 5. EXAMS MANAGEMENT (Đề Thi HSK Phân Cấp 4 Tầng)
+// 3. HOMEWORK QUESTIONS (Live Teacher Preview & Student View)
 // ==========================================
-
-/**
- * Đọc tất cả đề thi từ Supabase và lắp ghép thành cấu trúc phân cấp 4 tầng:
- * exams → skills → parts → questions
- */
-export async function fetchExams() {
+export async function fetchLessonQuestions(lessonId) {
   try {
-    // Bước 1: Lấy danh sách đề thi
-    const { data: examsData, error: examsError } = await supabase
-      .from('exams')
+    const { data, error } = await supabase
+      .from('homework_questions')
       .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
-    if (examsError || !examsData || examsData.length === 0) {
-      return { data: null, isLiveDb: false };
-    }
-
-    // Bước 2: Lấy tất cả skills, parts, questions cùng lúc
-    const examIds = examsData.map((e) => e.id);
-
-    const { data: skillsData } = await supabase
-      .from('exam_skills')
-      .select('*')
-      .in('exam_id', examIds)
+      .eq('lesson_id', lessonId)
       .order('sort_order', { ascending: true });
 
-    const skillIds = (skillsData || []).map((s) => s.id);
-
-    const { data: partsData } = await supabase
-      .from('exam_parts')
-      .select('*')
-      .in('skill_id', skillIds)
-      .order('sort_order', { ascending: true });
-
-    const partIds = (partsData || []).map((p) => p.id);
-
-    const { data: questionsData } = await supabase
-      .from('exam_questions')
-      .select('*')
-      .in('part_id', partIds)
-      .order('sort_order', { ascending: true });
-
-    // Bước 3: Lắp ghép thành cấu trúc 4 tầng
-    const assembled = examsData.map((exam) => {
-      const skills = (skillsData || [])
-        .filter((s) => s.exam_id === exam.id)
-        .map((skill) => {
-          const parts = (partsData || [])
-            .filter((p) => p.skill_id === skill.id)
-            .map((part) => {
-              const questions = (questionsData || [])
-                .filter((q) => q.part_id === part.id)
-                .map((q) => ({
-                  id: q.id,
-                  questionNumber: q.question_number,
-                  prompt: q.prompt,
-                  audioText: q.audio_text || '',
-                  readingText: q.reading_text || '',
-                  pinyin: q.pinyin || '',
-                  options: Array.isArray(q.options) ? q.options : (typeof q.options === 'string' ? JSON.parse(q.options) : []),
-                  correctAnswer: q.correct_answer,
-                  explanation: q.explanation || ''
-                }));
-              return {
-                id: part.id,
-                partNumber: part.part_number,
-                title: part.title,
-                instructions: part.instructions || '',
-                questions
-              };
-            });
-          return {
-            id: skill.id,
-            type: skill.skill_type,
-            name: skill.name,
-            chineseName: skill.chinese_name || '',
-            parts
-          };
-        });
-
-      return {
-        id: exam.id,
-        title: exam.title,
-        chineseTitle: exam.chinese_title || '',
-        level: exam.level,
-        duration: exam.duration,
-        passingScore: exam.passing_score,
-        maxScore: exam.max_score,
-        tag: exam.tag || 'Đề tiêu chuẩn',
-        description: exam.description || '',
-        skills
-      };
-    });
-
-    return { data: assembled, isLiveDb: true };
-  } catch (err) {
-    console.warn('fetchExams error:', err);
-    return { data: null, isLiveDb: false };
+    if (error || !data) return [];
+    return data.map((q) => ({
+      id: q.id,
+      lesson_id: q.lesson_id,
+      type: q.type,
+      title: q.prompt,
+      instruction: q.prompt,
+      tag: q.type === 'listening' ? 'Nghe hiểu' : q.type === 'pinyin' ? 'Phát âm' : q.type === 'word_order' ? 'Ngữ pháp' : q.type === 'voice' ? 'Khẩu ngữ' : 'Viết chữ',
+      sort_order: q.sort_order,
+      data: q.data_json || {}
+    }));
+  } catch (e) {
+    return [];
   }
 }
 
-/**
- * Đồng bộ một đề thi (toàn bộ 4 tầng) lên Supabase.
- * Dùng upsert cho exam, xóa-và-chèn-lại cho skills/parts/questions để đơn giản hóa.
- */
-export async function syncExamToSupabase(exam) {
+export async function saveLessonQuestions(lessonId, questions) {
   try {
-    // Tầng 1: Upsert exam
-    const { error: examError } = await supabase
-      .from('exams')
-      .upsert([{
-        id: exam.id,
-        title: exam.title,
-        chinese_title: exam.chineseTitle || '',
-        level: exam.level || 'HSK 2',
-        duration: exam.duration || 35,
-        passing_score: exam.passingScore || 120,
-        max_score: exam.maxScore || 200,
-        tag: exam.tag || 'Đề tiêu chuẩn',
-        description: exam.description || '',
-        is_active: true
-      }], { onConflict: 'id' });
+    await supabase.from('homework_questions').delete().eq('lesson_id', lessonId);
+    if (!questions || questions.length === 0) return { success: true };
 
-    if (examError) throw examError;
+    const payloads = questions.map((q, idx) => ({
+      id: q.id || `q-${lessonId}-${Date.now()}-${idx}`,
+      lesson_id: lessonId,
+      type: q.type || 'listening',
+      prompt: q.title || q.instruction || `Câu hỏi ${idx + 1}`,
+      data_json: q.data || {},
+      sort_order: idx + 1
+    }));
 
-    // Xóa toàn bộ skills cũ (cascade sẽ xóa luôn parts và questions)
-    await supabase.from('exam_skills').delete().eq('exam_id', exam.id);
+    const { error } = await supabase.from('homework_questions').insert(payloads);
+    if (!error) return { success: true };
+  } catch (e) {
+    console.error('Error saving homework questions on Supabase:', e);
+  }
+  return { success: false };
+}
 
-    // Tầng 2 → 3 → 4: Chèn lại từ đầu
-    for (let si = 0; si < (exam.skills || []).length; si++) {
-      const skill = exam.skills[si];
-      const skillPayload = {
-        id: skill.id || `skill-${exam.id}-${si}-${Date.now()}`,
-        exam_id: exam.id,
-        skill_type: skill.type || 'listening',
+// ==========================================
+// 4. CLASSROOMS (Supabase Direct)
+// ==========================================
+export async function fetchClassrooms() {
+  try {
+    const { data, error } = await supabase
+      .from('classrooms')
+      .select('*, classroom_courses(course_id), classroom_students(*)')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((c) => ({
+      id: c.id,
+      code: c.code,
+      name: c.name,
+      teacherId: c.teacher_id,
+      teacher: c.teacher,
+      teacherName: c.teacher,
+      level: c.level,
+      schedule: c.schedule || { days: ['T2', 'T4', 'T6'], shift: 'Tối', timeNote: '19:30 - 21:00' },
+      courseIds: (c.classroom_courses || []).map((item) => item.course_id),
+      students: (c.classroom_students || []).map((student) => ({
+        ...student,
+        isActivated: student.is_activated,
+        activatedAt: student.activated_at
+      })),
+      unlockedLessons: Array.isArray(c.unlocked_lessons) ? c.unlocked_lessons : [],
+      createdAt: c.created_at
+    }));
+  } catch (e) {
+    console.error('Error fetching classrooms from Supabase:', e);
+    return [];
+  }
+}
+
+export async function createClassroomInSupabase(newClass) {
+  try {
+    const payload = {
+      id: newClass.id,
+      code: newClass.code,
+      name: newClass.name,
+      teacher: newClass.teacher || 'Cô Hoài (Giáo Viên 01)',
+      level: newClass.level,
+      schedule: newClass.schedule,
+      unlocked_lessons: Array.isArray(newClass.unlockedLessons) ? newClass.unlockedLessons : []
+    };
+    const { data, error } = await supabase.from('classrooms').insert([payload]).select();
+    if (error) throw error;
+    const courseRows = (newClass.courseIds || []).map((courseId) => ({ classroom_id: newClass.id, course_id: courseId }));
+    const studentRows = (newClass.students || []).map((student) => ({
+      id: student.id,
+      classroom_id: newClass.id,
+      name: student.name,
+      username: student.username || null,
+      is_activated: Boolean(student.isActivated),
+      activated_at: student.activatedAt || null
+    }));
+    if (courseRows.length) {
+      const { error: courseError } = await supabase.from('classroom_courses').insert(courseRows);
+      if (courseError) throw courseError;
+    }
+    if (studentRows.length) {
+      const { error: studentError } = await supabase.from('classroom_students').insert(studentRows);
+      if (studentError) throw studentError;
+    }
+    if (data) return { success: true, data: data[0] };
+  } catch (e) {
+    console.error('Error creating classroom on Supabase:', e);
+  }
+  return { success: false };
+}
+
+export async function updateClassroomUnlockedLessons(classId, unlockedLessons) {
+  try {
+    const { error } = await supabase
+      .from('classrooms')
+      .update({ unlocked_lessons: Array.isArray(unlockedLessons) ? unlockedLessons : [] })
+      .eq('id', classId);
+    if (!error) return { success: true };
+    console.error('Error updating classroom unlocked lessons in Supabase:', error);
+  } catch (e) {
+    console.error('Error updating classroom unlocked lessons in Supabase:', e);
+  }
+  return { success: false };
+}
+
+export async function deleteClassroomFromSupabase(classId) {
+  try {
+    await supabase.from('classrooms').delete().eq('id', classId);
+    return { success: true };
+  } catch (e) {
+    console.error('Error deleting classroom from Supabase:', e);
+    return { success: false };
+  }
+}
+
+// ==========================================
+// 5. EXAMS (HSK Simulation)
+// ==========================================
+export async function fetchExams() {
+  try {
+    const { data: exams, error: errExams } = await supabase.from('exams').select('*');
+    if (errExams || !exams || exams.length === 0) return { data: [], isLiveDb: false };
+
+    const { data: skills, error: skillsError } = await supabase.from('exam_skills').select('*').order('sort_order');
+    const { data: parts, error: partsError } = await supabase.from('exam_parts').select('*').order('sort_order');
+    const { data: questions, error: questionsError } = await supabase.from('exam_questions').select('*').order('sort_order');
+    if (skillsError || partsError || questionsError) throw (skillsError || partsError || questionsError);
+
+    const formatted = exams.map((ex) => ({
+      id: ex.id,
+      title: ex.title,
+      chineseTitle: ex.chinese_title,
+      level: ex.level,
+      duration: ex.duration || 35,
+      totalQuestions: (questions || []).filter((q) => (parts || []).some((p) => p.id === q.part_id && (skills || []).some((s) => s.id === p.skill_id && s.exam_id === ex.id))).length,
+      passingScore: ex.passing_score || 120,
+      maxScore: ex.max_score || 200,
+      description: ex.description,
+      tag: ex.tag,
+      skills: (skills || []).filter((s) => s.exam_id === ex.id).map((skill) => ({
+        id: skill.id,
+        type: skill.skill_type,
         name: skill.name,
-        chinese_name: skill.chineseName || '',
-        sort_order: si + 1
-      };
-
-      await supabase.from('exam_skills').insert([skillPayload]);
-
-      for (let pi = 0; pi < (skill.parts || []).length; pi++) {
-        const part = skill.parts[pi];
-        const partPayload = {
-          id: part.id || `part-${skillPayload.id}-${pi}-${Date.now()}`,
-          skill_id: skillPayload.id,
-          part_number: part.partNumber || pi + 1,
+        chineseName: skill.chinese_name,
+        parts: (parts || []).filter((p) => p.skill_id === skill.id).map((part) => ({
+          id: part.id,
           title: part.title,
-          instructions: part.instructions || '',
-          sort_order: pi + 1
-        };
+          instructions: part.instructions,
+          partNumber: part.part_number,
+          questions: (questions || []).filter((q) => q.part_id === part.id).map((q) => ({
+            id: q.id, questionNumber: q.question_number, prompt: q.prompt,
+            audioText: q.audio_text, readingText: q.reading_text, pinyin: q.pinyin,
+            options: q.options || [], correctAnswer: q.correct_answer, explanation: q.explanation
+          }))
+        }))
+      }))
+    }));
 
-        await supabase.from('exam_parts').insert([partPayload]);
+    return { data: formatted, isLiveDb: true };
+  } catch (err) {
+    return { data: [], isLiveDb: false };
+  }
+}
 
-        const questionPayloads = (part.questions || []).map((q, qi) => ({
-          id: q.id || `eq-${partPayload.id}-${qi}-${Date.now()}`,
-          part_id: partPayload.id,
-          question_number: q.questionNumber || qi + 1,
-          prompt: q.prompt,
-          audio_text: q.audioText || '',
-          reading_text: q.readingText || '',
-          pinyin: q.pinyin || '',
-          options: JSON.stringify(q.options || []),
-          correct_answer: q.correctAnswer,
-          explanation: q.explanation || '',
-          sort_order: qi + 1
+export async function syncExamToSupabase(exam) {
+  const payload = {
+    id: exam.id,
+    title: exam.title,
+    chinese_title: exam.chineseTitle || '',
+    level: exam.level || 'HSK 2',
+    duration: exam.duration || 35,
+    passing_score: exam.passingScore || 120,
+    max_score: exam.maxScore || 200,
+    description: exam.description || '',
+    tag: exam.tag || 'Đề tiêu chuẩn'
+  };
+  try {
+    const { data, error } = await supabase.from('exams').upsert([payload], { onConflict: 'id' }).select();
+    if (error) throw error;
+    await supabase.from('exam_skills').delete().eq('exam_id', exam.id);
+    for (const [skillIndex, skill] of (exam.skills || []).entries()) {
+      const { error: skillError } = await supabase.from('exam_skills').insert({
+        id: skill.id, exam_id: exam.id, skill_type: skill.type,
+        name: skill.name, chinese_name: skill.chineseName || '', sort_order: skillIndex + 1
+      });
+      if (skillError) throw skillError;
+      for (const [partIndex, part] of (skill.parts || []).entries()) {
+        const { error: partError } = await supabase.from('exam_parts').insert({
+          id: part.id, skill_id: skill.id, part_number: part.partNumber || partIndex + 1,
+          title: part.title, instructions: part.instructions || '', sort_order: partIndex + 1
+        });
+        if (partError) throw partError;
+        const questionRows = (part.questions || []).map((q, questionIndex) => ({
+          id: q.id, part_id: part.id, question_number: q.questionNumber || questionIndex + 1,
+          prompt: q.prompt, audio_text: q.audioText || null, reading_text: q.readingText || null,
+          pinyin: q.pinyin || null, options: q.options || [], correct_answer: q.correctAnswer,
+          explanation: q.explanation || null, sort_order: questionIndex + 1
         }));
-
-        if (questionPayloads.length > 0) {
-          await supabase.from('exam_questions').insert(questionPayloads);
+        if (questionRows.length) {
+          const { error: questionError } = await supabase.from('exam_questions').insert(questionRows);
+          if (questionError) throw questionError;
         }
       }
     }
-
     return { success: true, isLiveDb: true };
-  } catch (err) {
-    console.warn('syncExamToSupabase error:', err);
-    return { success: false, isLiveDb: false, error: err };
+  } catch (e) {
+    console.error('Supabase exam sync error:', e);
+  }
+  return { success: false, isLiveDb: false };
+}
+
+export async function deleteExamFromSupabase(examId) {
+  try {
+    await supabase.from('exams').delete().eq('id', examId);
+    return { success: true };
+  } catch (e) {
+    return { success: false };
   }
 }
 
-/**
- * Xóa một đề thi khỏi Supabase (cascade tự xóa skills/parts/questions)
- */
-export async function deleteExamFromSupabase(examId) {
+// ==========================================
+// 6. MINI-GAMES & LEADERBOARD
+// ==========================================
+export async function fetchMatchPairs() {
   try {
-    const { error } = await supabase.from('exams').delete().eq('id', examId);
-    if (error) throw error;
-    return { success: true };
-  } catch (err) {
-    console.warn('deleteExamFromSupabase error:', err);
-    return { success: false, error: err };
+    const { data, error } = await supabase.from('game_match_pairs').select('*').order('created_at', { ascending: false });
+    if (error || !data) return { data: [], isLiveDb: false };
+    return { data, isLiveDb: true };
+  } catch (e) {
+    return { data: [], isLiveDb: false };
   }
+}
+
+export async function addMatchPair(pair) {
+  const payload = {
+    id: `p-${Date.now()}`,
+    hanzi: pair.hanzi.trim(),
+    pinyin: pair.pinyin.trim(),
+    mean: pair.mean.trim(),
+    category: pair.category || 'Từ vựng HSK 2'
+  };
+  try {
+    const { data, error } = await supabase.from('game_match_pairs').insert([payload]).select();
+    if (!error && data) return { success: true, pair: data[0], isLiveDb: true };
+  } catch (e) {}
+  return { success: true, pair: payload, isLiveDb: false };
+}
+
+export async function deleteMatchPair(id) {
+  try {
+    await supabase.from('game_match_pairs').delete().eq('id', id);
+  } catch (e) {}
+  return { success: true };
+}
+
+export async function fetchToneItems() {
+  try {
+    const { data, error } = await supabase.from('game_tone_items').select('*').order('created_at', { ascending: false });
+    if (error || !data) return { data: [], isLiveDb: false };
+    return { data, isLiveDb: true };
+  } catch (e) {
+    return { data: [], isLiveDb: false };
+  }
+}
+
+export async function addToneItem(item) {
+  const payload = {
+    id: `t-${Date.now()}`,
+    char: item.char.trim(),
+    pinyin: item.pinyin.trim(),
+    tone: parseInt(item.tone, 10) || 1,
+    mean: item.mean.trim()
+  };
+  try {
+    const { data, error } = await supabase.from('game_tone_items').insert([payload]).select();
+    if (!error && data) return { success: true, item: data[0], isLiveDb: true };
+  } catch (e) {}
+  return { success: true, item: payload, isLiveDb: false };
+}
+
+export async function deleteToneItem(id) {
+  try {
+    await supabase.from('game_tone_items').delete().eq('id', id);
+  } catch (e) {}
+  return { success: true };
+}
+
+export async function fetchLeaderboard() {
+  try {
+    const { data, error } = await supabase.from('game_leaderboard').select('*').order('score', { ascending: false }).limit(20);
+    if (error || !data) return { data: [], isLiveDb: false };
+    return { data, isLiveDb: true };
+  } catch (e) {
+    return { data: [], isLiveDb: false };
+  }
+}
+
+export async function submitHomeworkToSupabase(submission) {
+  try {
+    const payload = {
+      id: submission.id || `sub-${Date.now()}`,
+      lesson_id: submission.lessonId,
+      student_id: submission.studentId,
+      student_name: submission.studentName,
+      status: 'pending',
+      answers_json: submission.answers || {}
+    };
+    const { data, error } = await supabase.from('submissions').insert([payload]).select();
+    if (!error) return { success: true, data };
+  } catch (e) {
+    console.error('Supabase submission error:', e);
+  }
+  return { success: false };
+}
+
+export async function fetchSubmissions() {
+  const { data, error } = await supabase.from('submissions').select('*, lessons(title)').order('submitted_at', { ascending: false });
+  if (error) return { data: [], error: error.message };
+  return { data: (data || []).map((item) => ({
+    id: item.id, lessonTitle: item.lessons?.title || 'Bài học', studentId: item.student_id,
+    studentName: item.student_name, studentAvatar: item.student_name?.slice(0, 1) || '学',
+    submittedAt: new Date(item.submitted_at).toLocaleString('vi-VN'), status: item.status,
+    totalScore: item.total_score, answers: item.answers_json || {}, teacherComment: item.teacher_comment || ''
+  })), error: null };
+}
+
+export async function gradeSubmission(submissionId, totalScore, teacherComment) {
+  const { error } = await supabase.from('submissions').update({ total_score: totalScore, teacher_comment: teacherComment, status: 'graded' }).eq('id', submissionId);
+  return error ? { success: false, error: error.message } : { success: true };
+}
+
+// ==========================================
+// 7. STREAKS & COMMUNITY
+// ==========================================
+export async function fetchUserStreak(userId) {
+  if (!userId) return { data: null, error: null };
+  const { data, error } = await supabase.from('user_streaks').select('*').eq('user_id', userId).maybeSingle();
+  if (error) return { data: null, error: error.message };
+  if (!data) return { data: null, error: null };
+  const today = new Date().toISOString().slice(0, 10);
+  return { data: {
+    currentStreak: data.current_streak || 0,
+    longestStreak: data.longest_streak || 0,
+    totalXp: data.total_xp || 0,
+    checkedInToday: data.last_check_in === today,
+    weekDays: []
+  }, error: null };
+}
+
+export async function checkInUser(userId) {
+  if (!userId) return { success: false, error: 'Bạn cần đăng nhập để điểm danh.' };
+  const current = await fetchUserStreak(userId);
+  if (current.error) return { success: false, error: current.error };
+  if (current.data?.checkedInToday) return { success: true, data: current.data };
+  const nextStreak = (current.data?.currentStreak || 0) + 1;
+  const payload = {
+    user_id: userId,
+    current_streak: nextStreak,
+    longest_streak: Math.max(nextStreak, current.data?.longestStreak || 0),
+    last_check_in: new Date().toISOString().slice(0, 10),
+    total_xp: (current.data?.totalXp || 0) + 50,
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
+  return error ? { success: false, error: error.message } : { success: true, data: { ...current.data, currentStreak: nextStreak, longestStreak: payload.longest_streak, totalXp: payload.total_xp, checkedInToday: true } };
+}
+
+const formatForumPost = (post) => ({
+  id: post.id, category: post.category, title: post.title, content: post.content,
+  author: { name: post.author_name, avatar: post.author_avatar, role: post.author_role },
+  createdAt: new Date(post.created_at).toLocaleString('vi-VN'), likesCount: post.likes_count || 0,
+  status: post.status, tags: post.tags || [], comments: (post.forum_comments || []).map((comment) => ({
+    id: comment.id,
+    author: { name: comment.author_name, avatar: comment.author_avatar, role: comment.author_role },
+    content: comment.content, createdAt: new Date(comment.created_at).toLocaleString('vi-VN'),
+    isTeacherAnswer: comment.is_teacher_answer, likesCount: comment.likes_count || 0
+  }))
+});
+
+export async function fetchForumPosts() {
+  const { data, error } = await supabase.from('forum_posts').select('*, forum_comments(*)').order('created_at', { ascending: false });
+  return error ? { data: [], error: error.message } : { data: (data || []).map(formatForumPost), error: null };
+}
+
+export async function createForumPost(post, user) {
+  const payload = { id: post.id, user_id: user.id, author_name: user.name, author_avatar: user.avatar || '安', author_role: user.role, category: post.category, title: post.title, content: post.content, tags: post.tags, likes_count: 0, status: 'pending' };
+  const { error } = await supabase.from('forum_posts').insert(payload);
+  return error ? { success: false, error: error.message } : { success: true };
+}
+
+export async function createForumComment(postId, comment, user) {
+  const { error } = await supabase.from('forum_comments').insert({ id: comment.id, post_id: postId, user_id: user.id, author_name: user.name, author_avatar: user.avatar || '安', author_role: user.role, content: comment.content, is_teacher_answer: comment.isTeacherAnswer });
+  return error ? { success: false, error: error.message } : { success: true };
+}
+
+export async function updateForumPost(postId, changes) {
+  const payload = {};
+  if (changes.status !== undefined) payload.status = changes.status;
+  if (changes.likesCount !== undefined) payload.likes_count = changes.likesCount;
+  const { error } = await supabase.from('forum_posts').update(payload).eq('id', postId);
+  return error ? { success: false, error: error.message } : { success: true };
 }

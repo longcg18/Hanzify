@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { loginWithSupabase, logoutFromSupabase, registerStudentInSupabase } from '../services/supabaseService';
 
 const AuthContext = createContext();
 
 export const PRESET_USERS = {
   admin: {
     id: 'user-admin',
+    username: 'admin',
     name: 'Nguyễn Phúc Long (Admin)',
     email: 'admin@hanzify.com',
     phone: '0901 234 567',
@@ -16,62 +18,36 @@ export const PRESET_USERS = {
   },
   teacher: {
     id: 'user-teacher',
-    name: 'Cô Hoài',
-    email: 'hoailaoshi@hanzify.com',
+    username: 'giaovien01',
+    name: 'Cô Hoài (Giáo Viên 01)',
+    email: 'giaovien01@hanzify.com',
     phone: '0987 654 321',
     role: 'teacher',
     avatar: '怀',
     chineseName: '怀老师',
     badge: 'Giáo viên phụ trách',
-    joinedDate: 'Năm 2024'
-  },
-  student: {
-    id: 'user-student-1',
-    name: 'Nguyễn Văn An',
-    email: 'student@hanzify.com',
-    phone: '0911 223 344',
-    role: 'student',
-    avatar: '安',
-    chineseName: '阮文安',
-    badge: 'Học viên HSK 2',
-    joinedDate: 'Tháng 8/2026'
+    joinedDate: 'Năm 2026'
   }
 };
 
 const INITIAL_REGISTERED_USERS = [
   {
-    id: 'user-student-1',
-    username: 'student',
-    password: '123',
-    name: 'Nguyễn Văn An',
-    email: 'student@hanzify.com',
-    phone: '0911 223 344',
-    role: 'student',
-    avatar: '安',
-    chineseName: '阮文安',
-    badge: 'Học viên HSK 2',
-    classId: 'class-hsk2-k01',
-    className: 'Lớp HSK 2 Cấp Tốc - Khóa K01',
-    enrolledCourses: ['hsk2'],
-    joinedDate: 'Tháng 8/2026'
-  },
-  {
     id: 'user-teacher',
-    username: 'hoailaoshi',
-    password: '123',
-    name: 'Cô Hoài',
-    email: 'hoailaoshi@hanzify.com',
+    username: 'giaovien01',
+    password: '123456',
+    name: 'Cô Hoài (Giáo Viên 01)',
+    email: 'giaovien01@hanzify.com',
     phone: '0987 654 321',
     role: 'teacher',
     avatar: '怀',
     chineseName: '怀老师',
     badge: 'Giáo viên phụ trách',
-    joinedDate: 'Năm 2024'
+    joinedDate: 'Năm 2026'
   },
   {
     id: 'user-admin',
     username: 'admin',
-    password: '123',
+    password: '123456',
     name: 'Nguyễn Phúc Long (Admin)',
     email: 'admin@hanzify.com',
     phone: '0901 234 567',
@@ -85,26 +61,11 @@ const INITIAL_REGISTERED_USERS = [
 
 export const AuthProvider = ({ children }) => {
   // Persistent registered users list
-  const [registeredUsers, setRegisteredUsers] = useState(() => {
-    const saved = localStorage.getItem('hanzify_registered_users');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_REGISTERED_USERS;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('hanzify_registered_users', JSON.stringify(registeredUsers));
-    } catch (e) {}
-  }, [registeredUsers]);
+  const [registeredUsers] = useState([]);
 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('hanzify_user');
-    return saved ? JSON.parse(saved) : PRESET_USERS.student;
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -116,27 +77,11 @@ export const AuthProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([
     {
       id: 'notif-1',
-      title: 'Cô Hoài đã chấm bài tập của bạn!',
-      desc: 'Bài 04: Đi Mua Sắm (买东西) đạt 9.5 Điểm kèm lời phê chi tiết.',
-      time: '15 phút trước',
-      type: 'grade',
-      isRead: false
-    },
-    {
-      id: 'notif-2',
-      title: 'Nhắc nhở nộp bài tập tuần này',
-      desc: 'Hạn nộp bài tập Bài 04 là 23:59 hôm nay, đừng quên nộp nhé!',
-      time: '3 giờ trước',
+      title: 'Chào mừng bạn đến với Hanzify!',
+      desc: 'Hệ thống đã sẵn sàng cho giáo viên quản lý lớp học và bài tập.',
+      time: 'Vừa xong',
       type: 'reminder',
       isRead: false
-    },
-    {
-      id: 'notif-3',
-      title: 'Chúc mừng đạt điểm cao Thi Thử HSK 2',
-      desc: 'Bạn đã đạt 160/200 điểm ở Đề thi thử số 01. Tuyệt vời!',
-      time: 'Hôm qua',
-      type: 'award',
-      isRead: true
     }
   ]);
 
@@ -151,7 +96,8 @@ export const AuthProvider = ({ children }) => {
     setIsAuthModalOpen(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await logoutFromSupabase();
     setUser(null);
     localStorage.removeItem('hanzify_user');
   };
@@ -163,64 +109,29 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
-  // Verify credentials on login
-  const authenticate = (usernameOrEmail, password) => {
-    const cleanUser = (usernameOrEmail || '').trim().toLowerCase();
-    const cleanPass = (password || '').trim();
-
-    const found = registeredUsers.find(
-      (u) =>
-        (u.username?.toLowerCase() === cleanUser ||
-         u.email?.toLowerCase() === cleanUser ||
-         u.phone === cleanUser) &&
-        (u.password === cleanPass || cleanPass === '123' || cleanPass === '123456') // Support flexible demo pass
-    );
-
-    if (found) {
-      login(found);
-      return { success: true, user: found };
+  // Verify credentials on login via Supabase Cloud
+  const authenticate = async (usernameOrEmail, password) => {
+    try {
+      const res = await loginWithSupabase(usernameOrEmail, password);
+      if (res && res.success && res.user) {
+        login(res.user);
+        return { success: true, user: res.user };
+      }
+    } catch (err) {
+      return { success: false, message: err.message || 'Tên đăng nhập hoặc mật khẩu không chính xác!' };
     }
     return { success: false, message: 'Sai tên đăng nhập hoặc mật khẩu!' };
   };
 
   // Register student joining class
-  const registerStudentWithClass = ({ classId, className, studentId, name, username, password, enrolledCourses = [] }) => {
-    const existing = registeredUsers.find(u => u.username?.toLowerCase() === username.trim().toLowerCase());
-    if (existing) {
-      return { success: false, message: 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác!' };
-    }
-
-    const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-    const newUser = {
-      id: `user-${Date.now()}`,
-      studentId: studentId,
-      username: username.trim(),
-      password: password,
-      name: name.trim(),
-      email: `${username.trim()}@student.hanzify.com`,
-      phone: '',
-      role: 'student',
-      avatar: initials || '学',
-      badge: `Học viên ${className || 'Lớp Mới'}`,
-      classId: classId,
-      className: className,
-      enrolledCourses: enrolledCourses,
-      joinedDate: 'Tháng 9/2026'
-    };
-
-    setRegisteredUsers((prev) => [...prev, newUser]);
-    login(newUser);
-    return { success: true, user: newUser };
+  const registerStudentWithClass = async (payload) => {
+    const result = await registerStudentInSupabase(payload);
+    if (result.success) login(result.user);
+    return result;
   };
 
   const markAllNotificationsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
-
-  const switchRole = (newRole) => {
-    if (PRESET_USERS[newRole]) {
-      setUser(PRESET_USERS[newRole]);
-    }
   };
 
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
@@ -235,7 +146,6 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         updateProfile,
-        switchRole,
         isAuthModalOpen,
         setIsAuthModalOpen,
         isProfilePanelOpen,

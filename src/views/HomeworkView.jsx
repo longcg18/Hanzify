@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { submitHomeworkApi } from '../api';
+import { fetchLessonQuestions, submitHomeworkToSupabase } from '../services/supabaseService';
 import { useAuth } from '../context/AuthContext';
 
 export const HomeworkView = ({ lesson, onBack }) => {
-  const { user } = useAuth();
+  const { user, setIsAuthModalOpen } = useAuth();
+  const [dbQuestions, setDbQuestions] = useState([]);
+
+  useEffect(() => {
+    if (lesson?.id) {
+      fetchLessonQuestions(lesson.id).then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDbQuestions(data);
+        }
+      });
+    }
+  }, [lesson?.id]);
 
   // Homework Answers State
   const [q1Answer, setQ1Answer] = useState(null);
@@ -148,6 +159,10 @@ export const HomeworkView = ({ lesson, onBack }) => {
 
   // Submit Homework
   const handleSubmit = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setIsSubmitting(true);
 
     let score = 0;

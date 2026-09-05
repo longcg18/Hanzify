@@ -17,24 +17,107 @@ import { ForumView } from './views/ForumView';
 import { StreakModal } from './components/StreakModal';
 import { CreateClassModal } from './components/CreateClassModal';
 import { JoinClassModal } from './components/JoinClassModal';
-import { COURSES_DATA } from './data/coursesData';
-import { INITIAL_EXAMS_DATA } from './data/examsData';
-import { INITIAL_STREAK_DATA } from './data/gamificationData';
-import { INITIAL_CLASSROOMS } from './data/classroomsData';
+import { ClassLessonManagerModal } from './components/ClassLessonManagerModal';
+import { LessonHomeworkEditorView } from './views/LessonHomeworkEditorView';
 import { 
+  fetchCoursesWithLessons,
   syncCourseToSupabase, 
   deleteCourseFromSupabase, 
   syncLessonToSupabase, 
   deleteLessonFromSupabase,
+  fetchClassrooms,
+  createClassroomInSupabase,
+  updateClassroomUnlockedLessons,
+  deleteClassroomFromSupabase,
   fetchExams,
   syncExamToSupabase,
-  deleteExamFromSupabase
+  deleteExamFromSupabase,
+  fetchUserStreak,
+  checkInUser
 } from './services/supabaseService';
 
+
+const RequireLoginCard = ({ title, subtitle, onLogin, onBack }) => (
+  <main className="main-content" style={{ padding: '3.5rem 1rem', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{
+      maxWidth: '520px',
+      width: '100%',
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #fee2e2',
+      padding: '2.75rem 2rem',
+      textAlign: 'center',
+      boxShadow: '0 12px 35px rgba(161, 29, 36, 0.08)'
+    }}>
+      <div style={{
+        width: '64px',
+        height: '64px',
+        borderRadius: '50%',
+        background: '#fef2f2',
+        color: '#b91c1c',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.8rem',
+        margin: '0 auto 1.25rem'
+      }}>
+        <i className="fa-solid fa-lock"></i>
+      </div>
+      <h2 style={{ color: '#0f172a', fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.6rem' }}>
+        {title || 'Yêu Cầu Đăng Nhập'}
+      </h2>
+      <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
+        {subtitle || 'Bạn cần đăng nhập vào tài khoản để tham gia làm bài và ghi nhận kết quả.'}
+      </p>
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={onLogin}
+          style={{
+            padding: '0.75rem 1.6rem',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+            color: '#ffffff',
+            border: 'none',
+            fontWeight: 800,
+            fontSize: '0.92rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 14px rgba(185, 28, 28, 0.25)'
+          }}
+        >
+          <i className="fa-solid fa-arrow-right-to-bracket"></i>
+          <span>Đăng Nhập Ngay</span>
+        </button>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              padding: '0.75rem 1.4rem',
+              borderRadius: '12px',
+              background: '#f1f5f9',
+              color: '#475569',
+              border: '1px solid #e2e8f0',
+              fontWeight: 700,
+              fontSize: '0.92rem',
+              cursor: 'pointer'
+            }}
+          >
+            Quay lại
+          </button>
+        )}
+      </div>
+    </div>
+  </main>
+);
 
 export function AppContent() {
   const {
     user,
+    setIsAuthModalOpen,
     isCreateClassModalOpen,
     setIsCreateClassModalOpen,
     isJoinClassModalOpen,
@@ -42,120 +125,68 @@ export function AppContent() {
   } = useAuth();
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'courses' | 'course-detail' | 'homework' | 'practice' | 'exam' | 'exam-room' | 'entertainment' | 'grading' | 'admin-users' | 'leaderboard' | 'forum'
 
-  // Classrooms state with localStorage persistence
-  const [classrooms, setClassrooms] = useState(() => {
-    const saved = localStorage.getItem('hanzify_classrooms');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_CLASSROOMS;
-  });
+  // Classrooms state - Pure Supabase
+  const [classrooms, setClassrooms] = useState([]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('hanzify_classrooms', JSON.stringify(classrooms));
-    } catch (e) {}
-  }, [classrooms]);
+  // Courses state - Pure Supabase
+  const [courses, setCourses] = useState([]);
 
-  // Courses state with localStorage persistence
-  const [courses, setCourses] = useState(() => {
-    const saved = localStorage.getItem('hanzify_courses');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return COURSES_DATA;
-  });
-
-  // Exams state — ưu tiên Supabase DB, fallback localStorage
-  const [exams, setExams] = useState(() => {
-    const saved = localStorage.getItem('hanzify_exams');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_EXAMS_DATA;
-  });
+  // Exams state — Supabase là nguồn dữ liệu duy nhất
+  const [exams, setExams] = useState([]);
   const [isExamsDbLive, setIsExamsDbLive] = useState(false);
 
-  // Load exams từ Supabase khi mount (ghi đè localStorage nếu DB có data)
+  const [activeCourseId, setActiveCourseId] = useState(null);
+  const activeCourse = courses.find((c) => c.id === activeCourseId) || courses[0] || null;
+
+  const [activeLesson, setActiveLesson] = useState(null);
+  const [activeExam, setActiveExam] = useState(null);
+  const [managingClassroom, setManagingClassroom] = useState(null);
+
+  // Load courses and classrooms directly from Supabase Cloud
   useEffect(() => {
-    fetchExams().then(({ data, isLiveDb }) => {
-      if (isLiveDb && data && data.length > 0) {
-        setExams(data);
-        setIsExamsDbLive(true);
-        try {
-          localStorage.setItem('hanzify_exams', JSON.stringify(data));
-        } catch (e) {}
+    fetchCoursesWithLessons().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setCourses(data);
+        setActiveCourseId((prev) => prev || data[0].id);
+        if (data[0].lessons && data[0].lessons.length > 0) {
+          setActiveLesson((prev) => prev || data[0].lessons[0]);
+        }
+      }
+    });
+
+    fetchClassrooms().then((data) => {
+      if (Array.isArray(data)) {
+        setClassrooms(data);
       }
     });
   }, []);
 
-  // Save courses changes to localStorage
+  // Load exams từ Supabase khi mount
   useEffect(() => {
-    try {
-      localStorage.setItem('hanzify_courses', JSON.stringify(courses));
-    } catch (e) {}
-  }, [courses]);
+    fetchExams().then(({ data, isLiveDb }) => {
+      if (isLiveDb) {
+        setExams(data);
+        setIsExamsDbLive(true);
+      }
+    });
+  }, []);
 
-  // Save exams changes to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('hanzify_exams', JSON.stringify(exams));
-    } catch (e) {}
-  }, [exams]);
-
-
-  const [activeCourseId, setActiveCourseId] = useState(() => COURSES_DATA[0].id);
-  const activeCourse = courses.find((c) => c.id === activeCourseId) || courses[0] || COURSES_DATA[0];
-
-  const [activeLesson, setActiveLesson] = useState(() => activeCourse?.lessons?.[3] || activeCourse?.lessons?.[0]); // Lesson default
-  const [activeExam, setActiveExam] = useState(null);
   const [roleToast, setRoleToast] = useState(null);
 
   // Streak state with persistence
-  const [streakData, setStreakData] = useState(() => {
-    const saved = localStorage.getItem('hanzify_streak_data');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.currentStreak === 'number') return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_STREAK_DATA;
-  });
+  const [streakData, setStreakData] = useState({ currentStreak: 0, longestStreak: 0, totalXp: 0, checkedInToday: false, weekDays: [] });
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('hanzify_streak_data', JSON.stringify(streakData));
-    } catch (e) {}
-  }, [streakData]);
+    if (user?.id) fetchUserStreak(user.id).then(({ data }) => data && setStreakData(data));
+  }, [user?.id]);
 
   // Handle daily streak check-in
-  const handleCheckInToday = () => {
+  const handleCheckInToday = async () => {
     if (streakData.checkedInToday) return;
-
-    const todayIndex = 4; // Thứ 6
-    const updatedWeekDays = streakData.weekDays.map((d, idx) =>
-      idx === todayIndex ? { ...d, completed: true } : d
-    );
-
-    const updated = {
-      ...streakData,
-      currentStreak: streakData.currentStreak + 1,
-      checkedInToday: true,
-      totalXp: (streakData.totalXp || 5420) + 50,
-      weekDays: updatedWeekDays
-    };
-
+    const result = await checkInUser(user?.id);
+    if (!result.success) { setRoleToast(result.error); return; }
+    const updated = result.data;
     setStreakData(updated);
     setRoleToast(`🔥 Điểm danh thành công! Chuỗi học tăng lên ${updated.currentStreak} ngày liên tiếp (+50 XP)`);
     setTimeout(() => {
@@ -163,57 +194,61 @@ export function AppContent() {
     }, 4500);
   };
 
-  // Handlers for Exams CRUD — sync cả localStorage lẫn Supabase
-  const handleCreateExam = (newExam) => {
+  // Handlers for Exams CRUD — chỉ cập nhật UI sau khi Supabase thành công
+  const handleCreateExam = async (newExam) => {
+    const result = await syncExamToSupabase(newExam);
+    if (!result.success) { setRoleToast('Không thể lưu đề thi lên Supabase.'); return; }
     setExams((prev) => [newExam, ...prev]);
-    syncExamToSupabase(newExam).then(({ isLiveDb }) => {
-      if (isLiveDb) setIsExamsDbLive(true);
-    });
+    setIsExamsDbLive(true);
   };
 
-  const handleEditExam = (updatedExam) => {
+  const handleEditExam = async (updatedExam) => {
+    const result = await syncExamToSupabase(updatedExam);
+    if (!result.success) { setRoleToast('Không thể cập nhật đề thi trên Supabase.'); return; }
     setExams((prev) => prev.map((e) => (e.id === updatedExam.id ? updatedExam : e)));
     if (activeExam?.id === updatedExam.id) {
       setActiveExam(updatedExam);
     }
-    syncExamToSupabase(updatedExam).then(({ isLiveDb }) => {
-      if (isLiveDb) setIsExamsDbLive(true);
-    });
+    setIsExamsDbLive(true);
   };
 
-  const handleDeleteExam = (examId) => {
+  const handleDeleteExam = async (examId) => {
+    const result = await deleteExamFromSupabase(examId);
+    if (!result.success) { setRoleToast('Không thể xóa đề thi trên Supabase.'); return; }
     setExams((prev) => prev.filter((e) => e.id !== examId));
     if (activeExam?.id === examId) {
       setActiveExam(null);
       setCurrentView('exam');
     }
-    deleteExamFromSupabase(examId);
   };
 
 
-  // Handlers for Courses CRUD (Cô Hoài & Admin)
-  const handleCreateCourse = (newCourse) => {
+  // Handlers for Courses CRUD (Cô Hoài & Admin on Supabase)
+  const handleCreateCourse = async (newCourse) => {
+    const result = await syncCourseToSupabase(newCourse);
+    if (!result.success) { setRoleToast('Không thể tạo khóa học trên Supabase.'); return; }
     setCourses((prev) => [newCourse, ...prev]);
     setActiveCourseId(newCourse.id);
-    syncCourseToSupabase(newCourse);
   };
 
-  const handleEditCourse = (updatedCourse) => {
+  const handleEditCourse = async (updatedCourse) => {
+    const result = await syncCourseToSupabase(updatedCourse);
+    if (!result.success) { setRoleToast('Không thể cập nhật khóa học trên Supabase.'); return; }
     setCourses((prev) => prev.map((c) => (c.id === updatedCourse.id ? updatedCourse : c)));
-    syncCourseToSupabase(updatedCourse);
   };
 
-  const handleDeleteCourse = (courseId) => {
+  const handleDeleteCourse = async (courseId) => {
+    const result = await deleteCourseFromSupabase(courseId);
+    if (!result.success) { setRoleToast('Không thể xóa khóa học trên Supabase.'); return; }
     setCourses((prev) => prev.filter((c) => c.id !== courseId));
     if (activeCourseId === courseId) {
       setActiveCourseId(courses[0]?.id);
       setCurrentView('courses');
     }
-    deleteCourseFromSupabase(courseId);
   };
 
-  // Handlers for Lessons in Course (Cô Hoài & Admin)
-  const handleAddLesson = (courseId, newLesson) => {
+  // Handlers for Lessons in Course (Cô Hoài & Admin on Supabase)
+  const handleAddLesson = async (courseId, newLesson) => {
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
@@ -227,10 +262,10 @@ export function AppContent() {
         return c;
       })
     );
-    syncLessonToSupabase(newLesson, courseId);
+    await syncLessonToSupabase(newLesson, courseId);
   };
 
-  const handleDeleteLesson = (courseId, lessonId) => {
+  const handleDeleteLesson = async (courseId, lessonId) => {
     setCourses((prev) =>
       prev.map((c) => {
         if (c.id === courseId) {
@@ -244,14 +279,132 @@ export function AppContent() {
         return c;
       })
     );
-    deleteLessonFromSupabase(lessonId);
+    await deleteLessonFromSupabase(lessonId);
+  };
+
+  // Handlers for Unlocking Lessons per Classroom (Theo Lớp Học)
+  const handleToggleClassLesson = async (classId, lessonId) => {
+    let updatedClass = null;
+    setClassrooms((prev) =>
+      prev.map((c) => {
+        if (c.id === classId) {
+          const currentUnlocked = new Set(c.unlockedLessons || []);
+          if (currentUnlocked.has(lessonId)) {
+            currentUnlocked.delete(lessonId);
+          } else {
+            currentUnlocked.add(lessonId);
+          }
+          updatedClass = {
+            ...c,
+            unlockedLessons: Array.from(currentUnlocked)
+          };
+          return updatedClass;
+        }
+        return c;
+      })
+    );
+
+    if (updatedClass) {
+      if (managingClassroom?.id === classId) {
+        setManagingClassroom(updatedClass);
+      }
+      await updateClassroomUnlockedLessons(classId, updatedClass.unlockedLessons);
+      const isNowOpen = updatedClass.unlockedLessons.includes(lessonId);
+      setRoleToast(
+        isNowOpen
+          ? `🟢 Đã mở bài học cho lớp "${updatedClass.name}" (Học sinh lớp này có thể làm bài)`
+          : `🔒 Đã khóa bài học đối với lớp "${updatedClass.name}"`
+      );
+      setTimeout(() => setRoleToast(null), 3500);
+    }
+  };
+
+  const handleUnlockAllClassLessons = async (classId, allLessonIds) => {
+    let updatedClass = null;
+    setClassrooms((prev) =>
+      prev.map((c) => {
+        if (c.id === classId) {
+          updatedClass = {
+            ...c,
+            unlockedLessons: allLessonIds
+          };
+          return updatedClass;
+        }
+        return c;
+      })
+    );
+
+    if (updatedClass) {
+      if (managingClassroom?.id === classId) {
+        setManagingClassroom(updatedClass);
+      }
+      await updateClassroomUnlockedLessons(classId, allLessonIds);
+      setRoleToast(`🟢 Đã mở toàn bộ ${allLessonIds.length} bài học cho lớp "${updatedClass.name}"!`);
+      setTimeout(() => setRoleToast(null), 3500);
+    }
+  };
+
+  const handleLockAllClassLessons = async (classId) => {
+    let updatedClass = null;
+    setClassrooms((prev) =>
+      prev.map((c) => {
+        if (c.id === classId) {
+          updatedClass = {
+            ...c,
+            unlockedLessons: []
+          };
+          return updatedClass;
+        }
+        return c;
+      })
+    );
+
+    if (updatedClass) {
+      if (managingClassroom?.id === classId) {
+        setManagingClassroom(updatedClass);
+      }
+      await updateClassroomUnlockedLessons(classId, []);
+      setRoleToast(`🔒 Đã khóa toàn bộ bài học đối với lớp "${updatedClass.name}"!`);
+      setTimeout(() => setRoleToast(null), 3500);
+    }
+  };
+
+  const handleDeleteClassroom = async (classId) => {
+    const res = await deleteClassroomFromSupabase(classId);
+    if (!res.success) {
+      setRoleToast('Không thể xóa lớp học trên Supabase.');
+      return;
+    }
+    setClassrooms((prev) => prev.filter((c) => c.id !== classId));
+    setRoleToast('Đã xóa lớp học thành công.');
+    setTimeout(() => setRoleToast(null), 3000);
+  };
+
+  const handleUpdateLesson = async (courseId, updatedLesson) => {
+    setCourses((prev) =>
+      prev.map((c) => {
+        if (c.id === courseId) {
+          const updatedLessons = (c.lessons || []).map((l) =>
+            l.id === updatedLesson.id ? updatedLesson : l
+          );
+          return {
+            ...c,
+            lessons: updatedLessons
+          };
+        }
+        return c;
+      })
+    );
+    await syncLessonToSupabase(updatedLesson, courseId);
+    setRoleToast(`Đã lưu thông tin bài học "${updatedLesson.title}" thành công!`);
+    setTimeout(() => setRoleToast(null), 3500);
   };
 
   // Role Switch Handler with Smart Auto-Redirection
   const handleRoleSwitched = (newRole) => {
-    let roleLabel = 'Học Viên (Nguyễn Văn An)';
-    if (newRole === 'admin') roleLabel = '👑 Admin (Nguyễn Phúc Long)';
-    if (newRole === 'teacher') roleLabel = '👩‍🏫 Giáo Viên (Cô Hoài)';
+    let roleLabel = 'Học Viên';
+    if (newRole === 'admin') roleLabel = '👑 Quản Trị Viên (Admin)';
+    if (newRole === 'teacher') roleLabel = '👩‍🏫 Giáo Viên Phụ Trách';
 
     let redirectNote = '';
     // If on admin-users and new role is not admin, redirect immediately to courses
@@ -290,15 +443,37 @@ export function AppContent() {
   };
 
   const handleOpenLesson = (lesson) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      setRoleToast('Vui lòng đăng nhập để làm bài tập và ghi nhận tiến độ học tập!');
+      setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
     setActiveLesson(lesson);
     setCurrentView('homework');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleStartExam = (exam) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      setRoleToast('Vui lòng đăng nhập để vào phòng thi thử HSK!');
+      setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
     setActiveExam(exam);
     setCurrentView('exam-room');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenStreakModal = () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      setRoleToast('Vui lòng đăng nhập để theo dõi chuỗi ngày học và điểm danh!');
+      setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
+    setIsStreakModalOpen(true);
   };
 
   const handleBack = () => {
@@ -313,9 +488,11 @@ export function AppContent() {
   };
 
   // Handle New Class Creation
-  const handleCreateClass = (newClass) => {
+  const handleCreateClass = async (newClass) => {
+    const result = await createClassroomInSupabase(newClass);
+    if (!result.success) { setRoleToast('Không thể tạo lớp trên Supabase.'); return; }
     setClassrooms((prev) => [newClass, ...prev]);
-    setRoleToast(`Đã mở lớp "${newClass.name}" thành công! Mã lớp: ${newClass.code}`);
+    setRoleToast(`Đã mở lớp "${newClass.name}" thành công trên Supabase! Mã lớp: ${newClass.code}`);
     setTimeout(() => setRoleToast(null), 6000);
   };
 
@@ -357,7 +534,7 @@ export function AppContent() {
         onBack={handleBack}
         onRoleSwitched={handleRoleSwitched}
         streakData={streakData}
-        onOpenStreakModal={() => setIsStreakModalOpen(true)}
+        onOpenStreakModal={handleOpenStreakModal}
       />
 
       {/* Main View Switcher */}
@@ -367,8 +544,10 @@ export function AppContent() {
           classrooms={classrooms}
           onOpenCreateClass={() => setIsCreateClassModalOpen(true)}
           onOpenJoinClass={() => setIsJoinClassModalOpen(true)}
+          onOpenClassLessonManager={(cls) => setManagingClassroom(cls)}
+          onDeleteClassroom={handleDeleteClassroom}
           streakData={streakData}
-          onOpenStreakModal={() => setIsStreakModalOpen(true)}
+          onOpenStreakModal={handleOpenStreakModal}
           onNavigate={(view) => {
             setCurrentView(view);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -389,7 +568,7 @@ export function AppContent() {
           onEditCourse={handleEditCourse}
           onDeleteCourse={handleDeleteCourse}
           streakData={streakData}
-          onOpenStreakModal={() => setIsStreakModalOpen(true)}
+          onOpenStreakModal={handleOpenStreakModal}
           onNavigate={(view) => {
             setCurrentView(view);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -400,20 +579,65 @@ export function AppContent() {
       {currentView === 'course-detail' && (
         <CourseDetailView
           course={activeCourse}
+          classrooms={classrooms}
           onOpenLesson={handleOpenLesson}
+          onOpenHomeworkEditor={(lesson) => {
+            if (!['admin', 'teacher'].includes(user?.role)) {
+              setIsAuthModalOpen(true);
+              return;
+            }
+            setActiveLesson(lesson);
+            setCurrentView('homework-editor');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           onBack={() => setCurrentView('courses')}
           onAddLesson={handleAddLesson}
           onDeleteLesson={handleDeleteLesson}
           onEditCourse={handleEditCourse}
           onDeleteCourse={handleDeleteCourse}
+          onOpenClassLessonManager={(cls) => setManagingClassroom(cls)}
+          onUpdateLesson={handleUpdateLesson}
         />
       )}
 
+      {currentView === 'homework-editor' && (
+        ['admin', 'teacher'].includes(user?.role) ? (
+          <LessonHomeworkEditorView
+            lesson={activeLesson}
+            course={activeCourse}
+            onBack={() => {
+              // refresh courses so question count updates
+              fetchCoursesWithLessons().then((data) => {
+                if (Array.isArray(data) && data.length > 0) setCourses(data);
+              });
+              setCurrentView('course-detail');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        ) : (
+          <RequireLoginCard
+            title="Quyền Hạn Bị Giới Hạn"
+            subtitle="Trình biên soạn bài tập chỉ dành riêng cho Giáo viên và Quản trị viên."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('courses')}
+          />
+        )
+      )}
+
       {currentView === 'homework' && (
-        <HomeworkView
-          lesson={activeLesson}
-          onBack={() => setCurrentView('course-detail')}
-        />
+        user ? (
+          <HomeworkView
+            lesson={activeLesson}
+            onBack={() => setCurrentView('course-detail')}
+          />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập Để Làm Bài Tập"
+            subtitle="Bạn cần đăng nhập vào tài khoản để mở không gian làm bài tập, chấm điểm tự động và nộp bài cho giáo viên."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('course-detail')}
+          />
+        )
       )}
 
       {currentView === 'practice' && (
@@ -432,11 +656,20 @@ export function AppContent() {
       )}
 
       {currentView === 'exam-room' && (
-        <ExamRoomView exam={activeExam} onExit={() => setCurrentView('exam')} />
+        user ? (
+          <ExamRoomView exam={activeExam} onExit={() => setCurrentView('exam')} />
+        ) : (
+          <RequireLoginCard
+            title="Yêu Cầu Đăng Nhập Để Vào Phòng Thi"
+            subtitle="Bạn cần đăng nhập vào tài khoản để vào phòng thi chuẩn HSK, làm bài có bấm giờ và lưu bảng điểm."
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('exam')}
+          />
+        )
       )}
 
       {currentView === 'leaderboard' && (
-        <LeaderboardView onNavigate={(view) => {
+        <LeaderboardView classrooms={classrooms} onNavigate={(view) => {
           setCurrentView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }} />
@@ -447,7 +680,16 @@ export function AppContent() {
       )}
 
       {currentView === 'entertainment' && (
-        <EntertainmentView />
+        user ? (
+          <EntertainmentView />
+        ) : (
+          <RequireLoginCard
+            title="Khu Vực Trò Chơi Giải Trí"
+            subtitle="Đăng nhập tài khoản học viên để tham gia các trò chơi phản xạ chữ Hán, thanh điệu và lưu điểm số!"
+            onLogin={() => setIsAuthModalOpen(true)}
+            onBack={() => setCurrentView('courses')}
+          />
+        )
       )}
 
       {currentView === 'grading' && (
@@ -603,6 +845,17 @@ export function AppContent() {
         classrooms={classrooms}
         courses={courses}
         onStudentActivated={handleStudentActivated}
+      />
+
+      {/* Class Lesson Unlock Manager Modal */}
+      <ClassLessonManagerModal
+        isOpen={Boolean(managingClassroom)}
+        onClose={() => setManagingClassroom(null)}
+        classroom={managingClassroom}
+        courses={courses}
+        onToggleLesson={handleToggleClassLesson}
+        onUnlockAll={handleUnlockAllClassLessons}
+        onLockAll={handleLockAllClassLessons}
       />
 
       {/* Global Auth Modal */}

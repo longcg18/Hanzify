@@ -101,7 +101,7 @@ export const JoinClassModal = ({
   };
 
   // Step 3: Complete Registration
-  const handleRegisterAccount = (e) => {
+  const handleRegisterAccount = async (e) => {
     e.preventDefault();
     setCredentialError('');
 
@@ -128,7 +128,7 @@ export const JoinClassModal = ({
     }
 
     // Register user & activate
-    const res = registerStudentWithClass({
+    const res = await registerStudentWithClass({
       classId: matchedClass.id,
       className: matchedClass.name,
       studentId: selectedStudent.id,

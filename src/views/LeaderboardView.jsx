@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LEADERBOARD_DATA, CLASSES_LIST } from '../data/gamificationData';
+import { fetchLeaderboard } from '../services/supabaseService';
 
-export const LeaderboardView = ({ onNavigate }) => {
+export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
   const { user } = useAuth();
   const [selectedClassId, setSelectedClassId] = useState('all'); // 'all' | 'hsk1-k02' | 'hsk1-k03' | 'hsk2-k01'
   const [timeRange, setTimeRange] = useState('weekly'); // 'weekly' | 'monthly' | 'allTime'
   const [isXpRulesOpen, setIsXpRulesOpen] = useState(false);
+  const [entries, setEntries] = useState([]);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    fetchLeaderboard().then(({ data, isLiveDb }) => {
+      setEntries((data || []).map((item, index) => ({
+        ...item, rank: index + 1, name: item.user_name, avatar: item.user_name?.slice(0, 1) || '学',
+        xp: item.score, points: item.score, classId: item.classroom_id || 'all'
+      })));
+      if (!isLiveDb) setLoadError('Không thể kết nối bảng xếp hạng trên Supabase.');
+    });
+  }, []);
 
-  const currentList = selectedClassId === 'all'
-    ? (LEADERBOARD_DATA[timeRange] || LEADERBOARD_DATA.weekly)
-    : (LEADERBOARD_DATA.byClass[selectedClassId] || []);
+  const currentList = selectedClassId === 'all' ? entries : entries.filter((item) => item.classId === selectedClassId);
 
-  const selectedClassInfo = CLASSES_LIST.find((c) => c.id === selectedClassId);
+  const classOptions = [{ id: 'all', name: 'Toàn hệ thống' }, ...classrooms];
+  const selectedClassInfo = classOptions.find((c) => c.id === selectedClassId);
 
   // Podium positions: 2nd (left), 1st (center), 3rd (right)
   const firstPlace = currentList[0];
@@ -22,6 +32,8 @@ export const LeaderboardView = ({ onNavigate }) => {
 
   // Current user's entry in this leaderboard
   const currentUserEntry = currentList.find((item) => item.isCurrentUser || item.name.includes(user?.name || ''));
+
+  if (loadError) return <main className="main-content" style={{ padding: '3rem 1rem', textAlign: 'center', color: '#991b1b' }}>{loadError}</main>;
 
   return (
     <div className="leaderboard-view-container" style={{ maxWidth: '1080px', margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
@@ -140,7 +152,7 @@ export const LeaderboardView = ({ onNavigate }) => {
                 cursor: 'pointer'
               }}
             >
-              {CLASSES_LIST.map((c) => (
+              {classOptions.map((c) => (
                 <option key={c.id} value={c.id} style={{ background: '#0f172a', color: '#ffffff' }}>
                   {c.name}
                 </option>
@@ -250,17 +262,55 @@ export const LeaderboardView = ({ onNavigate }) => {
         )}
       </section>
 
-      {/* TOP 3 PODIUM (Bục Vinh Danh Olympic) */}
-      <section style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '1.25rem',
-        alignItems: 'flex-end',
-        marginBottom: '2.5rem',
-        padding: '0 0.5rem'
-      }}>
-        {/* HẠNG 2 (SILVER 🥈) */}
-        {secondPlace && (
+      {/* RANKING CONTENT OR EMPTY STATE */}
+      {currentList.length === 0 ? (
+        <section style={{
+          background: '#ffffff',
+          borderRadius: '24px',
+          border: '1.5px dashed #cbd5e1',
+          padding: '3.5rem 2rem',
+          textAlign: 'center',
+          color: '#64748b',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+          marginBottom: '2.5rem'
+        }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🏆</div>
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
+            Chưa Có Dữ Liệu Bảng Xếp Hạng
+          </h3>
+          <p style={{ margin: '0 auto 1.5rem', maxWidth: '520px', fontSize: '0.92rem', lineHeight: 1.6 }}>
+            Học viên khi làm bài tập, điểm danh chuỗi ngày học hoặc tham gia thử thách game mini sẽ được tích lũy điểm kinh nghiệm (XP) và vinh danh trên bục tại đây!
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('courses')}
+            style={{
+              padding: '0.65rem 1.35rem',
+              borderRadius: '12px',
+              background: '#A11D24',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer'
+            }}
+          >
+            Khám phá bài học & Tích lũy XP ngay
+          </button>
+        </section>
+      ) : (
+        <>
+          {/* TOP 3 PODIUM (Bục Vinh Danh Olympic) */}
+          <section style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1.25rem',
+            alignItems: 'flex-end',
+            marginBottom: '2.5rem',
+            padding: '0 0.5rem'
+          }}>
+            {/* HẠNG 2 (SILVER 🥈) */}
+            {secondPlace && (
           <div style={{
             background: '#ffffff',
             borderRadius: '20px',
@@ -690,6 +740,8 @@ export const LeaderboardView = ({ onNavigate }) => {
             </button>
           </div>
         </aside>
+      )}
+      </>
       )}
 
       {/* MODAL: QUY TẮC TÍNH XP */}

@@ -4,43 +4,180 @@
 
 export const API_BASE = 'http://localhost:5000';
 
-export async function loginApi(email, password) {
+// ==========================================
+// 1. AUTHENTICATION
+// ==========================================
+export async function loginApi(usernameOrEmail, password) {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({
+      username: usernameOrEmail,
+      email: usernameOrEmail,
+      password
+    })
   });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Đăng nhập thất bại');
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu!');
   }
-  return await res.json();
+  return data;
 }
 
+export async function getUsersApi() {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/users`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('Backend offline, cannot load users');
+  }
+  return [];
+}
+
+// ==========================================
+// 2. COURSES & LESSONS
+// ==========================================
 export async function getCoursesApi() {
   try {
     const res = await fetch(`${API_BASE}/api/courses`);
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn('Backend offline, using local fallback');
+    console.warn('Backend offline, falling back');
   }
   return null;
 }
 
+export async function createCourseApi(courseData) {
+  const res = await fetch(`${API_BASE}/api/courses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(courseData)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi tạo khóa học');
+  }
+  return await res.json();
+}
+
+export async function updateCourseApi(courseId, courseData) {
+  const res = await fetch(`${API_BASE}/api/courses/${courseId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(courseData)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi cập nhật khóa học');
+  }
+  return await res.json();
+}
+
+export async function deleteCourseApi(courseId) {
+  const res = await fetch(`${API_BASE}/api/courses/${courseId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi xóa khóa học');
+  }
+  return await res.json();
+}
+
+export async function createLessonApi(courseId, lessonData) {
+  const res = await fetch(`${API_BASE}/api/courses/${courseId}/lessons`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(lessonData)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi thêm bài học');
+  }
+  return await res.json();
+}
+
+export async function deleteLessonApi(lessonId) {
+  const res = await fetch(`${API_BASE}/api/lessons/${lessonId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi xóa bài học');
+  }
+  return await res.json();
+}
+
+// ==========================================
+// 3. HOMEWORK QUESTIONS (Teacher Live Preview & Student View)
+// ==========================================
 export async function getLessonQuestionsApi(lessonId) {
   try {
     const res = await fetch(`${API_BASE}/api/lessons/${lessonId}/questions`);
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn('Backend offline, using fallback questions');
+    console.warn('Backend offline, cannot load questions for lesson', lessonId);
   }
-  return null;
+  return [];
 }
 
+export async function saveLessonQuestionsApi(lessonId, questions) {
+  const res = await fetch(`${API_BASE}/api/lessons/${lessonId}/questions`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ questions })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi lưu bài tập vào database');
+  }
+  return await res.json();
+}
+
+// ==========================================
+// 4. CLASSROOMS
+// ==========================================
+export async function getClassroomsApi() {
+  try {
+    const res = await fetch(`${API_BASE}/api/classrooms`);
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('Backend offline, cannot load classrooms');
+  }
+  return [];
+}
+
+export async function createClassroomApi(classroomData) {
+  const res = await fetch(`${API_BASE}/api/classrooms`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(classroomData)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi tạo lớp học');
+  }
+  return await res.json();
+}
+
+export async function deleteClassroomApi(classroomId) {
+  const res = await fetch(`${API_BASE}/api/classrooms/${classroomId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Lỗi xóa lớp học');
+  }
+  return await res.json();
+}
+
+// ==========================================
+// 5. SUBMISSIONS & SPEED GRADING
+// ==========================================
 export async function submitHomeworkApi(formData) {
   const res = await fetch(`${API_BASE}/api/submissions`, {
     method: 'POST',
-    body: formData // multipart/form-data for audio/image files
+    body: formData
   });
   if (!res.ok) {
     const data = await res.json();
@@ -72,43 +209,5 @@ export async function gradeSubmissionApi(submissionId, totalScore, teacherCommen
     })
   });
   if (!res.ok) throw new Error('Lỗi cập nhật điểm');
-  return await res.json();
-}
-
-export async function getListeningDrillsApi() {
-  const res = await fetch(`${API_BASE}/api/listening`);
-  if (!res.ok) throw new Error('Không thể tải bài luyện nghe');
-  return await res.json();
-}
-
-export async function getExamsApi() {
-  const res = await fetch(`${API_BASE}/api/exams`);
-  if (!res.ok) throw new Error('Không thể tải danh sách đề thi');
-  return await res.json();
-}
-
-export async function getExamDetailApi(examId) {
-  const res = await fetch(`${API_BASE}/api/exams/${examId}`);
-  if (!res.ok) throw new Error('Không thể tải nội dung đề thi');
-  return await res.json();
-}
-
-export async function submitExamApi(examId, studentId, studentName, answers) {
-  const res = await fetch(`${API_BASE}/api/exams/${examId}/submit`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      student_id: studentId,
-      student_name: studentName,
-      answers
-    })
-  });
-  if (!res.ok) throw new Error('Lỗi nộp bài thi');
-  return await res.json();
-}
-
-export async function getUsersApi() {
-  const res = await fetch(`${API_BASE}/api/auth/users`);
-  if (!res.ok) throw new Error('Không thể tải danh sách tài khoản');
   return await res.json();
 }

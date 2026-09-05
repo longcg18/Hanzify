@@ -17,41 +17,12 @@ const PRESET_AVATARS = [
   { label: '🍵', name: 'Trà đạo' }
 ];
 
-const RECENT_SUBMISSIONS = [
-  {
-    id: 'sub-1',
-    title: 'Bài 04: Đi Mua Sắm (买东西)',
-    course: 'HSK 2 Toàn Diện',
-    score: '9.5 / 10',
-    status: 'Đã chấm',
-    date: 'Hôm nay',
-    comment: 'Phát âm thanh 4 rất dứt khoát! Chú ý nét phẩy của chữ 贵.'
-  },
-  {
-    id: 'sub-2',
-    title: 'Thi Thử HSK 2 - Đề Số 01',
-    course: 'Luyện thi HSK 2',
-    score: '160 / 200',
-    status: 'Đạt chuẩn',
-    date: 'Hôm qua',
-    comment: 'Đạt chuẩn HSK 2 (Nghe 80đ, Đọc 80đ).'
-  },
-  {
-    id: 'sub-3',
-    title: 'Bài 03: Thời Gian & Ngày Tháng',
-    course: 'HSK 2 Toàn Diện',
-    score: '9.0 / 10',
-    status: 'Đã chấm',
-    date: '02/09',
-    comment: 'Đọc hội thoại tự nhiên, ngữ điệu tốt.'
-  }
-];
+const RECENT_SUBMISSIONS = [];
 
 export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRoleSwitched }) => {
   const {
     user,
     logout,
-    switchRole,
     updateProfile,
     notifications,
     unreadNotifsCount,
@@ -61,12 +32,8 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'history' | 'notifications'
   const dropdownRef = useRef(null);
 
-  const handleRoleClick = (targetRole) => {
-    switchRole(targetRole);
-    onClose();
-    if (onRoleSwitched) {
-      onRoleSwitched(targetRole);
-    }
+  const handleRoleClick = () => {
+    window.alert('Vai trò được quản lý bởi tài khoản đăng nhập và không thể chuyển ở phía trình duyệt.');
   };
 
   useEffect(() => {
@@ -447,36 +414,10 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                 >
                   <span style={{ fontSize: '1.1rem' }}>👩‍🏫</span>
                   <div style={{ flex: 1 }}>
-                    <div>Giáo Viên (Cô Hoài)</div>
-                    <div style={{ fontSize: '0.7rem', color: user.role === 'teacher' ? '#16a34a' : '#94a3b8', fontWeight: 400 }}>Bàn chấm bài & phản hồi học viên</div>
+                    <div>Giáo Viên (giaovien01)</div>
+                    <div style={{ fontSize: '0.7rem', color: user.role === 'teacher' ? '#16a34a' : '#94a3b8', fontWeight: 400 }}>Bàn chấm bài & quản lý lớp</div>
                   </div>
                   {user.role === 'teacher' && <i className="fa-solid fa-check" style={{ color: '#16a34a', fontSize: '0.85rem' }}></i>}
-                </div>
-
-                {/* 3. Học Viên (Nguyễn Văn An) */}
-                <div
-                  onClick={() => handleRoleClick('student')}
-                  style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    background: user.role === 'student' ? '#f8fafc' : '#ffffff',
-                    border: user.role === 'student' ? '1.5px solid #e2e8f0' : '1px solid #f1f5f9',
-                    color: user.role === 'student' ? '#334155' : '#0f172a',
-                    fontWeight: user.role === 'student' ? 700 : 500,
-                    fontSize: '0.86rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <span style={{ fontSize: '1.1rem' }}>🎓</span>
-                  <div style={{ flex: 1 }}>
-                    <div>Học Viên (Nguyễn Văn An)</div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>Làm bài, luyện tập & thi thử HSK</div>
-                  </div>
-                  {user.role === 'student' && <i className="fa-solid fa-check" style={{ color: '#334155', fontSize: '0.85rem' }}></i>}
                 </div>
               </div>
             </div>
@@ -643,26 +584,28 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
         </div>
         <button
           type="button"
+          className="btn-dropdown-logout"
           onClick={() => {
             onClose();
             logout();
           }}
           style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#dc2626',
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
+            color: '#be123c',
             fontWeight: 700,
             fontSize: '0.8rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
-            padding: '4px 8px',
-            borderRadius: '8px'
+            gap: '6px',
+            padding: '5px 12px',
+            borderRadius: '10px',
+            transition: 'all 0.15s'
           }}
         >
           <i className="fa-solid fa-arrow-right-from-bracket"></i>
-          <span>Đăng xuất</span>
+          <span>Đăng xuất tài khoản</span>
         </button>
       </div>
     </div>

@@ -3,14 +3,18 @@ import { useAuth } from '../context/AuthContext';
 
 export const CourseDetailView = ({ 
   course, 
+  classrooms = [],
   onOpenLesson, 
+  onOpenHomeworkEditor,
   onBack, 
   onAddLesson, 
   onDeleteLesson, 
   onEditCourse, 
-  onDeleteCourse 
+  onDeleteCourse,
+  onOpenClassLessonManager,
+  onUpdateLesson
 }) => {
-  const { user } = useAuth();
+  const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
 
   // Modal State for Adding Lesson
@@ -20,6 +24,16 @@ export const CourseDetailView = ({
   const [newLessonDeadline, setNewLessonDeadline] = useState('23:59 Chủ Nhật');
   const [newLessonQuestionsCount, setNewLessonQuestionsCount] = useState(5);
   const [newLessonStatus, setNewLessonStatus] = useState('active');
+
+  // Modal State for Editing Lesson
+  const [isEditLessonModalOpen, setIsEditLessonModalOpen] = useState(false);
+  const [editingLessonId, setEditingLessonId] = useState(null);
+  const [editLessonNumber, setEditLessonNumber] = useState('');
+  const [editLessonTitle, setEditLessonTitle] = useState('');
+  const [editLessonChineseTitle, setEditLessonChineseTitle] = useState('');
+  const [editLessonDeadline, setEditLessonDeadline] = useState('23:59 Chủ Nhật');
+  const [editLessonQuestionsCount, setEditLessonQuestionsCount] = useState(5);
+  const [editLessonStatus, setEditLessonStatus] = useState('active');
 
   // Modal State for Editing Course
   const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
@@ -64,6 +78,41 @@ export const CourseDetailView = ({
       onAddLesson(course.id, newLesson);
     }
     setIsAddLessonModalOpen(false);
+  };
+
+  const handleOpenEditLesson = (lesson) => {
+    setEditingLessonId(lesson.id);
+    setEditLessonNumber(lesson.number || '01');
+    setEditLessonTitle(lesson.title || '');
+    setEditLessonChineseTitle(lesson.chineseTitle || '');
+    setEditLessonDeadline(lesson.deadline || '23:59 Chủ Nhật');
+    setEditLessonQuestionsCount(lesson.questionsCount || 5);
+    setEditLessonStatus(lesson.status || 'active');
+    setIsEditLessonModalOpen(true);
+  };
+
+  const handleSaveEditLesson = (e) => {
+    e.preventDefault();
+    if (!editLessonTitle.trim()) {
+      alert('Vui lòng nhập tên bài học!');
+      return;
+    }
+
+    const updated = {
+      id: editingLessonId,
+      number: editLessonNumber.padStart(2, '0'),
+      title: editLessonTitle.trim(),
+      chineseTitle: editLessonChineseTitle.trim(),
+      deadline: editLessonDeadline.trim() || 'Chưa có hạn',
+      status: editLessonStatus,
+      questionsCount: parseInt(editLessonQuestionsCount, 10) || 5,
+      type: editLessonStatus === 'completed' ? 'Đã chấm điểm' : editLessonStatus === 'active' ? 'Cần nộp bài' : 'Chưa mở'
+    };
+
+    if (onUpdateLesson) {
+      onUpdateLesson(course.id, updated);
+    }
+    setIsEditLessonModalOpen(false);
   };
 
   const handleOpenEditCourse = () => {
@@ -122,22 +171,33 @@ export const CourseDetailView = ({
         <div className="chinese-subtitle">{course.chineseTitle}</div>
         <p className="course-hero-desc">{course.description}</p>
 
-        <div className="hero-stats-row">
-          <div className="hero-stat-item">
-            <span className="val">{course.lessons?.length || course.totalLessons}</span>
-            <span className="lbl">{isTeacherOrAdmin ? 'Bài Đã Thiết Lập' : 'Tổng bài học'}</span>
-          </div>
-          <div className="hero-stat-item">
-            <span className="val">{isTeacherOrAdmin ? '28' : course.completedLessons || 0}</span>
-            <span className="lbl">{isTeacherOrAdmin ? 'Học Viên Ghi Danh' : 'Đã hoàn thành'}</span>
-          </div>
-          <div className="hero-stat-item">
-            <span className="val">
-              {isTeacherOrAdmin ? '96%' : `${Math.round(((course.completedLessons || 0) / (course.lessons?.length || course.totalLessons || 1)) * 100)}%`}
-            </span>
-            <span className="lbl">{isTeacherOrAdmin ? 'Tỷ Lệ Hoàn Thành' : 'Tiến độ'}</span>
-          </div>
-        </div>
+        {/* Hero Stats Row */}
+        {(() => {
+          const courseEnrolledStudents = (classrooms || [])
+            .filter((cls) => (cls.course_ids || cls.courseIds || []).includes(course?.id))
+            .reduce((acc, cls) => acc + (cls.students?.length || 0), 0);
+
+          return (
+            <div className="hero-stats-row">
+              <div className="hero-stat-item">
+                <span className="val">{course.lessons?.length || course.totalLessons || 0}</span>
+                <span className="lbl">{isTeacherOrAdmin ? 'Bài Đã Thiết Lập' : 'Tổng bài học'}</span>
+              </div>
+              <div className="hero-stat-item">
+                <span className="val">{isTeacherOrAdmin ? courseEnrolledStudents : (course.completedLessons || 0)}</span>
+                <span className="lbl">{isTeacherOrAdmin ? 'Học Viên Ghi Danh' : 'Đã hoàn thành'}</span>
+              </div>
+              <div className="hero-stat-item">
+                <span className="val">
+                  {isTeacherOrAdmin 
+                    ? (courseEnrolledStudents > 0 ? '100%' : '0%') 
+                    : `${Math.round(((course.completedLessons || 0) / (course.lessons?.length || course.totalLessons || 1)) * 100)}%`}
+                </span>
+                <span className="lbl">{isTeacherOrAdmin ? 'Tỷ Lệ Kích Hoạt' : 'Tiến độ'}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Cô giáo & Admin Actions */}
         {isTeacherOrAdmin && (
@@ -213,29 +273,72 @@ export const CourseDetailView = ({
 
       {/* Lesson Roadmap */}
       <div className="lesson-roadmap-section">
-        <div className="roadmap-title-row">
-          <h2 className="roadmap-title">
-            <i className="fa-solid fa-list-check"></i> Lộ Trình & Danh Sách Bài Tập ({course.lessons?.length || 0} Bài)
-          </h2>
-          <span className="roadmap-sub">
-            {isTeacherOrAdmin ? 'Cô giáo và Admin có thể thêm bài học mới hoặc kiểm tra đề bài' : 'Hoàn thành từng bài theo thứ tự để mở khóa các bài tiếp theo'}
-          </span>
+        <div className="roadmap-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h2 className="roadmap-title">
+              <i className="fa-solid fa-list-check"></i> Lộ Trình & Danh Sách Bài Tập ({course.lessons?.length || 0} Bài)
+            </h2>
+            <span className="roadmap-sub">
+              {isTeacherOrAdmin
+                ? 'Soạn câu hỏi & kiểm tra đề bài chuẩn. Trạng thái mở bài được quản lý riêng theo từng Lớp học.'
+                : 'Hoàn thành từng bài theo lịch mở của lớp để làm bài và ghi nhận điểm số'}
+            </span>
+          </div>
+
+          {isTeacherOrAdmin && onOpenClassLessonManager && (
+            <button
+              type="button"
+              onClick={() => {
+                const matchingClass = classrooms.find((cls) => (cls.courseIds || []).includes(course.id)) || classrooms[0];
+                if (matchingClass) {
+                  onOpenClassLessonManager(matchingClass);
+                } else {
+                  alert('Chưa có lớp học nào liên kết với khóa học này. Hãy vào Trang Chủ -> Tạo Lớp Mới!');
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.55rem 1rem',
+                borderRadius: '10px',
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                color: '#334155',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 5px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <i className="fa-solid fa-chalkboard-user" style={{ color: '#b91c1c' }}></i>
+              <span>Quản Lý Mở Bài Cho Lớp</span>
+            </button>
+          )}
         </div>
 
         <div className="lesson-list">
           {(course.lessons || []).map((lesson, index) => {
+            // Check student's classroom unlocked lessons
+            const studentClass = classrooms.find(
+              (c) => c.id === user?.classId || (c.students || []).some((s) => s.username === user?.username)
+            );
+            const isLessonOpenForClass = studentClass
+              ? (studentClass.unlockedLessons || []).includes(lesson.id)
+              : (index === 0 || lesson.status === 'active');
+
             const isCompleted = lesson.status === 'completed';
-            const isActive = lesson.status === 'active';
-            const isLocked = lesson.status === 'locked';
+            const isActive = isTeacherOrAdmin ? true : isLessonOpenForClass;
+            const isLocked = !isTeacherOrAdmin && !isLessonOpenForClass;
             const lessonNumInt = parseInt(lesson.number, 10) || (index + 1);
 
             return (
               <div 
                 key={lesson.id || index}
-                className={`lesson-card ${lesson.status}`}
+                className={`lesson-card ${isCompleted ? 'completed' : isActive ? 'active' : 'locked'}`}
               >
                 <div className="lesson-left">
-                  <div className={`lesson-num-badge ${lesson.status}`}>
+                  <div className={`lesson-num-badge ${isCompleted ? 'completed' : isActive ? 'active' : 'locked'}`}>
                     {isCompleted ? (
                       <i className="fa-solid fa-check"></i>
                     ) : isLocked ? (
@@ -267,22 +370,60 @@ export const CourseDetailView = ({
                       <span style={{
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        color: isCompleted ? '#16a34a' : '#A11D24',
-                        background: isCompleted ? '#f0fdf4' : '#fef2f2',
+                        color: lesson.submissionCount > 0 ? '#16a34a' : '#64748b',
+                        background: lesson.submissionCount > 0 ? '#f0fdf4' : '#f8fafc',
                         padding: '4px 8px',
                         borderRadius: '8px'
                       }}>
-                        {isCompleted ? '✓ 24/28 Đã Nộp' : '⏳ 18/28 Đã Nộp'}
+                        {lesson.submissionCount ? `✓ ${lesson.submissionCount} đã nộp` : 'Chưa có bài nộp'}
                       </span>
+
+                      {/* Nút Sửa Chi Tiết Bài Học */}
+                      <button
+                        type="button"
+                        title="Chỉnh sửa chi tiết bài học"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditLesson(lesson);
+                        }}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          color: '#334155',
+                          borderRadius: '8px',
+                          padding: '0.55rem 0.75rem',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <i className="fa-solid fa-pen"></i>
+                      </button>
                       
+                      {/* Nút Soạn & Live Preview bài tập cho Giáo viên và Admin */}
+                      <button
+                        type="button"
+                        className="btn-do-homework-main"
+                        style={{ background: '#b91c1c', padding: '0.55rem 0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        onClick={() => onOpenHomeworkEditor ? onOpenHomeworkEditor(lesson) : onOpenLesson(lesson)}
+                        title="Soạn đề bài tập và xem trước theo góc nhìn học sinh"
+                      >
+                        <i className="fa-solid fa-pen-to-square"></i>
+                        <span>Soạn & Live Preview</span>
+                      </button>
+
                       {/* Đổi nút "Kiểm Tra Đề" thành "Bài tập Bài 1" theo yêu cầu người dùng */}
                       <button
                         type="button"
                         className="btn-do-homework-main"
                         style={{ background: '#0f172a', padding: '0.55rem 0.95rem' }}
                         onClick={() => onOpenLesson(lesson)}
+                        title="Xem giao diện làm bài chuẩn của học sinh"
                       >
-                        <span>Bài tập Bài {lessonNumInt}</span>
+                        <span>Giao diện làm bài</span>
                         <i className="fa-solid fa-arrow-right"></i>
                       </button>
 
@@ -322,7 +463,13 @@ export const CourseDetailView = ({
                           <button 
                             type="button" 
                             className="btn-review-mini"
-                            onClick={() => onOpenLesson(lesson)}
+                            onClick={() => {
+                              if (!user) {
+                                setIsAuthModalOpen(true);
+                                return;
+                              }
+                              onOpenLesson(lesson);
+                            }}
                           >
                             <i className="fa-regular fa-eye"></i> Xem lại
                           </button>
@@ -333,9 +480,16 @@ export const CourseDetailView = ({
                         <button 
                           type="button" 
                           className="btn-do-homework-main"
-                          onClick={() => onOpenLesson(lesson)}
+                          onClick={() => {
+                            if (!user) {
+                              setIsAuthModalOpen(true);
+                              return;
+                            }
+                            onOpenLesson(lesson);
+                          }}
                         >
-                          <span>Làm Bài Ngay</span>
+                          {!user && <i className="fa-solid fa-lock" style={{ marginRight: '4px', fontSize: '0.8rem' }}></i>}
+                          <span>{user ? 'Làm Bài Ngay' : 'Đăng Nhập Để Làm Bài'}</span>
                           <i className="fa-solid fa-arrow-right"></i>
                         </button>
                       )}
@@ -420,51 +574,26 @@ export const CourseDetailView = ({
 
             {/* Form */}
             <form onSubmit={handleSaveNewLesson} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                    Số Bài (Ví dụ: 05)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newLessonNumber}
-                    onChange={(e) => setNewLessonNumber(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                    Trạng Thái Mở Bài
-                  </label>
-                  <select
-                    value={newLessonStatus}
-                    onChange={(e) => setNewLessonStatus(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <option value="active">🟢 Đang Mở (Cần Nộp Bài)</option>
-                    <option value="locked">🔒 Khóa (Chưa Mở)</option>
-                    <option value="completed">✓ Đã Hoàn Thành (Có Điểm)</option>
-                  </select>
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  Số Thứ Tự Bài (Ví dụ: 05)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newLessonNumber}
+                  onChange={(e) => setNewLessonNumber(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
               </div>
 
               <div>
@@ -566,6 +695,220 @@ export const CourseDetailView = ({
                   }}
                 >
                   <i className="fa-solid fa-check"></i> Lưu Bài Học
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL SỬA BÀI HỌC (Dành cho Cô Hoài & Admin) */}
+      {/* ========================================================================= */}
+      {isEditLessonModalOpen && (
+        <div className="modal-backdrop" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '520px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            overflow: 'hidden',
+            animation: 'modalSlideUp 0.3s ease-out'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+              padding: '1.25rem 1.5rem',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <i className="fa-solid fa-pen-to-square" style={{ fontSize: '1.25rem', color: '#60a5fa' }}></i>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Chỉnh Sửa Bài Học</h3>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Khóa học: {course.title}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditLessonModalOpen(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveEditLesson} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  Số Thứ Tự Bài (Ví dụ: 01)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editLessonNumber}
+                  onChange={(e) => setEditLessonNumber(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  Tiêu Đề Tiếng Việt *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Ăn uống tại nhà hàng"
+                  value={editLessonTitle}
+                  onChange={(e) => setEditLessonTitle(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  Tiêu Đề Tiếng Trung (Chữ Hán)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: 在饭馆吃饭"
+                  value={editLessonChineseTitle}
+                  onChange={(e) => setEditLessonChineseTitle(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Hạn Nộp Bài (Deadline)
+                  </label>
+                  <input
+                    type="text"
+                    value={editLessonDeadline}
+                    onChange={(e) => setEditLessonDeadline(e.target.value)}
+                    placeholder="23:59 Chủ Nhật"
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Số Phần Câu Hỏi
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={editLessonQuestionsCount}
+                    onChange={(e) => setEditLessonQuestionsCount(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditLessonModalOpen(false)}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '10px',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    color: '#475569',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '0.65rem 1.5rem',
+                    borderRadius: '10px',
+                    background: '#0f172a',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)'
+                  }}
+                >
+                  <i className="fa-solid fa-check"></i> Lưu Cập Nhật
                 </button>
               </div>
             </form>
