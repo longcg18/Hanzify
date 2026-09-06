@@ -138,31 +138,35 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           Thi Thử HSK
         </button>
 
-        {/* 5. Giải Trí (Chỉ hiển thị cho Học Viên, ẩn hoàn toàn đối với Giáo Viên & Admin) */}
-        {user?.role === 'student' && (
-          <button
-            type="button"
-            onClick={() => onNavigate('entertainment')}
-            style={{
-              padding: '0.5rem 0.95rem',
-              borderRadius: '10px',
-              border: 'none',
-              background: currentView === 'entertainment' ? '#A11D24' : 'transparent',
-              color: currentView === 'entertainment' ? '#ffffff' : '#64748b',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <i className="fa-solid fa-gamepad"></i>
-            Giải Trí
-          </button>
-        )}
+        {/* 5. Giải Trí */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!user) {
+              setIsAuthModalOpen(true);
+              return;
+            }
+            onNavigate('entertainment');
+          }}
+          style={{
+            padding: '0.5rem 0.95rem',
+            borderRadius: '10px',
+            border: 'none',
+            background: currentView === 'entertainment' ? '#A11D24' : 'transparent',
+            color: currentView === 'entertainment' ? '#ffffff' : '#64748b',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <i className="fa-solid fa-gamepad"></i>
+          Giải Trí
+        </button>
 
         {/* 7. Teacher Only Grading Tab (Chỉ dành riêng cho Cô Giáo) */}
         {user?.role === 'teacher' && (

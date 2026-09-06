@@ -125,7 +125,25 @@ export function AppContent() {
     isJoinClassModalOpen,
     setIsJoinClassModalOpen
   } = useAuth();
-  const [currentView, setCurrentView] = useState('home'); // 'home' | 'courses' | 'course-detail' | 'homework' | 'practice' | 'exam' | 'exam-room' | 'entertainment' | 'grading' | 'admin-users' | 'leaderboard' | 'forum'
+
+  const getInitialView = () => {
+    const rawPath = window.location.pathname.replace(/^\//, '').toLowerCase();
+    const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+    const validViews = ['home', 'courses', 'course-detail', 'homework', 'practice', 'exam', 'entertainment', 'grading', 'admin-users', 'leaderboard', 'forum'];
+    if (validViews.includes(rawPath)) return rawPath;
+    if (validViews.includes(hash)) return hash;
+    return 'home';
+  };
+  const [currentView, setCurrentView] = useState(getInitialView); // 'home' | 'courses' | 'course-detail' | 'homework' | 'practice' | 'exam' | 'exam-room' | 'entertainment' | 'grading' | 'admin-users' | 'leaderboard' | 'forum'
+
+  useEffect(() => {
+    const onPop = () => {
+      const rawPath = window.location.pathname.replace(/^\//, '').toLowerCase() || 'home';
+      setCurrentView(rawPath);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   // Classrooms state - Pure Supabase
   const [classrooms, setClassrooms] = useState([]);
@@ -467,6 +485,7 @@ export function AppContent() {
       return;
     }
     setCurrentView(view);
+    window.history.pushState(null, '', `/${view === 'home' ? '' : view}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

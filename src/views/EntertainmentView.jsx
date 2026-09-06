@@ -2,6 +2,21 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 import { fetchMatchPairs, fetchToneItems, fetchLeaderboard } from '../services/supabaseService';
+import {
+  MEMORY_PAIRS_BY_LEVEL,
+  TONE_ITEMS_BY_LEVEL,
+  SPEED_PAIRS_BY_LEVEL,
+  RIDDLES_BY_LEVEL
+} from '../data/gamesData';
+
+// Helper to convert level pairs into memory card items
+const getMemoryCardsForLevel = (lvl) => {
+  const pairs = MEMORY_PAIRS_BY_LEVEL[lvl] || MEMORY_PAIRS_BY_LEVEL['HSK 1'];
+  return pairs.flatMap((pair) => [
+    { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean },
+    { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean }
+  ]);
+};
 
 // ==========================================
 // 1. GAME CATALOG METADATA (Danh Mục Trò Chơi)
@@ -13,8 +28,8 @@ const GAMES_CATALOG = [
     chineseTitle: '连连看',
     category: 'memory',
     categoryLabel: '🃏 Luyện Trí Nhớ',
-    level: 'HSK 1 - 2',
-    desc: 'Lật mở các cặp thẻ bài úp, ghép đúng Chữ Hán với Pinyin & Nghĩa tương ứng để củng cố phản xạ nhận diện từ vựng.',
+    level: 'HSK 1 - 3',
+    desc: 'Lật mở các cặp thẻ bài úp, ghép đúng Chữ Hán với Pinyin & Nghĩa tương ứng theo từng cấp độ HSK 1, 2, 3.',
     duration: '1 - 2 phút',
     playersCount: 142,
     topScore: '14 Lượt lật',
@@ -27,7 +42,7 @@ const GAMES_CATALOG = [
     chineseTitle: '声调快闪',
     category: 'tone',
     categoryLabel: '⚡ Phản Xạ Âm Điệu',
-    level: 'Mọi trình độ',
+    level: 'HSK 1 - 3',
     desc: 'Chữ Hán xuất hiện ngẫu nhiên với Pinyin ẩn dấu. Bấm thật nhanh thanh 1 (ˉ), 2 (ˊ), 3 (ˇ), 4 (ˋ) để tăng chuỗi Combo Streak!',
     duration: '60 giây',
     playersCount: 189,
@@ -41,7 +56,7 @@ const GAMES_CATALOG = [
     chineseTitle: '词汇配对',
     category: 'match',
     categoryLabel: '🧩 Nối Từ Vựng',
-    level: 'HSK 2',
+    level: 'HSK 1 - 3',
     desc: 'Cột chữ Hán bên trái và cột nghĩa tiếng Việt bên phải. Bấm chọn nhanh từng cặp chuẩn xác trước khi đồng hồ đếm ngược kết thúc!',
     duration: '90 giây',
     playersCount: 115,
@@ -55,11 +70,11 @@ const GAMES_CATALOG = [
     chineseTitle: '看义猜字',
     category: 'riddle',
     categoryLabel: '🏮 Nhận Diện Chữ Hán',
-    level: 'HSK 1 - 2',
+    level: 'HSK 1 - 3',
     desc: 'Đọc gợi ý ý nghĩa và ngữ cảnh sử dụng, sau đó chọn đúng chữ Hán chính xác trong 4 phương án đề xuất.',
-    duration: '5 câu hỏi',
+    duration: '10 câu hỏi',
     playersCount: 96,
-    topScore: '500 điểm',
+    topScore: '1000 điểm',
     icon: '🏮',
     color: '#16a34a'
   }
@@ -149,24 +164,30 @@ export const EntertainmentView = () => {
   // Filters (Same pattern as PracticeView)
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [currentGameLevel, setCurrentGameLevel] = useState('HSK 1');
   const [matchCards, setMatchCards] = useState([]);
   const [toneQuestions, setToneQuestions] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+
   useEffect(() => {
     Promise.all([fetchMatchPairs(), fetchToneItems(), fetchLeaderboard()]).then(([pairsResult, tonesResult, lbResult]) => {
-      setMatchCards((pairsResult.data || []).flatMap((pair) => [
-        { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean },
-        { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean }
-      ]));
-      setToneQuestions(tonesResult.data || []);
+      if (pairsResult.data && pairsResult.data.length > 0) {
+        setMatchCards(pairsResult.data.flatMap((pair) => [
+          { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean },
+          { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean }
+        ]));
+      }
+      if (tonesResult.data && tonesResult.data.length > 0) {
+        setToneQuestions(tonesResult.data);
+      }
       setLeaderboard(lbResult?.data || []);
     });
   }, []);
 
   // Filter games list
-  const filteredGames = GAMES_CATALOG.filter((g) => ['match', 'tone'].includes(g.id)).filter((g) => {
+  const filteredGames = GAMES_CATALOG.filter((g) => {
     const matchCat = selectedCategory === 'all' || g.category === selectedCategory;
-    const matchLvl = selectedLevel === 'all' || g.level === selectedLevel;
+    const matchLvl = selectedLevel === 'all' || g.level.includes(selectedLevel) || g.level === selectedLevel;
     return matchCat && matchLvl;
   });
 
@@ -189,8 +210,9 @@ export const EntertainmentView = () => {
   const [matched, setMatched] = useState([]);
   const [moves, setMoves] = useState(0);
 
-  const initMatchGame = () => {
-    const shuffled = [...matchCards].sort(() => Math.random() - 0.5);
+  const initMatchGame = (level = currentGameLevel) => {
+    const pool = getMemoryCardsForLevel(level);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
     setCards(shuffled);
     setFlipped([]);
     setMatched([]);
@@ -215,7 +237,7 @@ export const EntertainmentView = () => {
         setMatched((prev) => [...prev, firstCard.pairId]);
         setFlipped([]);
 
-        if (matched.length + 1 === matchCards.length / 2) {
+        if (matched.length + 1 === cards.length / 2) {
           confetti({
             particleCount: 120,
             spread: 80,
@@ -239,7 +261,8 @@ export const EntertainmentView = () => {
   const [toneStreak, setToneStreak] = useState(0);
   const [toneFeedback, setToneFeedback] = useState(null); // 'correct' | 'wrong'
 
-  const currentToneQ = toneQuestions[toneIdx];
+  const currentToneList = TONE_ITEMS_BY_LEVEL[currentGameLevel] || TONE_ITEMS_BY_LEVEL['HSK 1'];
+  const currentToneQ = currentToneList[toneIdx] || currentToneList[0];
 
   const handleToneAnswer = (selectedTone) => {
     if (toneFeedback || !currentToneQ) return;
@@ -263,7 +286,7 @@ export const EntertainmentView = () => {
 
     setTimeout(() => {
       setToneFeedback(null);
-      setToneIdx((prev) => (prev + 1) % toneQuestions.length);
+      setToneIdx((prev) => (prev + 1) % currentToneList.length);
     }, 1000);
   };
 
@@ -274,7 +297,9 @@ export const EntertainmentView = () => {
   const [speedMatchedIds, setSpeedMatchedIds] = useState([]);
   const [speedScore, setSpeedScore] = useState(0);
 
-  const initSpeedMatch = () => {
+  const currentSpeedPairs = SPEED_PAIRS_BY_LEVEL[currentGameLevel] || SPEED_PAIRS_BY_LEVEL['HSK 1'];
+
+  const initSpeedMatch = (level = currentGameLevel) => {
     setSelectedHanzi(null);
     setSpeedMatchedIds([]);
     setSpeedScore(0);
@@ -315,10 +340,11 @@ export const EntertainmentView = () => {
   const [selectedRiddleOpt, setSelectedRiddleOpt] = useState(null);
   const [isRiddleAnswered, setIsRiddleAnswered] = useState(false);
 
-  const currentRiddle = RIDDLE_QUESTIONS[riddleIdx];
+  const currentRiddles = RIDDLES_BY_LEVEL[currentGameLevel] || RIDDLES_BY_LEVEL['HSK 1'];
+  const currentRiddle = currentRiddles[riddleIdx] || currentRiddles[0];
 
   const handleRiddleChoose = (opt) => {
-    if (isRiddleAnswered) return;
+    if (isRiddleAnswered || !currentRiddle) return;
     setSelectedRiddleOpt(opt);
     setIsRiddleAnswered(true);
 
@@ -335,30 +361,51 @@ export const EntertainmentView = () => {
   };
 
   const handleNextRiddle = () => {
-    if (riddleIdx < RIDDLE_QUESTIONS.length - 1) {
+    if (riddleIdx < currentRiddles.length - 1) {
       setRiddleIdx((prev) => prev + 1);
       setSelectedRiddleOpt(null);
       setIsRiddleAnswered(false);
     } else {
-      alert(`🎉 Hoàn thành câu đố chữ Hán! Điểm số: ${riddleScore + (selectedRiddleOpt === currentRiddle.correct ? 0 : 0)} / 500`);
+      alert(`🎉 Hoàn thành câu đố chữ Hán ${currentGameLevel}! Điểm số: ${riddleScore + (selectedRiddleOpt === currentRiddle?.correct ? 0 : 0)} / ${currentRiddles.length * 100}`);
       setActiveGame(null);
     }
   };
 
   // Launch game handler
-  const handleSelectGame = (gameId) => {
+  const handleSelectGame = (gameId, targetLevel) => {
+    const level = targetLevel || (['HSK 1', 'HSK 2', 'HSK 3'].includes(selectedLevel) ? selectedLevel : currentGameLevel);
+    setCurrentGameLevel(level);
     setActiveGame(gameId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    if (gameId === 'match') initMatchGame();
+    if (gameId === 'match') initMatchGame(level);
     if (gameId === 'tone') {
       setToneIdx(0);
       setToneScore(0);
       setToneStreak(0);
       setToneFeedback(null);
     }
-    if (gameId === 'speed-match') initSpeedMatch();
+    if (gameId === 'speed-match') initSpeedMatch(level);
     if (gameId === 'hanzi-riddle') {
+      setRiddleIdx(0);
+      setRiddleScore(0);
+      setSelectedRiddleOpt(null);
+      setIsRiddleAnswered(false);
+    }
+  };
+
+  // Level switcher handler inside Runner
+  const handleLevelChangeInRunner = (newLevel) => {
+    setCurrentGameLevel(newLevel);
+    if (activeGame === 'match') initMatchGame(newLevel);
+    if (activeGame === 'tone') {
+      setToneIdx(0);
+      setToneScore(0);
+      setToneStreak(0);
+      setToneFeedback(null);
+    }
+    if (activeGame === 'speed-match') initSpeedMatch(newLevel);
+    if (activeGame === 'hanzi-riddle') {
       setRiddleIdx(0);
       setRiddleScore(0);
       setSelectedRiddleOpt(null);
@@ -445,10 +492,35 @@ export const EntertainmentView = () => {
               </div>
             </div>
 
+            {/* Level Switcher in Runner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
+              {['HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => handleLevelChangeInRunner(lvl)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '8px',
+                    border: currentGameLevel === lvl ? '1.5px solid #A11D24' : '1px solid #cbd5e1',
+                    background: currentGameLevel === lvl ? '#A11D24' : '#fff',
+                    color: currentGameLevel === lvl ? '#fff' : '#475569',
+                    fontSize: '0.82rem',
+                    fontWeight: currentGameLevel === lvl ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
+
             {/* Quick Reset Button */}
             <button
               type="button"
-              onClick={() => handleSelectGame(activeGame)}
+              onClick={() => handleSelectGame(activeGame, currentGameLevel)}
               style={{
                 background: 'rgba(161, 29, 36, 0.08)',
                 border: 'none',
@@ -474,9 +546,9 @@ export const EntertainmentView = () => {
               {/* Game Stats */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Tiến độ ghép đôi:</div>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Tiến độ ghép đôi ({currentGameLevel}):</div>
                   <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#A11D24' }}>
-                    {matched.length} / {matchCards.length / 2} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>cặp từ</span>
+                    {matched.length} / {cards.length > 0 ? cards.length / 2 : 8} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>cặp từ</span>
                   </div>
                 </div>
 
@@ -574,17 +646,17 @@ export const EntertainmentView = () => {
                 })}
               </div>
 
-              {matchCards.length > 0 && matched.length === matchCards.length / 2 && (
+              {cards.length > 0 && matched.length === cards.length / 2 && (
                 <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '16px', padding: '1.5rem', textAlign: 'center' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎉</div>
                   <h3 style={{ margin: 0, color: '#16a34a', fontSize: '1.3rem' }}>Chúc mừng bạn đã hoàn thành xuất sắc!</h3>
                   <p style={{ color: '#475569', fontSize: '0.9rem', margin: '0.5rem 0 1rem 0' }}>
-                    Bạn đã lật xong toàn bộ cặp từ chỉ trong <strong>{moves} lượt lật</strong>.
+                    Bạn đã lật xong toàn bộ cặp từ {currentGameLevel} chỉ trong <strong>{moves} lượt lật</strong>.
                   </p>
                   <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                     <button
                       type="button"
-                      onClick={initMatchGame}
+                      onClick={() => initMatchGame(currentGameLevel)}
                       style={{
                         background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
                         color: '#fff',
@@ -624,7 +696,7 @@ export const EntertainmentView = () => {
               {/* Score & Streak Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Tổng điểm hiện tại:</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Tổng điểm ({currentGameLevel}):</div>
                   <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#A11D24' }}>
                     {toneScore} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>điểm</span>
                   </div>
@@ -649,13 +721,13 @@ export const EntertainmentView = () => {
                 transition: 'all 0.25s ease'
               }}>
                 <div style={{ fontSize: '4.5rem', fontFamily: 'Noto Serif SC, serif', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
-                  {currentToneQ.char}
+                  {currentToneQ?.char}
                 </div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#A11D24', marginTop: '0.75rem' }}>
-                  {currentToneQ.pinyin}
+                  {currentToneQ?.pinyin}
                 </div>
                 <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.35rem' }}>
-                  Nghĩa: {currentToneQ.mean}
+                  Nghĩa: {currentToneQ?.mean}
                 </div>
               </div>
 
@@ -699,13 +771,13 @@ export const EntertainmentView = () => {
             <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Điểm số:</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Điểm số ({currentGameLevel}):</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2563eb' }}>
                     {speedScore} điểm
                   </div>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  Đã ghép: <strong>{speedMatchedIds.length} / {SPEED_WORD_PAIRS.length}</strong>
+                  Đã ghép: <strong>{speedMatchedIds.length} / {currentSpeedPairs.length}</strong>
                 </div>
               </div>
 
@@ -715,7 +787,7 @@ export const EntertainmentView = () => {
                   <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>
                     Cột Chữ Hán:
                   </div>
-                  {SPEED_WORD_PAIRS.map((item) => {
+                  {currentSpeedPairs.map((item) => {
                     const isMatched = speedMatchedIds.includes(item.id);
                     const isSelected = selectedHanzi?.id === item.id;
 
@@ -748,7 +820,7 @@ export const EntertainmentView = () => {
                   <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>
                     Cột Nghĩa Tiếng Việt:
                   </div>
-                  {SPEED_WORD_PAIRS.map((item) => {
+                  {currentSpeedPairs.map((item) => {
                     const isMatched = speedMatchedIds.includes(item.id);
 
                     return (
@@ -775,12 +847,12 @@ export const EntertainmentView = () => {
                 </div>
               </div>
 
-              {speedMatchedIds.length === SPEED_WORD_PAIRS.length && (
+              {speedMatchedIds.length === currentSpeedPairs.length && (
                 <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
-                  <h3 style={{ color: '#16a34a', margin: 0 }}>🎉 Hoàn thành nối từ xuất sắc!</h3>
+                  <h3 style={{ color: '#16a34a', margin: 0 }}>🎉 Hoàn thành nối từ {currentGameLevel} xuất sắc!</h3>
                   <button
                     type="button"
-                    onClick={initSpeedMatch}
+                    onClick={() => initSpeedMatch(currentGameLevel)}
                     style={{
                       marginTop: '0.75rem',
                       background: '#2563eb',
@@ -804,7 +876,7 @@ export const EntertainmentView = () => {
             <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                 <span style={{ background: '#fef2f2', color: '#16a34a', padding: '0.3rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
-                  Câu {riddleIdx + 1} / {RIDDLE_QUESTIONS.length}
+                  Câu {riddleIdx + 1} / {currentRiddles.length} ({currentGameLevel})
                 </span>
                 <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
                   {riddleScore} điểm
@@ -814,12 +886,12 @@ export const EntertainmentView = () => {
               <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>Gợi ý chữ Hán:</div>
                 <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 700, lineHeight: 1.5 }}>
-                  {currentRiddle.prompt}
+                  {currentRiddle?.prompt}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
-                {currentRiddle.options.map((opt) => {
+                {currentRiddle?.options.map((opt) => {
                   let btnBg = '#ffffff';
                   let btnBorder = '1.5px solid #cbd5e1';
                   let btnColor = '#0f172a';
@@ -875,7 +947,7 @@ export const EntertainmentView = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    {riddleIdx < RIDDLE_QUESTIONS.length - 1 ? 'Câu tiếp theo ➔' : 'Hoàn thành câu đố ➔'}
+                    {riddleIdx < currentRiddles.length - 1 ? 'Câu tiếp theo ➔' : 'Hoàn thành câu đố ➔'}
                   </button>
                 </div>
               )}
@@ -921,7 +993,7 @@ export const EntertainmentView = () => {
           {/* Level Filter Tags */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
             <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
-            {['all', 'HSK 1 - 2', 'HSK 2', 'Mọi trình độ'].map((lvl) => (
+            {['all', 'HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => (
               <button
                 key={lvl}
                 type="button"
@@ -995,7 +1067,7 @@ export const EntertainmentView = () => {
 
                   <button
                     type="button"
-                    onClick={() => handleSelectGame(game.id)}
+                    onClick={() => handleSelectGame(game.id, selectedLevel !== 'all' ? selectedLevel : 'HSK 1')}
                     style={{
                       width: '100%',
                       background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',

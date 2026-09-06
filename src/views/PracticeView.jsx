@@ -1,154 +1,8 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
+import { PRACTICE_TOPICS, countTotalPracticeQuestions } from '../data/practiceData';
 
-const PRACTICE_TOPICS = [
-  // 🎧 Kỹ năng Nghe
-  {
-    id: 'p-list-1',
-    skill: 'listening',
-    skillLabel: '🎧 Luyện Nghe',
-    level: 'HSK 2',
-    title: 'Phân Biệt Thanh 1 và Thanh 4 Qua Câu Nói',
-    desc: 'Luyện tai nghe nhận biết cao độ và độ dứt khoát của thanh 1 (cao bằng) và thanh 4 (dứt khoát).',
-    questionsCount: 4,
-    questions: [
-      {
-        prompt: 'Lắng nghe câu: "妈妈骑马，马慢，妈妈骂马。" Chữ "骂" phát âm thanh mấy?',
-        audio: '妈妈骑马，马慢，妈妈骂马。',
-        pinyin: 'Māma qí mǎ, mǎ màn, māma mà mǎ.',
-        options: ['Thanh 1 (mā)', 'Thanh 2 (má)', 'Thanh 3 (mǎ)', 'Thanh 4 (mà)'],
-        correct: 3,
-        explain: 'Chữ "骂" (mà) phát âm thanh 4 dứt khoát.'
-      },
-      {
-        prompt: 'Lắng nghe giá tiền: "这件衣服两百块，你能便宜五十块吗？" Giá mong muốn là bao nhiêu?',
-        audio: '这件衣服两百块，你能便宜五十块吗？',
-        pinyin: 'Zhè jiàn yīfu liǎng bǎi kuài...',
-        options: ['100 tệ', '150 tệ', '200 tệ', '250 tệ'],
-        correct: 1,
-        explain: '200 - 50 = 150 tệ (一百五十块).'
-      }
-    ]
-  },
-  {
-    id: 'p-list-2',
-    skill: 'listening',
-    skillLabel: '🎧 Luyện Nghe',
-    level: 'HSK 1',
-    title: 'Nghe Chào Hỏi & Hẹn Giờ Đời Sống',
-    desc: 'Lắng nghe các mốc thời gian, địa điểm hẹn gặp và đại từ nhân xưng.',
-    questionsCount: 3,
-    questions: [
-      {
-        prompt: 'Nghe cuộc hẹn: "明天下午三点我们在学校门口见，好吗？" Hẹn ở đâu lúc mấy giờ?',
-        audio: '明天下午三点我们在学校门口见，好吗？',
-        pinyin: 'Míngtiān xiàwǔ sān diǎn...',
-        options: ['3h chiều ở cổng trường', '3h chiều ở quán trà', '8h sáng ở lớp', '9h tối ở nhà'],
-        correct: 0,
-        explain: 'Từ khóa: "下午三点" (3h chiều) và "学校门口" (cổng trường).'
-      }
-    ]
-  },
-
-  // 📖 Kỹ năng Đọc hiểu
-  {
-    id: 'p-read-1',
-    skill: 'reading',
-    skillLabel: '📖 Đọc Hiểu',
-    level: 'HSK 2',
-    title: 'Đọc Hiểu Đoạn Văn Mua Sắm & Ăn Uống',
-    desc: 'Rèn kỹ năng đọc lướt, phán đoán đúng/sai và bắt từ khóa trong đoạn văn ngắn.',
-    questionsCount: 3,
-    questions: [
-      {
-        prompt: 'Đoạn văn: "今天星期六，王明去超市买了三斤苹果和一个西瓜，一共二十五块钱。" -> Phán đoán: Vương Minh mua 5 cân táo.',
-        options: ['对 (Đúng)', '错 (Sai - Mua 3 cân táo)'],
-        correct: 1,
-        explain: 'Vương Minh chỉ mua 3 cân táo (三斤苹果).'
-      },
-      {
-        prompt: 'Đoạn văn: "桌子上有一本书，两支笔和一个苹果。" -> Trên bàn có bao nhiêu cây bút?',
-        options: ['一支 (1 cây)', '两支 (2 cây)', '三支 (3 cây)'],
-        correct: 1,
-        explain: '"两支笔" là 2 cây bút.'
-      }
-    ]
-  },
-
-  // 🧩 Kỹ năng Ngữ pháp
-  {
-    id: 'p-gram-1',
-    skill: 'grammar',
-    skillLabel: '🧩 Ngữ Pháp',
-    level: 'HSK 2',
-    title: 'Trật Tự Câu & Phó Từ "有点儿 / 一点儿"',
-    desc: 'Nắm chắc cấu trúc câu tiếng Trung: Chủ ngữ + Thời gian + Địa điểm + Động từ.',
-    questionsCount: 3,
-    questions: [
-      {
-        prompt: 'Chọn câu có trật tự ngữ pháp đúng nhất:',
-        options: [
-          '我明天上午去中国超市。',
-          '我去中国超市明天上午。',
-          '明天上午我去超市中国。'
-        ],
-        correct: 0,
-        explain: 'Trong tiếng Trung, trạng từ chỉ thời gian đứng trước động từ: S + Time + V + O.'
-      },
-      {
-        prompt: 'Điền từ thích hợp: "这件衣服____贵，便宜一点儿吧。"',
-        options: ['一点儿', '有点儿', '很多', '十分'],
-        correct: 1,
-        explain: '"有点儿" đứng trước tính từ mang ý phàn nàn/không hài lòng (有点儿贵 = hơi đắt một chút).'
-      }
-    ]
-  },
-
-  // 📝 Kỹ năng Pinyin & Thanh điệu
-  {
-    id: 'p-pinyin-1',
-    skill: 'pinyin',
-    skillLabel: '📝 Pinyin & Thanh Điệu',
-    level: 'HSK 1',
-    title: 'Phân Biệt Cặp Âm Bật Hơi & Không Bật Hơi (b/p, d/t, g/k)',
-    desc: 'Luyện tai và phản xạ chọn đúng phiên âm chuẩn xác.',
-    questionsCount: 4,
-    questions: [
-      {
-        prompt: 'Từ "Táo" (苹果) có phiên âm Pinyin đúng là gì?',
-        options: ['píngguǒ', 'bíngguǒ', 'pǐnguǒ', 'bǐnguǒ'],
-        correct: 0,
-        explain: 'Chữ 苹 đọc âm bật hơi "p" và thanh 2: píng; 果 đọc thanh 3: guǒ.'
-      },
-      {
-        prompt: 'Từ "Rẻ / Tiện lợi" (便宜) có phiên âm Pinyin chuẩn là:',
-        options: ['piányi (Thanh 2 + Thanh nhẹ)', 'biànyi', 'piànyí', 'piǎnyì'],
-        correct: 0,
-        explain: '便宜 phiên âm chuẩn là piányi.'
-      }
-    ]
-  },
-
-  // ✍️ Chữ Hán & Bút thuận
-  {
-    id: 'p-hanzi-1',
-    skill: 'hanzi',
-    skillLabel: '✍️ Chữ Hán',
-    level: 'HSK 1',
-    title: 'Quy Tắc Bút Thuận & Bộ Thủ Căn Bản',
-    desc: 'Nhận diện các bộ thủ phổ biến: bộ Nhân đứng 亻, bộ Thủy 氵, bộ Tâm 忄.',
-    questionsCount: 3,
-    questions: [
-      {
-        prompt: 'Chữ "你" (bạn) chứa bộ thủ nào?',
-        options: ['Bộ Nhân đứng (亻)', 'Bộ Nữ (女)', 'Bộ Thủy (氵)', 'Bộ Khẩu (口)'],
-        correct: 0,
-        explain: 'Chữ 你 gồm bộ Nhân đứng (亻) bên trái và chữ 尔 bên phải.'
-      }
-    ]
-  }
-];
 
 export const PracticeView = () => {
   const [selectedSkill, setSelectedSkill] = useState('all'); // 'all' | 'listening' | 'reading' | 'grammar' | 'pinyin' | 'hanzi'
@@ -473,7 +327,7 @@ export const PracticeView = () => {
               { id: 'reading', label: '📖 Đọc Hiểu' },
               { id: 'grammar', label: '🧩 Ngữ Pháp' },
               { id: 'pinyin', label: '📝 Pinyin & Thanh Điệu' },
-              { id: 'hanzi', label: '✍️ Chữ Hán' }
+              { id: 'hanzi', label: '✍️ Chữ Hán & Từ Vựng' }
             ].map((s) => (
               <button
                 key={s.id}
@@ -558,7 +412,7 @@ export const PracticeView = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                   <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
                     <i className="fa-solid fa-list-check" style={{ color: '#A11D24', marginRight: '0.35rem' }}></i>
-                    {item.questionsCount} câu hỏi
+                    {item.questions?.length || item.questionsCount || 0} câu hỏi
                   </span>
 
                   <button
