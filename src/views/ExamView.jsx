@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { countExamTotalQuestions } from '../data/examsData';
+import { ExamExcelBatchModal } from '../components/ExamExcelBatchModal';
 
 export const ExamView = ({ 
   exams = [],
@@ -12,6 +13,29 @@ export const ExamView = ({
 }) => {
   const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+
+  // Modal State for Excel Batch Editor
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [excelEditingExam, setExcelEditingExam] = useState(null);
+
+  const handleOpenExcelCreate = () => {
+    setExcelEditingExam(null);
+    setIsExcelModalOpen(true);
+  };
+
+  const handleOpenExcelEdit = (exam, e) => {
+    if (e) e.stopPropagation();
+    setExcelEditingExam(exam);
+    setIsExcelModalOpen(true);
+  };
+
+  const handleSaveExcelExam = (completeExam) => {
+    if (excelEditingExam) {
+      if (onEditExam) onEditExam(completeExam);
+    } else {
+      if (onCreateExam) onCreateExam(completeExam);
+    }
+  };
 
   // Modal State for Exam Builder / Editor
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -378,6 +402,29 @@ export const ExamView = ({
             >
               <i className="fa-solid fa-plus-circle"></i> Tạo Đề Thi HSK Mới
             </button>
+
+            {/* Excel Batch Import Button */}
+            <button
+              type="button"
+              onClick={handleOpenExcelCreate}
+              style={{
+                padding: '0.65rem 1.35rem',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #166534 0%, #15803d 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 14px rgba(22, 101, 52, 0.35)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <i className="fa-solid fa-file-excel"></i> Nhập Đề Theo Bảng Excel
+            </button>
             {/* Supabase Live Badge */}
             <span style={{
               display: 'inline-flex',
@@ -523,21 +570,42 @@ export const ExamView = ({
                     type="button"
                     onClick={(e) => handleOpenEditExam(exam, e)}
                     style={{
-                      padding: '0.75rem 1rem',
+                      padding: '0.75rem 0.85rem',
                       borderRadius: '12px',
                       border: '1.5px solid #cbd5e1',
                       background: '#ffffff',
                       color: '#334155',
                       fontWeight: 700,
-                      fontSize: '0.88rem',
+                      fontSize: '0.86rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.4rem'
+                      gap: '0.35rem'
                     }}
-                    title="Chỉnh sửa cấu trúc: Kỹ năng -> Phần -> Câu hỏi"
+                    title="Chỉnh sửa chi tiết từng Kỹ năng -> Phần -> Câu hỏi"
                   >
                     <i className="fa-solid fa-pen-to-square"></i> Cấu Trúc
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenExcelEdit(exam, e)}
+                    style={{
+                      padding: '0.75rem 0.85rem',
+                      borderRadius: '12px',
+                      border: '1.5px solid #bbf7d0',
+                      background: '#f0fdf4',
+                      color: '#166534',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                    title="Mở bảng Excel để sửa hàng loạt toàn bộ câu hỏi của đề thi này"
+                  >
+                    <i className="fa-solid fa-file-excel"></i> Sửa Excel
                   </button>
 
                   <button
@@ -1665,6 +1733,17 @@ export const ExamView = ({
           </div>
         </div>
       )}
+
+      {/* Excel Batch Exam Editor Modal */}
+      <ExamExcelBatchModal
+        isOpen={isExcelModalOpen}
+        onClose={() => {
+          setIsExcelModalOpen(false);
+          setExcelEditingExam(null);
+        }}
+        existingExam={excelEditingExam}
+        onSaveExam={handleSaveExcelExam}
+      />
     </main>
   );
 };
