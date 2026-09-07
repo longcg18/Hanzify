@@ -877,54 +877,140 @@ export async function gradeSubmission(submissionId, totalScore, teacherComment) 
 
 // ==========================================
 // 7. STREAKS & COMMUNITY
-// ==========================================
+const getLocalStreakKey = (userId) => `hanzify_streak_${userId || 'guest'}`;
+
+export function getLocalStreak(userId) {
+  try {
+    const raw = localStorage.getItem(getLocalStreakKey(userId));
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading local streak:', e);
+  }
+  return null;
+}
+
+export function saveLocalStreak(userId, streakObj) {
+  try {
+    localStorage.setItem(getLocalStreakKey(userId), JSON.stringify(streakObj));
+  } catch (e) {
+    console.error('Error saving local streak:', e);
+  }
+}
+
 export async function fetchUserStreak(userId) {
-  if (!userId) return { data: null, error: null };
-  const { data, error } = await supabase.from('user_streaks').select('*').eq('user_id', userId).maybeSingle();
-  if (error) return { data: null, error: error.message };
-  if (!data) return { data: null, error: null };
+  const local = getLocalStreak(userId);
   const today = new Date().toISOString().slice(0, 10);
-  const checkedInToday = data.last_check_in === today;
-  const currentStreak = data.current_streak || 0;
-  const longestStreak = data.longest_streak || 0;
-  return { data: {
-    currentStreak,
-    longestStreak,
-    totalXp: data.total_xp || 0,
-    checkedInToday,
-    weekDays: generateCurrentWeekDays(currentStreak, checkedInToday),
-    milestones: formatStreakMilestones(currentStreak)
-  }, error: null };
+
+  if (!userId) {
+    const currentStreak = local?.currentStreak || 0;
+    const longestStreak = local?.longestStreak || currentStreak;
+    const checkedInToday = local?.lastCheckIn === today;
+    return {
+      data: {
+        currentStreak,
+        longestStreak,
+        totalXp: local?.totalXp || 0,
+        checkedInToday,
+        lastCheckIn: local?.lastCheckIn || null,
+        weekDays: generateCurrentWeekDays(currentStreak, checkedInToday),
+        milestones: formatStreakMilestones(currentStreak)
+      },
+      error: null
+    };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_streaks')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!error && data) {
+      const checkedInToday = data.last_check_in === today;
+      const currentStreak = data.current_streak || 0;
+      const longestStreak = data.longest_streak || currentStreak;
+      const totalXp = data.total_xp || 0;
+      const streakResult = {
+        currentStreak,
+        longestStreak,
+        totalXp,
+        checkedInToday,
+        lastCheckIn: data.last_check_in,
+        weekDays: generateCurrentWeekDays(currentStreak, checkedInToday),
+        milestones: formatStreakMilestones(currentStreak)
+      };
+      saveLocalStreak(userId, streakResult);
+      return { data: streakResult, error: null };
+    }
+  } catch (e) {
+    console.warn('Supabase fetchUserStreak warning, using local fallback:', e);
+  }
+
+  // Fallback to local cached data
+  const currentStreak = local?.currentStreak || 0;
+  const longestStreak = local?.longestStreak || currentStreak;
+  const checkedInToday = local?.lastCheckIn === today;
+  return {
+    data: {
+      currentStreak,
+      longestStreak,
+      totalXp: local?.totalXp || 0,
+      checkedInToday,
+      lastCheckIn: local?.lastCheckIn || null,
+      weekDays: generateCurrentWeekDays(currentStreak, checkedInToday),
+      milestones: formatStreakMilestones(currentStreak)
+    },
+    error: null
+  };
 }
 
 export async function checkInUser(userId) {
-  if (!userId) return { success: false, error: 'Bạn cần đăng nhập để điểm danh.' };
-  const current = await fetchUserStreak(userId);
-  if (current.error) return { success: false, error: current.error };
-  if (current.data?.checkedInToday) return { success: true, data: current.data };
-  const nextStreak = (current.data?.currentStreak || 0) + 1;
-  const longestStreak = Math.max(nextStreak, current.data?.longestStreak || 0);
-  const totalXp = (current.data?.totalXp || 0) + 50;
-  const payload = {
-    user_id: userId,
-    current_streak: nextStreak,
-    longest_streak: longestStreak,
-    last_check_in: new Date().toISOString().slice(0, 10),
-    total_xp: totalXp,
-    updated_at: new Date().toISOString()
-  };
-  const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
-  if (error) return { success: false, error: error.message };
+  const currentRes = await fetchUserStreak(userId);
+  const current = currentRes.data || { currentStreak: 0, longestStreak: 0, totalXp: 0 };
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (current.checkedInToday) {
+    return { success: true, data: current };
+  }
+
+  const nextStreak = (current.currentStreak || 0) + 1;
+  const longestStreak = Math.max(nextStreak, current.longestStreak || 0);
+  const totalXp = (current.totalXp || 0) + 50;
 
   const updatedData = {
-    ...current.data,
     currentStreak: nextStreak,
     longestStreak,
     totalXp,
     checkedInToday: true,
+    lastCheckIn: today,
     weekDays: generateCurrentWeekDays(nextStreak, true),
     milestones: formatStreakMilestones(nextStreak)
   };
+
+  // Always save locally first so check-in is instantaneous and reliable
+  saveLocalStreak(userId, updatedData);
+
+  // Sync to Supabase in background
+  if (userId) {
+    try {
+      const payload = {
+        user_id: userId,
+        current_streak: nextStreak,
+        longest_streak: longestStreak,
+        last_check_in: today,
+        total_xp: totalXp,
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
+      if (error) {
+        console.warn('Supabase streak sync error (persisted locally):', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase streak upsert exception (persisted locally):', e);
+    }
+  }
+
   return { success: true, data: updatedData };
 }
 

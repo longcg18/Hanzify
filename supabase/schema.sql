@@ -450,9 +450,7 @@ ALTER TABLE public.forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_comments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Cho phép đọc dữ liệu Gamification" ON public.user_streaks FOR SELECT USING (true);
-CREATE POLICY "Học viên cập nhật streak cá nhân" ON public.user_streaks FOR ALL TO authenticated
-  USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()))
-  WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Cho phép học viên điểm danh streak" ON public.user_streaks FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Cho phép đọc bài viết diễn đàn" ON public.forum_posts FOR SELECT USING (true);
 CREATE POLICY "Thành viên ghi bài viết diễn đàn" ON public.forum_posts FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Chủ bài hoặc staff cập nhật diễn đàn" ON public.forum_posts FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());

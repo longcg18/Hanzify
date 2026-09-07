@@ -227,8 +227,12 @@ export function AppContent() {
   // Handle daily streak check-in
   const handleCheckInToday = async () => {
     if (streakData.checkedInToday) return;
-    const result = await checkInUser(user?.id);
-    if (!result.success) { setRoleToast(result.error); return; }
+    const userId = user?.id || user?.username || 'student';
+    const result = await checkInUser(userId);
+    if (!result.success) { 
+      setRoleToast(result.error || 'Có lỗi khi điểm danh.'); 
+      return; 
+    }
     const updated = result.data;
     setStreakData(updated);
     setRoleToast(`🔥 Điểm danh thành công! Chuỗi học tăng lên ${updated.currentStreak} ngày liên tiếp (+50 XP)`);

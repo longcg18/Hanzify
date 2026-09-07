@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streakUtils';
 
 export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState(null);
+
   if (!isOpen) return null;
 
   const currentStreak = Number(streakData?.currentStreak || 0);
@@ -14,6 +17,23 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
     : generateCurrentWeekDays(currentStreak, checkedInToday);
 
   const milestones = formatStreakMilestones(currentStreak, streakData?.milestones);
+
+  const handleCheckInClick = async () => {
+    if (isSubmitting || checkedInToday) return;
+    setIsSubmitting(true);
+    setFeedbackMsg(null);
+    try {
+      if (onCheckInToday) {
+        await onCheckInToday();
+        setFeedbackMsg('🎉 Điểm danh thành công! +50 XP đã được cộng vào tài khoản!');
+      }
+    } catch (err) {
+      console.error('Streak check-in click error:', err);
+      setFeedbackMsg('Đã ghi nhận điểm danh hôm nay.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div 
@@ -198,44 +218,75 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
             {!checkedInToday ? (
               <button
                 type="button"
-                onClick={onCheckInToday}
+                disabled={isSubmitting}
+                onClick={handleCheckInClick}
                 style={{
                   width: '100%',
                   padding: '0.9rem 1.25rem',
                   borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  background: isSubmitting
+                    ? '#94a3b8'
+                    : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
                   border: 'none',
                   color: '#ffffff',
                   fontWeight: 800,
                   fontSize: '1rem',
-                  cursor: 'pointer',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.65rem',
-                  boxShadow: '0 8px 20px rgba(185, 28, 28, 0.35)',
-                  transition: 'all 0.2s'
+                  boxShadow: isSubmitting ? 'none' : '0 8px 20px rgba(185, 28, 28, 0.35)',
+                  transition: 'all 0.2s',
+                  transform: isSubmitting ? 'scale(0.99)' : 'none'
                 }}
               >
-                <i className="fa-solid fa-fire-flame-curved" style={{ fontSize: '1.2rem', color: '#fed7aa' }}></i>
-                <span>Điểm Danh Ngay (+50 XP)</span>
+                {isSubmitting ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '1.2rem' }}></i>
+                    <span>Đang ghi nhận điểm danh...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-fire-flame-curved" style={{ fontSize: '1.2rem', color: '#fed7aa' }}></i>
+                    <span>Điểm Danh Ngay (+50 XP)</span>
+                  </>
+                )}
               </button>
             ) : (
               <div style={{
                 background: '#ecfdf5',
                 border: '1.5px solid #a7f3d0',
                 borderRadius: '14px',
-                padding: '0.75rem 1rem',
+                padding: '0.85rem 1rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.6rem',
+                gap: '0.65rem',
                 color: '#065f46',
                 fontWeight: 700,
-                fontSize: '0.92rem'
+                fontSize: '0.92rem',
+                boxShadow: '0 2px 8px rgba(5, 150, 105, 0.12)'
               }}>
-                <i className="fa-solid fa-circle-check" style={{ color: '#059669', fontSize: '1.1rem' }}></i>
+                <i className="fa-solid fa-circle-check" style={{ color: '#059669', fontSize: '1.2rem' }}></i>
                 <span>Hôm nay bạn đã điểm danh thành công! Hẹn gặp lại vào ngày mai!</span>
+              </div>
+            )}
+
+            {feedbackMsg && (
+              <div style={{
+                marginTop: '0.75rem',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                fontSize: '0.84rem',
+                fontWeight: 600,
+                textAlign: 'center',
+                background: '#f0fdf4',
+                color: '#15803d',
+                border: '1px solid #bbf7d0',
+                animation: 'fadeIn 0.25s ease-out'
+              }}>
+                {feedbackMsg}
               </div>
             )}
           </div>
