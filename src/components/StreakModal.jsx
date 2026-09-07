@@ -3,7 +3,6 @@ import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streak
 
 export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedbackMsg, setFeedbackMsg] = useState(null);
 
   if (!isOpen) return null;
 
@@ -21,15 +20,12 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
   const handleCheckInClick = async () => {
     if (isSubmitting || checkedInToday) return;
     setIsSubmitting(true);
-    setFeedbackMsg(null);
     try {
       if (onCheckInToday) {
         await onCheckInToday();
-        setFeedbackMsg('🎉 Điểm danh thành công! +50 XP đã được cộng vào tài khoản!');
       }
     } catch (err) {
       console.error('Streak check-in click error:', err);
-      setFeedbackMsg('Đã ghi nhận điểm danh hôm nay.');
     } finally {
       setIsSubmitting(false);
     }
@@ -46,12 +42,12 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
         right: 0,
         bottom: 0,
         background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(8px)',
+        backdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 9999,
-        padding: '1rem',
+        padding: '0.75rem',
         animation: 'fadeIn 0.2s ease-out'
       }}
     >
@@ -60,29 +56,30 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#ffffff',
-          borderRadius: '24px',
+          borderRadius: '20px',
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '430px',
+          maxHeight: '90vh',
           boxShadow: '0 25px 50px -12px rgba(161, 29, 36, 0.25), 0 0 0 1px rgba(254, 226, 226, 0.8)',
-          overflow: 'hidden',
-          animation: 'modalScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          overflowY: 'auto',
+          animation: 'modalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        {/* Header with Warm Flame Theme */}
+        {/* Header with Warm Flame Theme (Compact) */}
         <div style={{
           background: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #ea580c 100%)',
-          padding: '2rem 1.75rem 1.5rem',
+          padding: '1.25rem 1.25rem 0.95rem',
           color: '#ffffff',
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden'
         }}>
-          {/* Decorative Chinese Calligraphy watermark */}
+          {/* Decorative Calligraphy watermark */}
           <span style={{
             position: 'absolute',
-            right: '-15px',
-            top: '-20px',
-            fontSize: '8rem',
+            right: '-10px',
+            top: '-15px',
+            fontSize: '5.5rem',
             fontFamily: 'Noto Serif SC, serif',
             color: 'rgba(255, 255, 255, 0.07)',
             pointerEvents: 'none',
@@ -96,97 +93,97 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
             onClick={onClose}
             style={{
               position: 'absolute',
-              top: '16px',
-              right: '16px',
+              top: '12px',
+              right: '12px',
               background: 'rgba(255, 255, 255, 0.2)',
               border: 'none',
               color: '#ffffff',
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1rem',
+              fontSize: '0.85rem',
               transition: 'all 0.15s'
             }}
           >
             ✕
           </button>
 
-          {/* Animated Big Flame Icon */}
+          {/* Animated Flame Icon */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '76px',
-            height: '76px',
+            width: '52px',
+            height: '52px',
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #fed7aa 0%, #ffedd5 100%)',
-            boxShadow: '0 0 30px rgba(234, 88, 12, 0.6), inset 0 2px 4px rgba(255,255,255,0.8)',
-            marginBottom: '0.85rem'
+            boxShadow: '0 0 20px rgba(234, 88, 12, 0.5), inset 0 2px 4px rgba(255,255,255,0.8)',
+            marginBottom: '0.45rem'
           }}>
-            <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 2px 8px rgba(234, 88, 12, 0.5))' }}>
+            <span style={{ fontSize: '1.8rem', filter: 'drop-shadow(0 2px 6px rgba(234, 88, 12, 0.5))' }}>
               🔥
             </span>
           </div>
 
-          <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+          <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
             Chuỗi {currentStreak} Ngày Học
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: '#ffedd5', opacity: 0.95 }}>
+          <p style={{ margin: 0, fontSize: '0.82rem', color: '#ffedd5', opacity: 0.95, lineHeight: 1.35 }}>
             {checkedInToday 
               ? '🎉 Tuyệt vời! Bạn đã hoàn thành điểm danh ngày hôm nay (+50 XP).'
-              : 'Học mỗi ngày để tích lũy kiến thức sâu sắc và thăng hạng trên BXH!'}
+              : 'Học mỗi ngày để tích lũy phản xạ Hoa ngữ và thăng hạng!'}
           </p>
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Modal Body (Compact) */}
+        <div style={{ padding: '0.95rem 1.15rem 1.15rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           
-          {/* Week Calendar Strip (T2 .. CN) */}
+          {/* Week Calendar Strip */}
           <div style={{
             background: '#fff1f2',
             border: '1px solid #fecdd3',
-            borderRadius: '16px',
-            padding: '1rem 0.85rem'
+            borderRadius: '14px',
+            padding: '0.65rem 0.75rem'
           }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '0.85rem'
+              marginBottom: '0.45rem'
             }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#9f1239' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#9f1239' }}>
                 <i className="fa-regular fa-calendar-check"></i> Tuần này của bạn
               </span>
-              <span style={{ fontSize: '0.78rem', color: '#be123c', fontWeight: 600 }}>
-                Kỷ lục: <strong>{longestStreak} ngày liên tục</strong>
+              <span style={{ fontSize: '0.72rem', color: '#be123c', fontWeight: 600 }}>
+                Kỷ lục: <strong>{longestStreak} ngày</strong>
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
-              {weekDays.map((item, idx) => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+              {weekDays.map((item) => (
                 <div 
                   key={item.day}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '3px'
                   }}
                 >
                   <span style={{ 
-                    fontSize: '0.75rem', 
+                    fontSize: '0.68rem', 
                     fontWeight: 700, 
                     color: item.completed ? '#be123c' : '#94a3b8' 
                   }}>
                     {item.day}
                   </span>
                   <div style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '28px',
+                    height: '28px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -195,17 +192,16 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
                       ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' 
                       : '#ffffff',
                     border: item.completed 
-                      ? '2px solid #fda4af' 
-                      : '2px dashed #cbd5e1',
+                      ? '1.5px solid #fda4af' 
+                      : '1.5px dashed #cbd5e1',
                     color: item.completed ? '#ffffff' : '#cbd5e1',
-                    fontSize: '0.9rem',
-                    boxShadow: item.completed ? '0 4px 10px rgba(185, 28, 28, 0.3)' : 'none',
-                    transition: 'all 0.2s'
+                    fontSize: '0.72rem',
+                    boxShadow: item.completed ? '0 2px 6px rgba(185, 28, 28, 0.25)' : 'none'
                   }}>
                     {item.completed ? (
                       <i className="fa-solid fa-fire"></i>
                     ) : (
-                      <i className="fa-regular fa-circle"></i>
+                      <i className="fa-regular fa-circle" style={{ fontSize: '0.65rem' }}></i>
                     )}
                   </div>
                 </div>
@@ -213,7 +209,7 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
             </div>
           </div>
 
-          {/* Action Button: Điểm danh ngay */}
+          {/* Action Button: Điểm danh ngay / Đã điểm danh */}
           <div>
             {!checkedInToday ? (
               <button
@@ -222,33 +218,32 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
                 onClick={handleCheckInClick}
                 style={{
                   width: '100%',
-                  padding: '0.9rem 1.25rem',
-                  borderRadius: '14px',
+                  padding: '0.72rem 1rem',
+                  borderRadius: '12px',
                   background: isSubmitting
                     ? '#94a3b8'
                     : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
                   border: 'none',
                   color: '#ffffff',
                   fontWeight: 800,
-                  fontSize: '1rem',
+                  fontSize: '0.92rem',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.65rem',
-                  boxShadow: isSubmitting ? 'none' : '0 8px 20px rgba(185, 28, 28, 0.35)',
-                  transition: 'all 0.2s',
-                  transform: isSubmitting ? 'scale(0.99)' : 'none'
+                  gap: '0.55rem',
+                  boxShadow: isSubmitting ? 'none' : '0 6px 16px rgba(185, 28, 28, 0.3)',
+                  transition: 'all 0.2s'
                 }}
               >
                 {isSubmitting ? (
                   <>
-                    <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '1.2rem' }}></i>
-                    <span>Đang ghi nhận điểm danh...</span>
+                    <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '1rem' }}></i>
+                    <span>Đang ghi nhận...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fa-solid fa-fire-flame-curved" style={{ fontSize: '1.2rem', color: '#fed7aa' }}></i>
+                    <i className="fa-solid fa-fire-flame-curved" style={{ fontSize: '1.05rem', color: '#fed7aa' }}></i>
                     <span>Điểm Danh Ngay (+50 XP)</span>
                   </>
                 )}
@@ -256,89 +251,80 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
             ) : (
               <div style={{
                 background: '#ecfdf5',
-                border: '1.5px solid #a7f3d0',
-                borderRadius: '14px',
-                padding: '0.85rem 1rem',
+                border: '1px solid #a7f3d0',
+                borderRadius: '12px',
+                padding: '0.65rem 0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.65rem',
+                gap: '0.55rem',
                 color: '#065f46',
                 fontWeight: 700,
-                fontSize: '0.92rem',
-                boxShadow: '0 2px 8px rgba(5, 150, 105, 0.12)'
+                fontSize: '0.82rem',
+                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.08)'
               }}>
-                <i className="fa-solid fa-circle-check" style={{ color: '#059669', fontSize: '1.2rem' }}></i>
-                <span>Hôm nay bạn đã điểm danh thành công! Hẹn gặp lại vào ngày mai!</span>
-              </div>
-            )}
-
-            {feedbackMsg && (
-              <div style={{
-                marginTop: '0.75rem',
-                padding: '0.65rem 0.85rem',
-                borderRadius: '10px',
-                fontSize: '0.84rem',
-                fontWeight: 600,
-                textAlign: 'center',
-                background: '#f0fdf4',
-                color: '#15803d',
-                border: '1px solid #bbf7d0',
-                animation: 'fadeIn 0.25s ease-out'
-              }}>
-                {feedbackMsg}
+                <i className="fa-solid fa-circle-check" style={{ color: '#059669', fontSize: '1rem' }}></i>
+                <span>Hôm nay bạn đã điểm danh (+50 XP)! Hẹn gặp lại ngày mai!</span>
               </div>
             )}
           </div>
 
-          {/* Streak Milestones */}
+          {/* Streak Milestones (Compact 2x2 grid) */}
           <div>
             <h4 style={{ 
-              margin: '0 0 0.65rem', 
-              fontSize: '0.88rem', 
+              margin: '0 0 0.4rem', 
+              fontSize: '0.78rem', 
               fontWeight: 700, 
-              color: '#334155',
+              color: '#475569',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              gap: '0.35rem'
             }}>
               <i className="fa-solid fa-award" style={{ color: '#d97706' }}></i>
               <span>Cột Mốc Thử Thách Streak</span>
             </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
               {milestones.map((m) => (
                 <div 
                   key={m.days}
                   style={{
                     background: m.unlocked ? '#fffbeb' : '#f8fafc',
                     border: m.unlocked ? '1px solid #fde68a' : '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    padding: '0.45rem 0.6rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.6rem'
+                    gap: '0.45rem'
                   }}
                 >
                   <div style={{
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '8px',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '6px',
                     background: m.unlocked ? '#f59e0b' : '#cbd5e1',
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.8rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
                     flexShrink: 0
                   }}>
                     {m.unlocked ? '✓' : `${m.days}d`}
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: m.unlocked ? '#92400e' : '#64748b' }}>
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <div style={{ 
+                      fontSize: '0.72rem', 
+                      fontWeight: 700, 
+                      color: m.unlocked ? '#92400e' : '#64748b',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
                       {m.label}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: m.unlocked ? '#b45309' : '#94a3b8' }}>
+                    <div style={{ fontSize: '0.65rem', color: m.unlocked ? '#b45309' : '#94a3b8' }}>
                       +{m.xpBonus} XP Thưởng
                     </div>
                   </div>
@@ -347,16 +333,16 @@ export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => 
             </div>
           </div>
 
-          {/* Proverb Footer */}
+          {/* Proverb Footer (Compact) */}
           <div style={{
             borderTop: '1px solid #f1f5f9',
-            paddingTop: '0.85rem',
+            paddingTop: '0.45rem',
             textAlign: 'center',
-            fontSize: '0.82rem',
+            fontSize: '0.72rem',
             color: '#64748b',
             fontStyle: 'italic'
           }}>
-            "锲而不舍，金石可镂" — Kiên trì không bỏ cuộc, đá vàng cũng có thể chạm khắc.
+            "锲而不舍，金石可镂" — Kiên trì không bỏ cuộc, đá vàng cũng chạm khắc.
           </div>
 
         </div>
