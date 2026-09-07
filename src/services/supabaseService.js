@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streakUtils';
+import { HSK_VOCABULARY_LIST } from '../data/hskVocabularyData';
 
 // ==========================================
 // 1. AUTHENTICATION & USERS (Supabase Direct)
@@ -871,6 +872,32 @@ export async function deleteToneItem(id) {
     await supabase.from('game_tone_items').delete().eq('id', id);
   } catch (e) {}
   return { success: true };
+}
+
+export async function fetchVocabularies({ level = 'all', topic = 'all' } = {}) {
+  try {
+    let query = supabase.from('vocabularies').select('*');
+    if (level && level !== 'all') {
+      query = query.eq('level', level);
+    }
+    if (topic && topic !== 'all') {
+      query = query.eq('topic', topic);
+    }
+    const { data, error } = await query;
+    if (!error && data && data.length > 0) {
+      return { data, isLiveDb: true };
+    }
+  } catch (e) {
+    console.warn('fetchVocabularies Supabase query, using local data:', e);
+  }
+  let list = HSK_VOCABULARY_LIST;
+  if (level && level !== 'all') {
+    list = list.filter((item) => item.level === level);
+  }
+  if (topic && topic !== 'all') {
+    list = list.filter((item) => item.topic === topic);
+  }
+  return { data: list, isLiveDb: false };
 }
 
 export async function fetchLeaderboard() {

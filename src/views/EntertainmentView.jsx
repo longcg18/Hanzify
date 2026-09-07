@@ -8,8 +8,15 @@ import {
   SPEED_PAIRS_BY_LEVEL,
   RIDDLES_BY_LEVEL
 } from '../data/gamesData';
+import {
+  HSK_LEVELS,
+  HSK_VOCABULARY_LIST,
+  getVocabulariesByLevel,
+  getRandomGamePairs,
+  getRandomToneItems
+} from '../data/hskVocabularyData';
 
-// Difficulty configurations and point rewards
+// Difficulty configurations and point rewards across all 6 HSK levels
 export const GAME_DIFFICULTY_REWARDS = {
   'HSK 1': {
     label: 'Cơ bản (Dễ)',
@@ -20,6 +27,14 @@ export const GAME_DIFFICULTY_REWARDS = {
     tag: '+35 XP'
   },
   'HSK 2': {
+    label: 'Sơ trung cấp',
+    badgeColor: '#0284c7',
+    badgeBg: '#f0f9ff',
+    border: '#bae6fd',
+    baseXp: 50,
+    tag: '+50 XP'
+  },
+  'HSK 3': {
     label: 'Trung cấp (Vừa)',
     badgeColor: '#d97706',
     badgeBg: '#fffbeb',
@@ -27,13 +42,29 @@ export const GAME_DIFFICULTY_REWARDS = {
     baseXp: 70,
     tag: '+70 XP'
   },
-  'HSK 3': {
-    label: 'Nâng cao (Khó)',
+  'HSK 4': {
+    label: 'Trung cao cấp',
+    badgeColor: '#ea580c',
+    badgeBg: '#fff7ed',
+    border: '#fed7aa',
+    baseXp: 95,
+    tag: '+95 XP'
+  },
+  'HSK 5': {
+    label: 'Cao cấp (Khó)',
     badgeColor: '#dc2626',
     badgeBg: '#fef2f2',
     border: '#fecaca',
-    baseXp: 110,
-    tag: '+110 XP'
+    baseXp: 120,
+    tag: '+120 XP'
+  },
+  'HSK 6': {
+    label: 'Bậc thầy (Thử thách)',
+    badgeColor: '#7c3aed',
+    badgeBg: '#faf5ff',
+    border: '#e9d5ff',
+    baseXp: 160,
+    tag: '+160 XP'
   }
 };
 
@@ -176,13 +207,67 @@ const GameRewardCard = ({
   );
 };
 
-// Helper to convert level pairs into memory card items
-const getMemoryCardsForLevel = (lvl) => {
-  const pairs = MEMORY_PAIRS_BY_LEVEL[lvl] || MEMORY_PAIRS_BY_LEVEL['HSK 1'];
+// Helper to convert level pairs into memory card items (from database or local rich dataset)
+const getMemoryCardsForLevel = (lvl = 'HSK 1', remotePairs = []) => {
+  let pairs = (remotePairs || []).filter((p) => p.category === lvl);
+  if (!pairs || pairs.length < 4) {
+    pairs = getRandomGamePairs(lvl, 8);
+  } else {
+    pairs = [...pairs].sort(() => 0.5 - Math.random()).slice(0, 8);
+  }
   return pairs.flatMap((pair) => [
     { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean },
     { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean }
   ]);
+};
+
+// Helper for Tone Blitz questions
+const getToneQuestionsForLevel = (lvl = 'HSK 1', remoteTones = []) => {
+  let tones = (remoteTones || []).filter((t) => t.mean?.includes(`[${lvl}]`));
+  if (!tones || tones.length < 4) {
+    tones = getRandomToneItems(lvl, 10);
+  } else {
+    tones = [...tones].sort(() => 0.5 - Math.random()).slice(0, 10);
+  }
+  if (!tones || tones.length === 0) {
+    tones = getRandomToneItems('all', 10);
+  }
+  return tones;
+};
+
+// Helper for Speed Word Match pairs
+const getSpeedPairsForLevel = (lvl = 'HSK 1', remotePairs = []) => {
+  let pairs = (remotePairs || []).filter((p) => p.category === lvl);
+  if (!pairs || pairs.length < 4) {
+    pairs = getRandomGamePairs(lvl, 6);
+  } else {
+    pairs = [...pairs].sort(() => 0.5 - Math.random()).slice(0, 6);
+  }
+  return pairs.map((p) => ({ id: p.id, hanzi: p.hanzi, mean: p.mean }));
+};
+
+// Helper for Hanzi Riddles
+const getRiddlesForLevel = (lvl = 'HSK 1') => {
+  const words = getVocabulariesByLevel(lvl);
+  if (!words || words.length < 4) {
+    return RIDDLES_BY_LEVEL[lvl] || RIDDLES_BY_LEVEL['HSK 1'];
+  }
+  const pool = [...words].sort(() => 0.5 - Math.random()).slice(0, 5);
+  return pool.map((target) => {
+    const others = words.filter((w) => w.id !== target.id);
+    const distractors = [...others].sort(() => 0.5 - Math.random()).slice(0, 3).map((w) => w.hanzi);
+    const options = [...distractors, target.hanzi].sort(() => 0.5 - Math.random());
+    const prompt = target.exampleHanzi
+      ? `Điền từ thích hợp: "${target.exampleHanzi.replace(target.hanzi, '_____')}" (${target.exampleMean || target.mean}):`
+      : `Từ vựng có nghĩa là "${target.mean}" (Phiên âm: ${target.pinyin}):`;
+    return {
+      prompt,
+      options,
+      correct: target.hanzi,
+      pinyin: target.pinyin,
+      mean: target.mean
+    };
+  });
 };
 
 // ==========================================
@@ -195,8 +280,8 @@ const GAMES_CATALOG = [
     chineseTitle: '连连看',
     category: 'memory',
     categoryLabel: '🃏 Luyện Trí Nhớ',
-    level: 'HSK 1 - 3',
-    desc: 'Lật mở các cặp thẻ bài úp, ghép đúng Chữ Hán với Pinyin & Nghĩa tương ứng theo từng cấp độ HSK 1, 2, 3.',
+    level: 'HSK 1 - 6',
+    desc: 'Lật mở các cặp thẻ bài úp, ghép đúng Chữ Hán với Pinyin & Nghĩa tương ứng theo từng cấp độ HSK 1 đến HSK 6.',
     duration: '1 - 2 phút',
     playersCount: 142,
     topScore: '14 Lượt lật',
@@ -209,7 +294,7 @@ const GAMES_CATALOG = [
     chineseTitle: '声调快闪',
     category: 'tone',
     categoryLabel: '⚡ Phản Xạ Âm Điệu',
-    level: 'HSK 1 - 3',
+    level: 'HSK 1 - 6',
     desc: 'Chữ Hán xuất hiện ngẫu nhiên với Pinyin ẩn dấu. Bấm thật nhanh thanh 1 (ˉ), 2 (ˊ), 3 (ˇ), 4 (ˋ) để tăng chuỗi Combo Streak!',
     duration: '60 giây',
     playersCount: 189,
@@ -223,7 +308,7 @@ const GAMES_CATALOG = [
     chineseTitle: '词汇配对',
     category: 'match',
     categoryLabel: '🧩 Nối Từ Vựng',
-    level: 'HSK 1 - 3',
+    level: 'HSK 1 - 6',
     desc: 'Cột chữ Hán bên trái và cột nghĩa tiếng Việt bên phải. Bấm chọn nhanh từng cặp chuẩn xác trước khi đồng hồ đếm ngược kết thúc!',
     duration: '90 giây',
     playersCount: 115,
@@ -237,7 +322,7 @@ const GAMES_CATALOG = [
     chineseTitle: '看义猜字',
     category: 'riddle',
     categoryLabel: '🏮 Nhận Diện Chữ Hán',
-    level: 'HSK 1 - 3',
+    level: 'HSK 1 - 6',
     desc: 'Đọc gợi ý ý nghĩa và ngữ cảnh sử dụng, sau đó chọn đúng chữ Hán chính xác trong 4 phương án đề xuất.',
     duration: '10 câu hỏi',
     playersCount: 96,
@@ -328,10 +413,10 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   // Active game: null (Catalog view) | 'match' | 'tone' | 'speed-match' | 'hanzi-riddle'
   const [activeGame, setActiveGame] = useState(null);
 
-  // Filters (Same pattern as PracticeView)
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [currentGameLevel, setCurrentGameLevel] = useState('HSK 1');
+  const [rawMatchPairs, setRawMatchPairs] = useState([]);
   const [matchCards, setMatchCards] = useState([]);
   const [toneQuestions, setToneQuestions] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -340,9 +425,10 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   useEffect(() => {
     Promise.all([fetchMatchPairs(), fetchToneItems(), fetchLeaderboard()]).then(([pairsResult, tonesResult, lbResult]) => {
       if (pairsResult.data && pairsResult.data.length > 0) {
+        setRawMatchPairs(pairsResult.data);
         setMatchCards(pairsResult.data.flatMap((pair) => [
-          { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean },
-          { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean }
+          { id: `${pair.id}-hanzi`, pairId: pair.id, type: 'hanzi', content: pair.hanzi, pinyin: pair.pinyin, mean: pair.mean, category: pair.category },
+          { id: `${pair.id}-pinyin`, pairId: pair.id, type: 'pinyin', content: `${pair.pinyin} (${pair.mean})`, pinyin: pair.pinyin, mean: pair.mean, category: pair.category }
         ]));
       }
       if (tonesResult.data && tonesResult.data.length > 0) {
@@ -428,7 +514,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const [moves, setMoves] = useState(0);
 
   const initMatchGame = (level = currentGameLevel) => {
-    const pool = getMemoryCardsForLevel(level);
+    const pool = getMemoryCardsForLevel(level, rawMatchPairs);
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     setCards(shuffled);
     setFlipped([]);
@@ -495,9 +581,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const [toneFeedback, setToneFeedback] = useState(null); // 'correct' | 'wrong'
   const [isToneFinished, setIsToneFinished] = useState(false);
 
-  const currentToneList = TONE_ITEMS_BY_LEVEL[currentGameLevel] || TONE_ITEMS_BY_LEVEL['HSK 1'];
+  const currentToneList = getToneQuestionsForLevel(currentGameLevel, toneQuestions);
   const currentToneQ = currentToneList[toneIdx] || currentToneList[0];
-  const roundQuestions = Math.min(10, currentToneList.length);
+  const roundQuestions = Math.min(10, currentToneList.length || 10);
 
   const handleToneAnswer = (selectedTone) => {
     if (toneFeedback || isToneFinished || !currentToneQ) return;
@@ -573,12 +659,12 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
     return a;
   };
 
-  const currentSpeedPairs = SPEED_PAIRS_BY_LEVEL[currentGameLevel] || SPEED_PAIRS_BY_LEVEL['HSK 1'];
+  const currentSpeedPairs = getSpeedPairsForLevel(currentGameLevel, rawMatchPairs);
   const [speedHanziList, setSpeedHanziList] = useState(() => [...currentSpeedPairs]);
   const [speedMeaningList, setSpeedMeaningList] = useState(() => shuffleArray(currentSpeedPairs));
 
   const initSpeedMatch = (level = currentGameLevel) => {
-    const pairs = SPEED_PAIRS_BY_LEVEL[level] || SPEED_PAIRS_BY_LEVEL['HSK 1'];
+    const pairs = getSpeedPairsForLevel(level, rawMatchPairs);
     setSelectedHanzi(null);
     setSpeedMatchedIds([]);
     setSpeedScore(0);
@@ -590,7 +676,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
   useEffect(() => {
     initSpeedMatch(currentGameLevel);
-  }, [currentGameLevel]);
+  }, [currentGameLevel, rawMatchPairs]);
 
   const handleHanziSelect = (item) => {
     if (speedMatchedIds.includes(item.id)) return;
@@ -643,7 +729,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const [isRiddleAnswered, setIsRiddleAnswered] = useState(false);
   const [isRiddleFinished, setIsRiddleFinished] = useState(false);
 
-  const currentRiddles = RIDDLES_BY_LEVEL[currentGameLevel] || RIDDLES_BY_LEVEL['HSK 1'];
+  const currentRiddles = getRiddlesForLevel(currentGameLevel);
   const currentRiddle = currentRiddles[riddleIdx] || currentRiddles[0];
 
   const handleRiddleChoose = (opt) => {
@@ -814,7 +900,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
               gap: '5px'
             }}>
               <i className="fa-solid fa-layer-group" style={{ color: '#d97706' }}></i>
-              HSK 1 - 3
+              HSK 1 - 6
             </span>
             <span style={{
               background: '#fffbeb',
@@ -828,7 +914,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
               alignItems: 'center',
               gap: '5px'
             }}>
-              ⭐ Tới +135 XP
+              ⭐ Tới +160 XP
             </span>
           </div>
         </div>
@@ -893,7 +979,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
             {/* Level Switcher in Runner with difficulty points badges */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
-              {['HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => {
+              {HSK_LEVELS.map((lvl) => {
                 const r = GAME_DIFFICULTY_REWARDS[lvl];
                 const isActive = currentGameLevel === lvl;
                 return (
@@ -1493,9 +1579,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
           </div>
 
           {/* Level Filter Tags */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
-            {['all', 'HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => (
+            {['all', ...HSK_LEVELS].map((lvl) => (
               <button
                 key={lvl}
                 type="button"
