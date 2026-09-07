@@ -323,21 +323,38 @@ export const HomeView = ({
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>🏆 Bảng Xếp Hạng Học Tập</h2>
                 <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>Thành tích nổi bật trên toàn hệ thống</p>
               </div>
-              <button type="button" onClick={() => setIsAuthModalOpen(true)} style={{ padding: '0.55rem 1rem', borderRadius: '10px', border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', fontWeight: 700, cursor: 'pointer' }}>
-                Đăng nhập để xem thêm
+              <button
+                type="button"
+                onClick={() => onNavigate('leaderboard')}
+                style={{
+                  padding: '0.5rem 0.95rem',
+                  borderRadius: '10px',
+                  border: '1px solid #fecaca',
+                  background: '#fef2f2',
+                  color: '#991b1b',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontSize: '0.84rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <span>Xem tất cả</span>
+                <i className="fa-solid fa-arrow-right"></i>
               </button>
             </div>
 
-            {leaderboard.slice(0, 3).map((item, index) => (
+            {leaderboard.slice(0, 5).map((item, index) => (
               <div key={item.id || index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.8rem 0', borderTop: index === 0 ? 'none' : '1px solid #f1f5f9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', background: index === 0 ? '#fef3c7' : '#f1f5f9', color: index === 0 ? '#b45309' : '#475569', fontWeight: 900 }}>{index + 1}</span>
+                  <span style={{ width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', background: index === 0 ? '#fef3c7' : index === 1 ? '#e2e8f0' : index === 2 ? '#ffedd5' : '#f1f5f9', color: index === 0 ? '#b45309' : index === 1 ? '#475569' : index === 2 ? '#c2410c' : '#64748b', fontWeight: 900 }}>{index + 1}</span>
                   <div>
                     <div style={{ fontWeight: 800, color: '#1e293b' }}>{item.name}</div>
-                    <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{item.game || 'Học tập'}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{item.game || item.badge || 'Học tập'}</div>
                   </div>
                 </div>
-                <strong style={{ color: '#A11D24' }}>{item.points || 0} điểm</strong>
+                <strong style={{ color: '#A11D24', fontWeight: 800, fontSize: '0.95rem' }}>{item.points || item.xp || item.score || 0} điểm</strong>
               </div>
             ))}
 

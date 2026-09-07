@@ -875,16 +875,14 @@ export function AppContent() {
       )}
 
       {currentView === 'leaderboard' && (
-        user ? (
+        <>
+          {!user && (
+            <GuestPreviewNotice onLogin={() => setIsAuthModalOpen(true)}>
+              Chế độ xem khách: Bạn đang theo dõi bảng xếp hạng toàn hệ thống. Đăng nhập để ghi nhận điểm số của bạn vào bảng vàng!
+            </GuestPreviewNotice>
+          )}
           <LeaderboardView classrooms={classrooms} onNavigate={handleNavigate} />
-        ) : (
-          <RequireLoginCard
-            title="Yêu Cầu Đăng Nhập Để Xem Bảng Xếp Hạng"
-            subtitle="Bạn cần đăng nhập vào tài khoản để theo dõi xếp hạng thi đua tuần và điểm số của lớp."
-            onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('home')}
-          />
-        )
+        </>
       )}
 
       {currentView === 'forum' && (
