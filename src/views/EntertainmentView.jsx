@@ -296,17 +296,46 @@ export const EntertainmentView = () => {
   const [selectedHanzi, setSelectedHanzi] = useState(null);
   const [speedMatchedIds, setSpeedMatchedIds] = useState([]);
   const [speedScore, setSpeedScore] = useState(0);
+  const [wrongMatchId, setWrongMatchId] = useState(null);
+
+  const shuffleArray = (arr) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    // Ensure the shuffled order is never identical to the original order
+    if (a.length > 1 && a.every((item, idx) => item.id === arr[idx].id)) {
+      const first = a.shift();
+      a.push(first);
+    }
+    return a;
+  };
 
   const currentSpeedPairs = SPEED_PAIRS_BY_LEVEL[currentGameLevel] || SPEED_PAIRS_BY_LEVEL['HSK 1'];
+  const [speedHanziList, setSpeedHanziList] = useState(() => [...currentSpeedPairs]);
+  const [speedMeaningList, setSpeedMeaningList] = useState(() => shuffleArray(currentSpeedPairs));
 
   const initSpeedMatch = (level = currentGameLevel) => {
+    const pairs = SPEED_PAIRS_BY_LEVEL[level] || SPEED_PAIRS_BY_LEVEL['HSK 1'];
     setSelectedHanzi(null);
     setSpeedMatchedIds([]);
     setSpeedScore(0);
+    setWrongMatchId(null);
+    setSpeedHanziList([...pairs]);
+    setSpeedMeaningList(shuffleArray(pairs));
   };
+
+  useEffect(() => {
+    initSpeedMatch(currentGameLevel);
+  }, [currentGameLevel]);
 
   const handleHanziSelect = (item) => {
     if (speedMatchedIds.includes(item.id)) return;
+    if (selectedHanzi?.id === item.id) {
+      setSelectedHanzi(null);
+      return;
+    }
     setSelectedHanzi(item);
     speakWord(item.hanzi);
   };
@@ -327,8 +356,12 @@ export const EntertainmentView = () => {
         colors: ['#2563eb', '#16a34a', '#D4AF37']
       });
     } else {
-      // Wrong match
-      setSelectedHanzi(null);
+      // Wrong match: flash error on wrong item then reset
+      setWrongMatchId(item.id);
+      setTimeout(() => {
+        setWrongMatchId(null);
+        setSelectedHanzi(null);
+      }, 500);
     }
   };
 
@@ -782,14 +815,28 @@ export const EntertainmentView = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                {/* Hanzi Column */}
+                {/* Hanzi Column (Cột Chữ Hán) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>
-                    Cột Chữ Hán:
+                  <div style={{ 
+                    fontWeight: 700, 
+                    fontSize: '0.85rem', 
+                    color: selectedHanzi ? '#64748b' : '#0f172a', 
+                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span>{selectedHanzi ? 'Cột Chữ Hán:' : '1. Chọn Chữ Hán:'}</span>
+                    {selectedHanzi && (
+                      <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>
+                        Đang chọn: {selectedHanzi.hanzi}
+                      </span>
+                    )}
                   </div>
-                  {currentSpeedPairs.map((item) => {
+                  {speedHanziList.map((item) => {
                     const isMatched = speedMatchedIds.includes(item.id);
                     const isSelected = selectedHanzi?.id === item.id;
+                    const isDimmed = Boolean(selectedHanzi) && !isSelected && !isMatched;
 
                     return (
                       <button
@@ -799,14 +846,42 @@ export const EntertainmentView = () => {
                         style={{
                           padding: '1rem',
                           borderRadius: '12px',
-                          border: isMatched ? '2px solid #22c55e' : isSelected ? '2px solid #2563eb' : '1px solid #cbd5e1',
-                          background: isMatched ? '#f0fdf4' : isSelected ? '#eff6ff' : '#ffffff',
-                          color: isMatched ? '#16a34a' : isSelected ? '#2563eb' : '#0f172a',
+                          border: isMatched 
+                            ? '2px solid #22c55e' 
+                            : isSelected 
+                              ? '2.5px solid #2563eb' 
+                              : isDimmed 
+                                ? '1px solid #e2e8f0' 
+                                : '1.5px solid #cbd5e1',
+                          background: isMatched 
+                            ? '#f0fdf4' 
+                            : isSelected 
+                              ? '#eff6ff' 
+                              : isDimmed 
+                                ? '#f8fafc' 
+                                : '#ffffff',
+                          color: isMatched 
+                            ? '#16a34a' 
+                            : isSelected 
+                              ? '#2563eb' 
+                              : isDimmed 
+                                ? '#94a3b8' 
+                                : '#0f172a',
                           fontWeight: 700,
-                          fontSize: '1.15rem',
+                          fontSize: '1.18rem',
                           fontFamily: 'Noto Serif SC, serif',
                           cursor: isMatched ? 'default' : 'pointer',
-                          textAlign: 'left'
+                          textAlign: 'left',
+                          opacity: isDimmed ? 0.38 : 1,
+                          filter: isDimmed ? 'grayscale(50%)' : 'none',
+                          transform: isSelected ? 'scale(1.02)' : 'none',
+                          boxShadow: isSelected 
+                            ? '0 0 16px rgba(37, 99, 235, 0.35)' 
+                            : isMatched 
+                              ? 'none' 
+                              : '0 2px 6px rgba(0,0,0,0.02)',
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                          position: 'relative'
                         }}
                       >
                         {item.hanzi} {isMatched && '✓'}
@@ -815,13 +890,41 @@ export const EntertainmentView = () => {
                   })}
                 </div>
 
-                {/* Meanings Column */}
+                {/* Meanings Column (Cột Nghĩa Tiếng Việt - Sáng lên khi đã chọn chữ Hán) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>
-                    Cột Nghĩa Tiếng Việt:
+                  <div style={{ 
+                    fontWeight: 800, 
+                    fontSize: '0.85rem', 
+                    color: selectedHanzi ? '#1d4ed8' : '#94a3b8', 
+                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.25s ease'
+                  }}>
+                    <span>{selectedHanzi ? '👉 Cột Nghĩa Tiếng Việt:' : '2. Cột Nghĩa Tiếng Việt:'}</span>
+                    {selectedHanzi ? (
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        background: '#dbeafe', 
+                        color: '#1d4ed8', 
+                        padding: '2px 8px', 
+                        borderRadius: '999px', 
+                        fontWeight: 700,
+                        animation: 'pulse 1.5s infinite'
+                      }}>
+                        Ghép cặp ngay!
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                        (chọn Hán tự trước)
+                      </span>
+                    )}
                   </div>
-                  {currentSpeedPairs.map((item) => {
+                  {speedMeaningList.map((item) => {
                     const isMatched = speedMatchedIds.includes(item.id);
+                    const isWrong = wrongMatchId === item.id;
+                    const isReadyToMatch = Boolean(selectedHanzi) && !isMatched;
 
                     return (
                       <button
@@ -831,13 +934,43 @@ export const EntertainmentView = () => {
                         style={{
                           padding: '1rem',
                           borderRadius: '12px',
-                          border: isMatched ? '2px solid #22c55e' : '1px solid #cbd5e1',
-                          background: isMatched ? '#f0fdf4' : '#ffffff',
-                          color: isMatched ? '#16a34a' : '#0f172a',
-                          fontWeight: 600,
-                          fontSize: '0.92rem',
-                          cursor: isMatched ? 'default' : 'pointer',
-                          textAlign: 'left'
+                          border: isMatched 
+                            ? '2px solid #22c55e' 
+                            : isWrong 
+                              ? '2.5px solid #ef4444' 
+                              : isReadyToMatch 
+                                ? '2px solid #3b82f6' 
+                                : '1px dashed #cbd5e1',
+                          background: isMatched 
+                            ? '#f0fdf4' 
+                            : isWrong 
+                              ? '#fef2f2' 
+                              : isReadyToMatch 
+                                ? '#ffffff' 
+                                : '#fafafa',
+                          color: isMatched 
+                            ? '#16a34a' 
+                            : isWrong 
+                              ? '#dc2626' 
+                              : isReadyToMatch 
+                                ? '#1e3a8a' 
+                                : '#94a3b8',
+                          fontWeight: isReadyToMatch ? 700 : 600,
+                          fontSize: '0.94rem',
+                          cursor: isMatched ? 'default' : isReadyToMatch ? 'pointer' : 'not-allowed',
+                          textAlign: 'left',
+                          opacity: isMatched ? 0.9 : isReadyToMatch ? 1 : 0.45,
+                          boxShadow: isWrong 
+                            ? '0 0 14px rgba(239, 68, 68, 0.4)' 
+                            : isReadyToMatch 
+                              ? '0 4px 16px rgba(59, 130, 246, 0.22)' 
+                              : 'none',
+                          transform: isWrong 
+                            ? 'translateX(4px)' 
+                            : isReadyToMatch 
+                              ? 'translateY(-2px)' 
+                              : 'none',
+                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
                         }}
                       >
                         {item.mean} {isMatched && '✓'}
