@@ -51,13 +51,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         {/* 2. Khóa Học */}
         <button
           type="button"
-          onClick={() => {
-            if (!user) {
-              setIsAuthModalOpen(true);
-              return;
-            }
-            onNavigate('courses');
-          }}
+          onClick={() => onNavigate('courses')}
           style={{
             padding: '0.5rem 0.95rem',
             borderRadius: '10px',
@@ -81,13 +75,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         {/* 2. Luyện Tập */}
         <button
           type="button"
-          onClick={() => {
-            if (!user) {
-              setIsAuthModalOpen(true);
-              return;
-            }
-            onNavigate('practice');
-          }}
+          onClick={() => onNavigate('practice')}
           style={{
             padding: '0.5rem 0.95rem',
             borderRadius: '10px',
@@ -111,13 +99,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         {/* 3. Thi Thử HSK */}
         <button
           type="button"
-          onClick={() => {
-            if (!user) {
-              setIsAuthModalOpen(true);
-              return;
-            }
-            onNavigate('exam');
-          }}
+          onClick={() => onNavigate('exam')}
           style={{
             padding: '0.5rem 0.95rem',
             borderRadius: '10px',
@@ -141,13 +123,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         {/* 5. Giải Trí */}
         <button
           type="button"
-          onClick={() => {
-            if (!user) {
-              setIsAuthModalOpen(true);
-              return;
-            }
-            onNavigate('entertainment');
-          }}
+          onClick={() => onNavigate('entertainment')}
           style={{
             padding: '0.5rem 0.95rem',
             borderRadius: '10px',
