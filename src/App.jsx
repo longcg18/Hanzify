@@ -116,6 +116,20 @@ const RequireLoginCard = ({ title, subtitle, onLogin, onBack }) => (
   </main>
 );
 
+const GuestPreviewNotice = ({ children, onLogin }) => (
+  <div style={{ maxWidth: '1180px', margin: '1rem auto 0', padding: '0 1rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', padding: '0.85rem 1rem', borderRadius: '14px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412' }}>
+      <span style={{ fontSize: '0.86rem', fontWeight: 650 }}>
+        <i className="fa-solid fa-eye" style={{ marginRight: '0.5rem' }}></i>
+        {children}
+      </span>
+      <button type="button" onClick={onLogin} style={{ border: 0, borderRadius: '9px', padding: '0.5rem 0.9rem', background: '#A11D24', color: '#fff', fontWeight: 750, cursor: 'pointer' }}>
+        Đăng nhập
+      </button>
+    </div>
+  </div>
+);
+
 export function AppContent() {
   const {
     user,
@@ -459,9 +473,10 @@ export function AppContent() {
     }, 4500);
   };
 
-  // Route Guard: Ensure unauthenticated users are never on internal views
+  // Guests may browse public previews, but private/detail views still require login.
   useEffect(() => {
-    if (!user && currentView !== 'home') {
+    const guestPreviewViews = ['home', 'courses', 'practice', 'exam', 'entertainment'];
+    if (!user && !guestPreviewViews.includes(currentView)) {
       setCurrentView('home');
       setIsAuthModalOpen(true);
       setRoleToast('Vui lòng đăng nhập để truy cập các khóa học và nội dung bên trong!');
@@ -478,7 +493,8 @@ export function AppContent() {
   }, [user, user?.role, currentView]);
 
   const handleNavigate = (view) => {
-    if (!user && view !== 'home') {
+    const guestPreviewViews = ['home', 'courses', 'practice', 'exam', 'entertainment'];
+    if (!user && !guestPreviewViews.includes(view)) {
       setIsAuthModalOpen(true);
       setRoleToast('Vui lòng đăng nhập để truy cập tính năng này!');
       setTimeout(() => setRoleToast(null), 4000);
@@ -612,7 +628,12 @@ export function AppContent() {
       )}
 
       {currentView === 'courses' && (
-        user ? (
+        <>
+          {!user && (
+            <GuestPreviewNotice onLogin={() => setIsAuthModalOpen(true)}>
+              Bạn đang xem trước danh sách khóa học. Đăng nhập để mở nội dung bài học và tham gia lớp.
+            </GuestPreviewNotice>
+          )}
           <CoursesView 
             courses={courses}
             classrooms={classrooms}
@@ -626,14 +647,7 @@ export function AppContent() {
             onOpenStreakModal={handleOpenStreakModal}
             onNavigate={handleNavigate}
           />
-        ) : (
-          <RequireLoginCard
-            title="Yêu Cầu Đăng Nhập"
-            subtitle="Vui lòng đăng nhập vào tài khoản để xem danh sách khóa học và tham gia học tập."
-            onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('home')}
-          />
-        )
+        </>
       )}
 
       {currentView === 'course-detail' && (
@@ -710,20 +724,25 @@ export function AppContent() {
       )}
 
       {currentView === 'practice' && (
-        user ? (
-          <PracticeView />
-        ) : (
-          <RequireLoginCard
-            title="Yêu Cầu Đăng Nhập Để Luyện Tập"
-            subtitle="Bạn cần đăng nhập vào tài khoản để mở khu vực luyện tập phản xạ kỹ năng Nghe và Đọc hiểu."
-            onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('home')}
-          />
-        )
+        <>
+          {!user && (
+            <GuestPreviewNotice onLogin={() => setIsAuthModalOpen(true)}>
+              Đây là bản xem trước khu luyện tập. Đăng nhập để chọn đáp án, nghe bài và ghi nhận kết quả.
+            </GuestPreviewNotice>
+          )}
+          <div style={!user ? { pointerEvents: 'none', userSelect: 'none' } : undefined} aria-disabled={!user || undefined}>
+            <PracticeView />
+          </div>
+        </>
       )}
 
       {currentView === 'exam' && (
-        user ? (
+        <>
+          {!user && (
+            <GuestPreviewNotice onLogin={() => setIsAuthModalOpen(true)}>
+              Bạn có thể xem kho đề thi. Đăng nhập khi muốn bắt đầu làm bài và lưu điểm.
+            </GuestPreviewNotice>
+          )}
           <ExamView 
             exams={exams}
             isDbLive={isExamsDbLive}
@@ -732,14 +751,7 @@ export function AppContent() {
             onEditExam={handleEditExam}
             onDeleteExam={handleDeleteExam}
           />
-        ) : (
-          <RequireLoginCard
-            title="Yêu Cầu Đăng Nhập Để Vào Khu Vực Thi Thử"
-            subtitle="Bạn cần đăng nhập vào tài khoản để truy cập kho đề thi chuẩn HSK và làm bài thi có bấm giờ."
-            onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('home')}
-          />
-        )
+        </>
       )}
 
       {currentView === 'exam-room' && (
@@ -782,16 +794,14 @@ export function AppContent() {
       )}
 
       {currentView === 'entertainment' && (
-        user ? (
+        <>
+          {!user && (
+            <GuestPreviewNotice onLogin={() => setIsAuthModalOpen(true)}>
+              Chế độ chơi thử: bạn có thể chơi đầy đủ, nhưng điểm, XP và thành tích sẽ không được lưu.
+            </GuestPreviewNotice>
+          )}
           <EntertainmentView />
-        ) : (
-          <RequireLoginCard
-            title="Khu Vực Trò Chơi Giải Trí"
-            subtitle="Đăng nhập tài khoản học viên để tham gia các trò chơi phản xạ chữ Hán, thanh điệu và lưu điểm số!"
-            onLogin={() => setIsAuthModalOpen(true)}
-            onBack={() => setCurrentView('home')}
-          />
-        )
+        </>
       )}
 
       {currentView === 'grading' && (
