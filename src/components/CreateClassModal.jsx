@@ -21,7 +21,7 @@ export const CreateClassModal = ({
   // Form State
   const [className, setClassName] = useState('');
   const [level, setLevel] = useState('HSK 2');
-  const [selectedCourseIds, setSelectedCourseIds] = useState(['hsk2']);
+  const [selectedCourseIds, setSelectedCourseIds] = useState([]);
   const [selectedDays, setSelectedDays] = useState(['T2', 'T4', 'T6']);
   const [selectedShift, setSelectedShift] = useState('Tối');
   const [timeNote, setTimeNote] = useState('19:30 - 21:00');
@@ -65,7 +65,7 @@ export const CreateClassModal = ({
     .filter((s) => s.length > 0);
 
   // Handle Form Submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!className.trim()) {
       alert('Vui lòng nhập tên lớp học!');
@@ -73,6 +73,10 @@ export const CreateClassModal = ({
     }
     if (parsedStudentNames.length === 0) {
       alert('Vui lòng nhập ít nhất 1 học sinh trong danh sách!');
+      return;
+    }
+    if (selectedCourseIds.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 khóa học cho lớp!');
       return;
     }
 
@@ -112,7 +116,8 @@ export const CreateClassModal = ({
     };
 
     if (onCreateSuccess) {
-      onCreateSuccess(newClass);
+      const result = await onCreateSuccess(newClass);
+      if (result?.success === false) return;
     }
     setCreatedClass(newClass);
   };

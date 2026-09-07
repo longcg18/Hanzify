@@ -565,10 +565,14 @@ export function AppContent() {
   // Handle New Class Creation
   const handleCreateClass = async (newClass) => {
     const result = await createClassroomInSupabase(newClass);
-    if (!result.success) { setRoleToast('Không thể tạo lớp trên Supabase.'); return; }
+    if (!result.success) {
+      setRoleToast('Không thể tạo lớp trên Supabase.');
+      return result;
+    }
     setClassrooms((prev) => [newClass, ...prev]);
     setRoleToast(`Đã mở lớp "${newClass.name}" thành công trên Supabase! Mã lớp: ${newClass.code}`);
     setTimeout(() => setRoleToast(null), 6000);
+    return result;
   };
 
   // Handle Student Activation when joining via code
