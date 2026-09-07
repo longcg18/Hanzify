@@ -11,16 +11,24 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
   const [entries, setEntries] = useState([]);
   const [loadError, setLoadError] = useState('');
   useEffect(() => {
-    fetchLeaderboard().then(({ data, isLiveDb }) => {
-      setEntries((data || []).map((item, index) => ({
-        ...item, rank: index + 1, name: item.user_name, avatar: item.user_name?.slice(0, 1) || '学',
-        xp: item.score, points: item.score, classId: item.classroom_id || 'all'
-      })));
-      if (!isLiveDb) setLoadError('Không thể kết nối bảng xếp hạng trên Supabase.');
+    fetchLeaderboard().then(({ data }) => {
+      const mapped = (data || []).map((item, index) => ({
+        ...item,
+        rank: index + 1,
+        name: item.name || item.user_name || 'Học viên',
+        avatar: item.avatar || (item.name ? item.name.slice(0, 1) : '学'),
+        xp: item.xp || item.score || 0,
+        points: item.xp || item.score || 0,
+        classId: item.classId || item.classroom_id || 'all'
+      }));
+      setEntries(mapped);
+      setLoadError('');
     });
-  }, []);
+  }, [user?.id]);
 
-  const currentList = selectedClassId === 'all' ? entries : entries.filter((item) => item.classId === selectedClassId);
+  const currentList = selectedClassId === 'all' 
+    ? entries 
+    : entries.filter((item) => item.classId === selectedClassId || item.classroom_id === selectedClassId);
 
   const visibleClassrooms = getStudentClassrooms(classrooms, user);
   const classOptions = [{ id: 'all', name: 'Toàn hệ thống' }, ...visibleClassrooms];
@@ -33,7 +41,10 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
   const restList = currentList.slice(3);
 
   // Current user's entry in this leaderboard
-  const currentUserEntry = currentList.find((item) => item.isCurrentUser || item.name.includes(user?.name || ''));
+  const currentUserEntry = currentList.find((item) => 
+    item.isCurrentUser || 
+    (user && (item.id === user.id || item.name === user.full_name || item.name === user.name || item.name === user.username))
+  );
 
   if (loadError) return <main className="main-content" style={{ padding: '3rem 1rem', textAlign: 'center', color: '#991b1b' }}>{loadError}</main>;
 

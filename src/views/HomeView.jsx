@@ -38,12 +38,18 @@ export const HomeView = ({
         ...item,
         id: item.id,
         rank: index + 1,
-        name: item.user_name,
-        xp: item.score || 0,
-        points: item.score || 0
+        name: item.name || item.user_name,
+        user_name: item.name || item.user_name,
+        xp: item.xp || item.score || 0,
+        score: item.xp || item.score || 0,
+        points: item.xp || item.score || 0,
+        classId: item.classId || item.classroom_id || 'all',
+        classroom_id: item.classId || item.classroom_id || 'all'
       })));
     });
+  }, [user?.id, streakData?.totalXp, streakData?.currentStreak]);
 
+  useEffect(() => {
     if (!user) {
       setForumPosts([]);
       setSubmissions([]);
@@ -95,7 +101,10 @@ export const HomeView = ({
   const totalEnrolledStudents = (visibleClassrooms || []).reduce((acc, c) => acc + (c.students?.length || 0), 0);
 
   // Leaderboard data for preview
-  const classLeaderboard = (selectedClassId === 'all' ? leaderboard : leaderboard.filter((item) => item.classroom_id === selectedClassId)).slice(0, 3);
+  const classLeaderboard = (selectedClassId === 'all' 
+    ? leaderboard 
+    : leaderboard.filter((item) => item.classroom_id === selectedClassId || item.classId === selectedClassId)
+  ).slice(0, 3);
 
   // Latest forum posts
   const hotQuestion = forumPosts.find((p) => p.category === 'bai-kho');
