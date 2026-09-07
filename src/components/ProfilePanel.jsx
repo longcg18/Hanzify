@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import confetti from 'canvas-confetti';
+import { fetchStudentSubmissions } from '../services/supabaseService';
 
 const PRESET_AVATARS = [
   { id: 'av-1', label: '👑', desc: 'Vương miện Admin' },
@@ -11,49 +12,6 @@ const PRESET_AVATARS = [
   { id: 'av-6', label: '凤', desc: 'Phượng (Phượng hoàng)' },
   { id: 'av-7', label: '莲', desc: 'Liên (Hoa sen thanh tịnh)' },
   { id: 'av-8', label: '福', desc: 'Phúc (Hạnh phúc)' }
-];
-
-const SAMPLE_SUBMISSION_HISTORY = [
-  {
-    id: 'h-1',
-    lesson: 'Bài 04: Đi Mua Sắm (买东西)',
-    course: 'HSK 2 Toàn Diện',
-    date: 'Hôm nay 08:30',
-    type: 'Bài tập về nhà',
-    score: '9.5 / 10',
-    status: 'graded',
-    feedback: 'Em phát âm thanh 4 rất dứt khoát! Chú ý nét phẩy của chữ 贵 viết dài hơn một chút nhé.'
-  },
-  {
-    id: 'h-2',
-    lesson: 'Đề Thi Thử HSK 2 Toàn Diện - Đề Số 01',
-    course: 'Luyện thi HSK 2',
-    date: 'Hôm qua 21:15',
-    type: 'Thi thử HSK',
-    score: '160 / 200',
-    status: 'passed',
-    feedback: 'Kết quả: ĐẠT (合格) - Nghe 80đ, Đọc 80đ.'
-  },
-  {
-    id: 'h-3',
-    lesson: 'Bài 03: Thời Gian & Ngày Tháng (时间与日期)',
-    course: 'HSK 2 Toàn Diện',
-    date: '02/09/2026',
-    type: 'Bài tập về nhà',
-    score: '9.0 / 10',
-    status: 'graded',
-    feedback: 'Bài làm rất tốt, câu đàm thoại đọc tự nhiên.'
-  },
-  {
-    id: 'h-4',
-    lesson: 'Bài 02: Gia Đình & Nghề Nghiệp (家庭与工作)',
-    course: 'HSK 2 Toàn Diện',
-    date: '28/08/2026',
-    type: 'Bài tập về nhà',
-    score: '9.5 / 10',
-    status: 'graded',
-    feedback: 'Thu âm to, rõ ràng, không bị ngọng âm z/c/s.'
-  }
 ];
 
 export const ProfilePanel = () => {
@@ -69,6 +27,18 @@ export const ProfilePanel = () => {
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'history' | 'notifications' | 'stats'
+  const [submissions, setSubmissions] = useState([]);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'history' && user?.id) {
+      setLoadingSubs(true);
+      fetchStudentSubmissions(user.id)
+        .then(res => setSubmissions(res || []))
+        .catch(err => console.warn('Failed to load submissions:', err))
+        .finally(() => setLoadingSubs(false));
+    }
+  }, [activeTab, user?.id]);
 
   // Editable Profile Form State
   const [name, setName] = useState(user?.name || '');
@@ -432,58 +402,79 @@ export const ProfilePanel = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                  Tổng cộng: <strong>{SAMPLE_SUBMISSION_HISTORY.length} lượt nộp bài</strong>
+                  Tổng cộng: <strong>{submissions.length} lượt nộp bài</strong>
                 </span>
-                <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 600 }}>
-                  <i className="fa-solid fa-circle-check"></i> Đã hoàn thành 100%
-                </span>
+                {submissions.length > 0 && (
+                  <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 600 }}>
+                    <i className="fa-solid fa-circle-check"></i> Đã đồng bộ Supabase
+                  </span>
+                )}
               </div>
 
-              {SAMPLE_SUBMISSION_HISTORY.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #fee2e2',
-                    borderRadius: '16px',
-                    padding: '1.25rem',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                    <div>
-                      <span style={{
-                        background: item.type.includes('HSK') ? '#fef3c7' : '#fef2f2',
-                        color: item.type.includes('HSK') ? '#b45309' : '#A11D24',
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700
-                      }}>
-                        {item.type}
-                      </span>
-                      <h4 style={{ margin: '0.35rem 0 0.2rem 0', fontSize: '1rem', color: '#0f172a' }}>
-                        {item.lesson}
-                      </h4>
-                      <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{item.course} · {item.date}</span>
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#A11D24' }}>
-                        {item.score}
-                      </div>
-                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>
-                        {item.status === 'passed' ? '✓ ĐẠT CHUẨN' : '✓ Đã chấm'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Teacher Feedback Note */}
-                  <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.75rem 1rem', fontSize: '0.84rem', color: '#475569', borderLeft: '3px solid #A11D24', marginTop: '0.6rem' }}>
-                    <strong>Nhận xét:</strong> {item.feedback}
-                  </div>
+              {loadingSubs ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+                  <i className="fa-solid fa-circle-notch fa-spin" style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: '#A11D24' }}></i>
+                  <div>Đang tải lịch sử làm bài...</div>
                 </div>
-              ))}
+              ) : submissions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📝</div>
+                  <h4 style={{ margin: '0 0 0.4rem 0', color: '#1e293b', fontSize: '1rem' }}>Chưa có lượt nộp bài nào</h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+                    Bạn chưa nộp bài tập hoặc đề thi nào. Khi hoàn thành bài làm, kết quả thực tế và điểm chấm của giáo viên sẽ hiển thị tại đây.
+                  </p>
+                </div>
+              ) : (
+                submissions.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      background: '#fff',
+                      border: '1px solid #fee2e2',
+                      borderRadius: '16px',
+                      padding: '1.25rem',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                      <div>
+                        <span style={{
+                          background: item.lessonId?.includes('exam') ? '#fef3c7' : '#fef2f2',
+                          color: item.lessonId?.includes('exam') ? '#b45309' : '#A11D24',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '8px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700
+                        }}>
+                          {item.lessonId?.includes('exam') ? 'Đề thi' : 'Bài tập về nhà'}
+                        </span>
+                        <h4 style={{ margin: '0.35rem 0 0.2rem 0', fontSize: '1rem', color: '#0f172a' }}>
+                          {item.answers?.lessonTitle || item.lessonId || 'Bài làm'}
+                        </h4>
+                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                          {item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Vừa xong'}
+                        </span>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#A11D24' }}>
+                          {item.score != null ? `${item.score} điểm` : (item.answers?.autoGradedScore != null ? `${item.answers.autoGradedScore} điểm` : 'Đang chấm')}
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: item.submissionState === 'graded' ? '#16a34a' : '#d97706', fontWeight: 600 }}>
+                          {item.submissionState === 'graded' ? '✓ Đã chấm' : '⏳ Đang chờ chấm'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Teacher Feedback Note */}
+                    {item.teacherFeedback && (
+                      <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.75rem 1rem', fontSize: '0.84rem', color: '#475569', borderLeft: '3px solid #A11D24', marginTop: '0.6rem' }}>
+                        <strong>Nhận xét:</strong> {item.teacherFeedback}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           )}
 

@@ -323,16 +323,17 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
             padding: '0 0.5rem'
           }}>
             {/* HẠNG 2 (SILVER 🥈) */}
-            {secondPlace && (
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            border: '2px solid #cbd5e1',
-            padding: '1.5rem 1rem 1.25rem',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px -5px rgba(100, 116, 139, 0.15)',
-            position: 'relative'
-          }}>
+            <div style={{ gridColumn: 1 }}>
+              {secondPlace && (
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '20px',
+                  border: '2px solid #cbd5e1',
+                  padding: '1.5rem 1rem 1.25rem',
+                  textAlign: 'center',
+                  boxShadow: '0 10px 25px -5px rgba(100, 116, 139, 0.15)',
+                  position: 'relative'
+                }}>
             <div style={{
               position: 'absolute',
               top: '-16px',
@@ -391,8 +392,10 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* HẠNG 1 (GOLD 👑 - Cao nhất) */}
+      {/* HẠNG 1 (GOLD 👑 - Cao nhất) */}
+      <div style={{ gridColumn: 2 }}>
         {firstPlace && (
           <div style={{
             background: 'linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)',
@@ -464,18 +467,20 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* HẠNG 3 (BRONZE 🥉) */}
-        {thirdPlace && (
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '20px',
-            border: '2px solid #fed7aa',
-            padding: '1.5rem 1rem 1.25rem',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px -5px rgba(217, 119, 6, 0.12)',
-            position: 'relative'
-          }}>
+            {/* HẠNG 3 (BRONZE 🥉) */}
+            <div style={{ gridColumn: 3 }}>
+              {thirdPlace && (
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '20px',
+                  border: '2px solid #fed7aa',
+                  padding: '1.5rem 1rem 1.25rem',
+                  textAlign: 'center',
+                  boxShadow: '0 10px 25px -5px rgba(217, 119, 6, 0.12)',
+                  position: 'relative'
+                }}>
             <div style={{
               position: 'absolute',
               top: '-16px',
@@ -532,8 +537,9 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
             }}>
               {thirdPlace.xp.toLocaleString()} <span style={{ fontSize: '0.75rem', color: '#c2410c' }}>XP</span>
             </div>
-          </div>
-        )}
+                </div>
+              )}
+            </div>
       </section>
 
       {/* DANH SÁCH CHI TIẾT CÁC HẠNG TIẾP THEO */}

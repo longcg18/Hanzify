@@ -1,133 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-
-const SAMPLE_EXAM_QUESTIONS = [
-  {
-    id: 'eq-1',
-    section: 'listening',
-    sectionTitle: 'Phần 1: Nghe Hiểu (听力部分)',
-    questionNumber: 1,
-    prompt: 'Lắng nghe câu thoại và chọn nội dung/tình huống đúng nhất.',
-    audioText: '外面下大雨了，你别出去了。',
-    pinyin: 'Wàimiàn xià dàyǔ le, nǐ bié chūqu le.',
-    options: ['Trời đang nắng to', 'Trời đang mưa to', 'Trời có tuyết rơi', 'Trời nhiều gió'],
-    correctAnswer: 'Trời đang mưa to',
-    explanation: 'Từ khóa nghe được: "下大雨" (mưa to), câu nói khuyên đừng ra ngoài vì trời mưa to.'
-  },
-  {
-    id: 'eq-2',
-    section: 'listening',
-    sectionTitle: 'Phần 1: Nghe Hiểu (听力部分)',
-    questionNumber: 2,
-    prompt: 'Lắng nghe cuộc đối thoại ngắn và xác định địa điểm.',
-    audioText: '男：服务员，我想点菜。女：好的先生，请问您想吃什么？',
-    pinyin: 'Nán: Fúwùyuán, wǒ xiǎng diǎncài. Nǚ: Hǎode xiānsheng, qǐngwèn nín xiǎng chī shénme?',
-    options: ['Ở bệnh viện', 'Ở sân bay', 'Ở nhà hàng / Quán ăn', 'Ở rạp chiếu phim'],
-    correctAnswer: 'Ở nhà hàng / Quán ăn',
-    explanation: 'Từ khóa: "服务员" (phục vụ) và "点菜" (gọi món ăn) -> Địa điểm là nhà hàng/quán ăn.'
-  },
-  {
-    id: 'eq-3',
-    section: 'listening',
-    sectionTitle: 'Phần 1: Nghe Hiểu (听力部分)',
-    questionNumber: 3,
-    prompt: 'Lắng nghe thông tin về giờ giấc.',
-    audioText: '现在是差一刻八点，电影八点开始。',
-    pinyin: 'Xiànzài shì chà yí kè bā diǎn, diànyǐng bā diǎn kāishǐ.',
-    options: ['7 giờ 45 phút', '8 giờ 15 phút', '8 giờ đúng', '7 giờ 30 phút'],
-    correctAnswer: '7 giờ 45 phút',
-    explanation: '"差一刻八点" = kém 15 phút 8 giờ = 7:45.'
-  },
-  {
-    id: 'eq-4',
-    section: 'listening',
-    sectionTitle: 'Phần 1: Nghe Hiểu (听力部分)',
-    questionNumber: 4,
-    prompt: 'Lắng nghe sở thích của nhân vật.',
-    audioText: '我最喜欢踢足球，我哥哥喜欢打篮球。',
-    pinyin: 'Wǒ zuì xǐhuan tī zúqiú, wǒ gēge xǐhuan dǎ lánqiú.',
-    options: ['Người nói thích đá bóng', 'Người nói thích bóng rổ', 'Anh trai thích đá bóng', 'Cả hai đều thích bơi'],
-    correctAnswer: 'Người nói thích đá bóng',
-    explanation: '"我最喜欢踢足球" -> Người nói thích nhất là môn bóng đá.'
-  },
-  {
-    id: 'eq-5',
-    section: 'listening',
-    sectionTitle: 'Phần 1: Nghe Hiểu (听力部分)',
-    questionNumber: 5,
-    prompt: 'Lắng nghe phương tiện di chuyển nhanh nhất.',
-    audioText: '去火车站坐出租车要半个小时，坐地铁只要十五分钟。',
-    pinyin: 'Qù huǒchēzhàn zuò chūzūchē yào bàn gè xiǎoshí, zuò dìtiě zhǐ yào shíwǔ fēnzhōng.',
-    options: ['Đi tàu hỏa', 'Đi taxi', 'Đi xe buýt', 'Đi tàu điện ngầm (nhanh nhất)'],
-    correctAnswer: 'Đi tàu điện ngầm (nhanh nhất)',
-    explanation: 'Đi taxi mất 30 phút, đi tàu điện ngầm ("坐地铁") chỉ mất 15 phút.'
-  },
-  {
-    id: 'eq-6',
-    section: 'reading',
-    sectionTitle: 'Phần 2: Đọc Hiểu (阅读部分)',
-    questionNumber: 6,
-    prompt: 'Phán đoán Đúng / Sai dựa vào câu văn sau:',
-    readingText: '医生说我生病了，需要多喝水，多休息，不能去上班。 -> Phán đoán: Người này hôm nay vẫn đi làm bình thường.',
-    pinyin: 'Yīshēng shuō wǒ shēngbìng le...',
-    options: ['对 (Đúng)', '错 (Sai)'],
-    correctAnswer: '错 (Sai)',
-    explanation: 'Câu văn ghi rõ "不能去上班" (không thể đi làm) nên phán đoán đi làm bình thường là Sai.'
-  },
-  {
-    id: 'eq-7',
-    section: 'reading',
-    sectionTitle: 'Phần 2: Đọc Hiểu (阅读部分)',
-    questionNumber: 7,
-    prompt: 'Đọc câu văn và trả lời câu hỏi:',
-    readingText: '桌子上有一本书，两支笔和一个苹果。 -> Hỏi: Trên bàn có mấy cái bút?',
-    pinyin: 'Zhuōzi shang yǒu yì běn shū, liǎng zhī bǐ...',
-    options: ['一支 (1 cái)', '两支 (2 cái)', '三支 (3 cái)'],
-    correctAnswer: '两支 (2 cái)',
-    explanation: 'Lượng từ cho bút là "支" (zhī), câu ghi rõ "两支笔" = 2 cây bút.'
-  },
-  {
-    id: 'eq-8',
-    section: 'reading',
-    sectionTitle: 'Phần 2: Đọc Hiểu (阅读部分)',
-    questionNumber: 8,
-    prompt: 'Đọc lịch trình và chọn thời gian đúng:',
-    readingText: '小张每天早上六点起床跑步，然后七点吃早饭，八点去公司。 -> Hỏi: Tiểu Trương mấy giờ ăn sáng?',
-    pinyin: 'Xiǎo Zhāng měitiān zǎoshang liù diǎn...',
-    options: ['6:00', '7:00', '8:00', '8:30'],
-    correctAnswer: '7:00',
-    explanation: 'Nội dung: "七点吃早饭" (7 giờ ăn sáng).'
-  },
-  {
-    id: 'eq-9',
-    section: 'reading',
-    sectionTitle: 'Phần 2: Đọc Hiểu (阅读部分)',
-    questionNumber: 9,
-    prompt: 'Chọn từ thích hợp nhất điền vào chỗ trống:',
-    readingText: '教室里很安静，大家都在认真地____书。',
-    pinyin: 'Jiàoshì lǐ hěn ānjìng, dàjiā dōu zài rènlǐn de ____ shū.',
-    options: ['看 (Đọc / Xem)', '喝 (Uống)', '跑 (Chạy)', '买 (Mua)'],
-    correctAnswer: '看 (Đọc / Xem)',
-    explanation: 'Cụm từ cố định trong tiếng Trung: 看书 (kàn shū) = Đọc sách.'
-  },
-  {
-    id: 'eq-10',
-    section: 'reading',
-    sectionTitle: 'Phần 2: Đọc Hiểu (阅读部分)',
-    questionNumber: 10,
-    prompt: 'Chọn trật tự ngữ pháp chính xác cho các từ sau: (1) 汉语 / (2) 我 / (3) 学 / (4) 正在',
-    readingText: 'Sắp xếp trật tự từ: (1) 汉语 (2) 我 (3) 学 (4) 正在',
-    pinyin: null,
-    options: [
-      '(2)-(4)-(3)-(1): 我正在学汉语。',
-      '(4)-(2)-(3)-(1): 正在我学汉语。',
-      '(1)-(2)-(3)-(4): 汉语我学正在。'
-    ],
-    correctAnswer: '(2)-(4)-(3)-(1): 我正在学汉语。',
-    explanation: 'Ngữ pháp câu tiến hành: Chủ ngữ (我) + 正在 + Động từ (学) + Tân ngữ (汉语).'
-  }
-];
-
 import { flattenExamQuestions } from '../data/examsData';
 
 export const ExamRoomView = ({ exam, onExit }) => {
@@ -136,7 +8,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
       const flattened = flattenExamQuestions(exam);
       if (flattened.length > 0) return flattened;
     }
-    return SAMPLE_EXAM_QUESTIONS;
+    return [];
   }, [exam]);
 
   // Group questions by skill for the matrix sidebar
@@ -278,6 +150,44 @@ export const ExamRoomView = ({ exam, onExit }) => {
       });
     }
   };
+
+  if (!questions || questions.length === 0) {
+    return (
+      <div style={{
+        minHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📋</div>
+        <h3 style={{ fontSize: '1.35rem', color: '#1e293b', marginBottom: '0.5rem', fontWeight: 700 }}>
+          Đề thi chưa có câu hỏi
+        </h3>
+        <p style={{ color: '#64748b', marginBottom: '1.5rem', maxWidth: '420px', fontSize: '0.9rem' }}>
+          Đề thi này hiện chưa được giáo viên nhập câu hỏi trên hệ thống. Vui lòng quay lại sau!
+        </p>
+        <button
+          onClick={onExit}
+          style={{
+            padding: '0.65rem 1.5rem',
+            background: '#A11D24',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
+          }}
+        >
+          <i className="fa-solid fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
+          Quay lại danh sách đề thi
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="er-wrapper">
