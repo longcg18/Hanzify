@@ -324,6 +324,86 @@ body {
   box-shadow: 0 6px 14px rgba(185, 28, 28, 0.35);
 }
 
+.feature-page-header {
+  position: relative;
+  overflow: hidden;
+  padding: 1.75rem 2rem;
+  background: linear-gradient(145deg, #ffffff 0%, #fff7f7 100%);
+  border: 1px solid rgba(185, 28, 28, 0.16);
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(127, 29, 29, 0.07);
+}
+
+.feature-page-header::after {
+  content: '学';
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(161, 29, 36, 0.045);
+  font-family: var(--font-hanzi);
+  font-size: 7rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.feature-page-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 680px) {
+  .feature-page-header {
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+
+  .feature-page-header .header-title {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 0.25rem !important;
+  }
+}
+
+/* Collapse navigation labels before the header runs out of horizontal space. */
+@media (max-width: 1280px) {
+  .top-nav {
+    gap: 12px;
+  }
+
+  .primary-nav {
+    flex: 0 1 auto !important;
+  }
+
+  .primary-nav-button {
+    width: 42px;
+    min-width: 42px;
+    height: 38px;
+    padding: 0 !important;
+    justify-content: center;
+    gap: 0 !important;
+  }
+
+  .primary-nav-label {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .badge-tag,
+  .user-info-text,
+  .btn-login-trigger span {
+    display: none;
+  }
+
+  .btn-login-trigger {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
 /* ==========================================================================
    Welcome & Motivation Banner
    ========================================================================== */

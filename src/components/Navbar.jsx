@@ -23,10 +23,13 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
       </div>
 
       {/* Center Navigation Tabs: Trang Chủ - Khóa Học - Luyện Tập - Thi Thử HSK - Giải Trí */}
-      <nav style={{ display: 'flex', gap: '0.4rem', background: '#f8fafc', padding: '0.35rem', borderRadius: '14px', border: '1px solid #fee2e2', flexShrink: 0 }}>
+      <nav className="primary-nav" style={{ display: 'flex', gap: '0.4rem', background: '#f8fafc', padding: '0.35rem', borderRadius: '14px', border: '1px solid #fee2e2', flexShrink: 0 }}>
         {/* 1. Trang Chủ */}
         <button
           type="button"
+          className="primary-nav-button"
+          aria-label="Trang Chủ"
+          title="Trang Chủ"
           onClick={() => onNavigate('home')}
           style={{
             padding: '0.5rem 0.95rem',
@@ -45,12 +48,15 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           }}
         >
           <i className="fa-solid fa-house"></i>
-          Trang Chủ
+          <span className="primary-nav-label">Trang Chủ</span>
         </button>
 
         {/* 2. Khóa Học */}
         <button
           type="button"
+          className="primary-nav-button"
+          aria-label="Khóa Học"
+          title="Khóa Học"
           onClick={() => onNavigate('courses')}
           style={{
             padding: '0.5rem 0.95rem',
@@ -69,12 +75,15 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           }}
         >
           <i className="fa-solid fa-book-bookmark"></i>
-          Khóa Học
+          <span className="primary-nav-label">Khóa Học</span>
         </button>
 
         {/* 2. Luyện Tập */}
         <button
           type="button"
+          className="primary-nav-button"
+          aria-label="Luyện Tập"
+          title="Luyện Tập"
           onClick={() => onNavigate('practice')}
           style={{
             padding: '0.5rem 0.95rem',
@@ -93,12 +102,15 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           }}
         >
           <i className="fa-solid fa-dumbbell"></i>
-          Luyện Tập
+          <span className="primary-nav-label">Luyện Tập</span>
         </button>
 
         {/* 3. Thi Thử HSK */}
         <button
           type="button"
+          className="primary-nav-button"
+          aria-label="Thi Thử HSK"
+          title="Thi Thử HSK"
           onClick={() => onNavigate('exam')}
           style={{
             padding: '0.5rem 0.95rem',
@@ -117,12 +129,15 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           }}
         >
           <i className="fa-solid fa-flag-checkered"></i>
-          Thi Thử HSK
+          <span className="primary-nav-label">Thi Thử HSK</span>
         </button>
 
         {/* 5. Giải Trí */}
         <button
           type="button"
+          className="primary-nav-button"
+          aria-label="Giải Trí"
+          title="Giải Trí"
           onClick={() => onNavigate('entertainment')}
           style={{
             padding: '0.5rem 0.95rem',
@@ -141,13 +156,16 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           }}
         >
           <i className="fa-solid fa-gamepad"></i>
-          Giải Trí
+          <span className="primary-nav-label">Giải Trí</span>
         </button>
 
         {/* 7. Teacher Only Grading Tab (Chỉ dành riêng cho Cô Giáo) */}
         {user?.role === 'teacher' && (
           <button
             type="button"
+            className="primary-nav-button"
+            aria-label="Chấm Bài"
+            title="Chấm Bài"
             onClick={() => onNavigate('grading')}
             style={{
               padding: '0.5rem 0.95rem',
@@ -166,7 +184,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
             }}
           >
             <i className="fa-solid fa-stamp"></i>
-            Chấm Bài
+            <span className="primary-nav-label">Chấm Bài</span>
           </button>
         )}
 
@@ -174,6 +192,9 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         {user?.role === 'admin' && (
           <button
             type="button"
+            className="primary-nav-button"
+            aria-label="Quản Trị"
+            title="Quản Trị"
             onClick={() => onNavigate('admin-users')}
             style={{
               padding: '0.5rem 0.95rem',
@@ -192,7 +213,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
             }}
           >
             <i className="fa-solid fa-users-gear"></i>
-            Quản Trị
+            <span className="primary-nav-label">Quản Trị</span>
           </button>
         )}
       </nav>

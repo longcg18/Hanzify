@@ -117,7 +117,7 @@ const RequireLoginCard = ({ title, subtitle, onLogin, onBack }) => (
 );
 
 const GuestPreviewNotice = ({ children, onLogin }) => (
-  <div style={{ maxWidth: '1180px', margin: '1rem auto 0', padding: '0 1rem' }}>
+  <div style={{ maxWidth: '1180px', margin: '1rem auto', padding: '0 1rem' }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', padding: '0.85rem 1rem', borderRadius: '14px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412' }}>
       <span style={{ fontSize: '0.86rem', fontWeight: 650 }}>
         <i className="fa-solid fa-eye" style={{ marginRight: '0.5rem' }}></i>

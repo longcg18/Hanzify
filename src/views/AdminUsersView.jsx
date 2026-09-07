@@ -8,13 +8,17 @@ import {
   fetchToneItems,
   addToneItem,
   deleteToneItem,
-  fetchLeaderboard
+  fetchLeaderboard,
+  fetchPasswordResetRequests,
+  resolvePasswordResetRequest
 } from '../services/supabaseService';
 import { checkSupabaseConnection } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 
 
 export const AdminUsersView = () => {
+  const { user } = useAuth();
   // Main admin sub-tab: 'users' | 'entertainment'
   const [adminSection, setAdminSection] = useState('users');
 
@@ -30,6 +34,12 @@ export const AdminUsersView = () => {
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('student');
   const [newPhone, setNewPhone] = useState('');
+  const [resetRequests, setResetRequests] = useState([]);
+  const [selectedResetRequest, setSelectedResetRequest] = useState(null);
+  const [newResetPassword, setNewResetPassword] = useState('');
+  const [confirmResetPassword, setConfirmResetPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetBusy, setResetBusy] = useState(false);
 
   // ==================== ENTERTAINMENT MANAGEMENT STATE ====================
   const [gameSubTab, setGameSubTab] = useState('match'); // 'match' | 'tone' | 'leaderboard'
@@ -56,17 +66,19 @@ export const AdminUsersView = () => {
         const conn = await checkSupabaseConnection();
         setDbStatus({ connected: conn.connected, loading: false });
 
-        const [usersRes, pairsRes, toneRes, lbRes] = await Promise.all([
+        const [usersRes, pairsRes, toneRes, lbRes, resetRes] = await Promise.all([
           fetchUsers(),
           fetchMatchPairs(),
           fetchToneItems(),
-          fetchLeaderboard()
+          fetchLeaderboard(),
+          fetchPasswordResetRequests()
         ]);
 
         setUsers(usersRes?.data || []);
         setMatchPairs(pairsRes?.data || []);
         setToneItems(toneRes?.data || []);
         setLeaderboard(lbRes?.data || []);
+        setResetRequests(resetRes?.data || []);
       } catch (err) {
         console.error('Error loading Supabase data:', err);
         setDbStatus({ connected: false, loading: false });
@@ -98,6 +110,43 @@ export const AdminUsersView = () => {
     setNewEmail('');
     setNewPhone('');
     alert(`🎉 Đã thêm tài khoản [${created.name}] với vai trò [${created.role.toUpperCase()}] vào Supabase thành công!`);
+  };
+
+  const handleResolvePasswordReset = async (e) => {
+    e.preventDefault();
+    setResetMessage('');
+    if (newResetPassword.length < 6) {
+      setResetMessage('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
+    if (newResetPassword !== confirmResetPassword) {
+      setResetMessage('Hai mật khẩu chưa trùng khớp.');
+      return;
+    }
+
+    setResetBusy(true);
+    const result = await resolvePasswordResetRequest({
+      requestId: selectedResetRequest.id,
+      userId: selectedResetRequest.user_id,
+      newPassword: newResetPassword,
+      adminId: user?.id
+    });
+    setResetBusy(false);
+
+    if (!result.success) {
+      setResetMessage(result.message);
+      return;
+    }
+
+    setResetRequests((current) => current.map((request) => (
+      request.id === selectedResetRequest.id
+        ? { ...request, status: 'resolved', resolved_at: new Date().toISOString() }
+        : request
+    )));
+    setSelectedResetRequest(null);
+    setNewResetPassword('');
+    setConfirmResetPassword('');
+    setResetMessage('Đã đặt lại mật khẩu và hoàn tất yêu cầu.');
   };
 
   // Add Match Pair Handler (With Supabase Sync)
@@ -330,6 +379,66 @@ export const AdminUsersView = () => {
               <i className="fa-solid fa-user-plus"></i>
               Thêm Tài Khoản Mới
             </button>
+          </div>
+
+          {/* Password reset requests */}
+          <div style={{ background: '#fff', border: '1px solid #fed7aa', borderRadius: '18px', padding: '1.15rem', marginBottom: '1.25rem', boxShadow: '0 6px 24px rgba(154, 52, 18, 0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+              <div>
+                <div style={{ color: '#9a3412', fontWeight: 800 }}>
+                  <i className="fa-solid fa-key" style={{ marginRight: '0.45rem' }}></i>
+                  Yêu cầu đặt lại mật khẩu
+                </div>
+                <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                  {resetRequests.filter((request) => request.status === 'pending').length} yêu cầu đang chờ xử lý
+                </div>
+              </div>
+              {resetMessage && (
+                <span style={{ color: resetMessage.startsWith('Đã ') ? '#15803d' : '#dc2626', fontSize: '0.82rem', fontWeight: 700 }}>
+                  {resetMessage}
+                </span>
+              )}
+            </div>
+
+            {resetRequests.filter((request) => request.status === 'pending').length === 0 ? (
+              <div style={{ color: '#94a3b8', fontSize: '0.86rem', padding: '0.65rem 0' }}>Hiện chưa có yêu cầu mới.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: '0.65rem' }}>
+                {resetRequests.filter((request) => request.status === 'pending').map((request) => (
+                  <div key={request.id} style={{ padding: '0.8rem', borderRadius: '12px', background: '#fff7ed', border: '1px solid #ffedd5' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div>
+                        <strong style={{ color: '#0f172a' }}>{request.user_name || request.identifier}</strong>
+                        <div style={{ color: '#64748b', fontSize: '0.78rem', marginTop: '0.15rem' }}>
+                          Tài khoản: {request.identifier} · {new Date(request.requested_at).toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedResetRequest(selectedResetRequest?.id === request.id ? null : request);
+                          setNewResetPassword('');
+                          setConfirmResetPassword('');
+                          setResetMessage('');
+                        }}
+                        style={{ border: 'none', borderRadius: '10px', padding: '0.55rem 0.85rem', background: '#b91c1c', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Đặt lại mật khẩu
+                      </button>
+                    </div>
+                    {selectedResetRequest?.id === request.id && (
+                      <form onSubmit={handleResolvePasswordReset} style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #fed7aa' }}>
+                        <input type="password" required minLength={6} value={newResetPassword} onChange={(e) => setNewResetPassword(e.target.value)} placeholder="Mật khẩu mới" style={{ flex: '1 1 180px', minWidth: 0, padding: '0.6rem 0.7rem', border: '1px solid #fdba74', borderRadius: '9px' }} />
+                        <input type="password" required minLength={6} value={confirmResetPassword} onChange={(e) => setConfirmResetPassword(e.target.value)} placeholder="Nhập lại mật khẩu" style={{ flex: '1 1 180px', minWidth: 0, padding: '0.6rem 0.7rem', border: '1px solid #fdba74', borderRadius: '9px' }} />
+                        <button type="submit" disabled={resetBusy} style={{ border: 'none', borderRadius: '9px', padding: '0.6rem 0.85rem', background: '#15803d', color: '#fff', fontWeight: 700, cursor: resetBusy ? 'wait' : 'pointer' }}>
+                          {resetBusy ? 'Đang lưu...' : 'Xác nhận'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Users Table */}

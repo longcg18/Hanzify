@@ -82,7 +82,7 @@ export const PracticeView = () => {
   return (
     <main className="main-content">
       {/* Header Banner */}
-      <section className="courses-header" style={{
+      <section className="courses-header feature-page-header" style={{
         marginBottom: '2rem',
         background: user?.role === 'admin' ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : undefined,
         padding: user?.role === 'admin' ? '1.75rem 2rem' : undefined,

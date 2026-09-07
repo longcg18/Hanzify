@@ -416,7 +416,7 @@ export const EntertainmentView = () => {
   return (
     <main className="main-content">
       {/* Header Banner */}
-      <section className="courses-header" style={{ marginBottom: '2rem' }}>
+      <section className="courses-header feature-page-header" style={{ marginBottom: '2rem' }}>
         <div className="header-meta" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
           <span className="meta-badge" style={{ background: 'rgba(161, 29, 36, 0.1)', color: '#A11D24', whiteSpace: 'nowrap' }}>
             🎮 Khu Vui Học & Edutainment Lab

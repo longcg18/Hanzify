@@ -263,17 +263,19 @@ export const CoursesView = ({
                 <span className="stat-num">
                   {courses.length < 10 ? `0${courses.length}` : courses.length}
                 </span>
-                <span className="stat-label">Khóa Đang Học</span>
+                <span className="stat-label">{user ? 'Khóa Đang Học' : 'Khóa Đang Mở'}</span>
               </div>
               <div className="stat-card">
                 <span className="stat-num">
-                  {studentCompletedLessons < 10 ? `0${studentCompletedLessons}` : studentCompletedLessons}
+                  {user
+                    ? (studentCompletedLessons < 10 ? `0${studentCompletedLessons}` : studentCompletedLessons)
+                    : (totalLessons < 10 ? `0${totalLessons}` : totalLessons)}
                 </span>
-                <span className="stat-label">Bài Đã Hoàn Thành</span>
+                <span className="stat-label">{user ? 'Bài Đã Hoàn Thành' : 'Bài Học Có Sẵn'}</span>
               </div>
               <div className="stat-card highlight">
-                <span className="stat-num">{allScores.length > 0 ? avgScore : '--'}</span>
-                <span className="stat-label">Điểm Trung Bình</span>
+                <span className="stat-num">{user ? (allScores.length > 0 ? avgScore : '--') : 'HSK'}</span>
+                <span className="stat-label">{user ? 'Điểm Trung Bình' : 'Lộ Trình Chuẩn'}</span>
               </div>
             </>
           )}
@@ -284,12 +286,18 @@ export const CoursesView = ({
       <div className="section-title-row">
         <div>
           <h2 className="section-title">
-            {isTeacherOrAdmin ? 'Quản Lý Danh Sách Khóa Học' : 'Danh Sách Khóa Học Của Bạn'}
+            {isTeacherOrAdmin
+              ? 'Quản Lý Danh Sách Khóa Học'
+              : user
+              ? 'Danh Sách Khóa Học Của Bạn'
+              : 'Danh Sách Khóa Học Đang Mở'}
           </h2>
           <p className="section-desc">
             {isTeacherOrAdmin
               ? 'Bấm vào từng khóa học để quản lý lộ trình bài giảng, thêm bài học mới hoặc kiểm tra đề bài'
-              : 'Chọn khóa học để xem lộ trình bài học và làm bài tập nộp cho cô giáo'}
+              : user
+              ? 'Chọn khóa học để xem lộ trình bài học và làm bài tập nộp cho cô giáo'
+              : 'Xem trước nội dung và lộ trình; đăng nhập để vào học và lưu tiến độ'}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -472,19 +480,21 @@ export const CoursesView = ({
                 <div className="course-progress-wrap">
                   <div className="progress-info-row">
                     <span className="progress-text">
-                      {isTeacherOrAdmin ? 'Quy mô học viên lớp:' : 'Tiến độ bài tập:'}
+                      {isTeacherOrAdmin ? 'Quy mô học viên lớp:' : user ? 'Tiến độ bài tập:' : 'Nội dung khóa học:'}
                     </span>
                     <span className="progress-num">
                       {isTeacherOrAdmin ? (
                         <strong>{courseStudentsCount} Học Viên</strong>
-                      ) : (
+                      ) : user ? (
                         <>
                           <strong>{completedL}</strong> / {totalL} bài ({percent}%)
                         </>
+                      ) : (
+                        <strong>{totalL} bài học</strong>
                       )}
                     </span>
                   </div>
-                  <div className="course-progress-bar">
+                  {user && <div className="course-progress-bar">
                     <div 
                       className="course-progress-fill" 
                       style={{
@@ -494,7 +504,7 @@ export const CoursesView = ({
                         background: isTeacherOrAdmin ? 'linear-gradient(90deg, #1e293b 0%, #A11D24 100%)' : undefined
                       }}
                     ></div>
-                  </div>
+                  </div>}
                 </div>
 
                 {/* Footer Action */}

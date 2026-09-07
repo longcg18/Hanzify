@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { requestPasswordReset } from '../services/supabaseService';
 
 export const AuthModal = () => {
   const {
@@ -14,6 +15,10 @@ export const AuthModal = () => {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetIdentifier, setResetIdentifier] = useState('');
+  const [resetStatus, setResetStatus] = useState({ type: '', message: '' });
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   if (!isAuthModalOpen) return null;
 
@@ -38,6 +43,24 @@ export const AuthModal = () => {
   const handleOpenJoinClass = () => {
     setIsAuthModalOpen(false);
     setIsJoinClassModalOpen(true);
+  };
+
+  const handlePasswordResetRequest = async (e) => {
+    e.preventDefault();
+    setResetStatus({ type: '', message: '' });
+    setIsSendingReset(true);
+    const result = await requestPasswordReset(resetIdentifier);
+    setIsSendingReset(false);
+
+    if (result.success) {
+      setResetStatus({
+        type: 'success',
+        message: 'Đã gửi yêu cầu. Admin sẽ liên hệ và đặt lại mật khẩu cho bạn.'
+      });
+      setResetIdentifier('');
+    } else {
+      setResetStatus({ type: 'error', message: result.message });
+    }
   };
 
   return (
@@ -258,12 +281,46 @@ export const AuthModal = () => {
 
         <div className="auth-toggle-tab" style={{ marginTop: '1.25rem' }}>
           <p>
-            Chưa có tài khoản?{' '}
-            <button type="button" onClick={handleOpenJoinClass} style={{ color: '#b91c1c', fontWeight: 700 }}>
-              Tham gia bằng mã lớp học
+            Quên mật khẩu?{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotPassword(!showForgotPassword);
+                setResetIdentifier(usernameOrEmail);
+                setResetStatus({ type: '', message: '' });
+              }}
+              style={{ color: '#b91c1c', fontWeight: 700 }}
+            >
+              Nhấn vào đây
             </button>
           </p>
         </div>
+
+        {showForgotPassword && (
+          <form onSubmit={handlePasswordResetRequest} style={{ marginTop: '0.9rem', padding: '1rem', borderRadius: '14px', background: '#fff7ed', border: '1px solid #fed7aa' }}>
+            <div style={{ color: '#9a3412', fontSize: '0.84rem', fontWeight: 700, marginBottom: '0.65rem' }}>
+              Gửi yêu cầu để admin đặt lại mật khẩu
+            </div>
+            <div style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                required
+                value={resetIdentifier}
+                onChange={(e) => setResetIdentifier(e.target.value)}
+                placeholder="Tên đăng nhập hoặc email"
+                style={{ flex: '1 1 220px', minWidth: 0, padding: '0.7rem 0.8rem', border: '1px solid #fdba74', borderRadius: '10px', fontSize: '0.86rem' }}
+              />
+              <button type="submit" disabled={isSendingReset} style={{ border: 'none', borderRadius: '10px', padding: '0.7rem 1rem', background: '#b91c1c', color: '#fff', fontWeight: 700, cursor: isSendingReset ? 'wait' : 'pointer' }}>
+                {isSendingReset ? 'Đang gửi...' : 'Gửi yêu cầu'}
+              </button>
+            </div>
+            {resetStatus.message && (
+              <div style={{ marginTop: '0.65rem', fontSize: '0.8rem', color: resetStatus.type === 'success' ? '#15803d' : '#dc2626' }}>
+                {resetStatus.message}
+              </div>
+            )}
+          </form>
+        )}
       </div>
     </div>
   );

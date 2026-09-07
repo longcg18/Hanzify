@@ -170,6 +170,94 @@ export async function createSupabaseUser(newUser) {
   return { success: false };
 }
 
+export async function requestPasswordReset(usernameOrEmail) {
+  const clean = (usernameOrEmail || '').trim();
+  if (!clean) return { success: false, message: 'Vui lòng nhập tên đăng nhập hoặc email.' };
+
+  try {
+    const escaped = clean.replace(/[,%]/g, (character) => `\\${character}`);
+    const { data: account, error: lookupError } = await supabase
+      .from('users')
+      .select('id, username, email, full_name')
+      .or(`email.ilike.${escaped},username.ilike.${escaped}`)
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    // Do not reveal whether an account exists. This prevents account enumeration.
+    if (!account) return { success: true };
+
+    const { data: existing, error: existingError } = await supabase
+      .from('password_reset_requests')
+      .select('id')
+      .eq('user_id', account.id)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (!existing) {
+      const { error: insertError } = await supabase.from('password_reset_requests').insert({
+        id: `reset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        user_id: account.id,
+        identifier: clean,
+        user_name: account.full_name || account.username,
+        status: 'pending'
+      });
+      if (insertError) throw insertError;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    return { success: false, message: 'Chưa thể gửi yêu cầu. Vui lòng thử lại sau.' };
+  }
+}
+
+export async function fetchPasswordResetRequests() {
+  try {
+    const { data, error } = await supabase
+      .from('password_reset_requests')
+      .select('*')
+      .order('requested_at', { ascending: false });
+    if (error) throw error;
+    return { data: data || [], isLiveDb: true };
+  } catch (error) {
+    console.error('Fetch password reset requests error:', error);
+    return { data: [], isLiveDb: false };
+  }
+}
+
+export async function resolvePasswordResetRequest({ requestId, userId, newPassword, adminId }) {
+  const cleanPassword = (newPassword || '').trim();
+  if (cleanPassword.length < 6) {
+    return { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' };
+  }
+
+  try {
+    const { error: userError } = await supabase
+      .from('users')
+      .update({ password: cleanPassword })
+      .eq('id', userId);
+    if (userError) throw userError;
+
+    const { error: requestError } = await supabase
+      .from('password_reset_requests')
+      .update({
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+        resolved_by: adminId || null
+      })
+      .eq('id', requestId)
+      .eq('status', 'pending');
+    if (requestError) throw requestError;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Resolve password reset request error:', error);
+    return { success: false, message: 'Không thể đặt lại mật khẩu. Vui lòng thử lại.' };
+  }
+}
+
 // ==========================================
 // 2. COURSES & LESSONS (Supabase Direct)
 // ==========================================
