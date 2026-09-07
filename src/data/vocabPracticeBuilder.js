@@ -46,7 +46,7 @@ function getDistractors(pool, target, key, count = 3) {
 /**
  * Tạo một câu hỏi trắc nghiệm xáo trộn 4 phương án
  */
-function makeQuestion({ prompt, audio = null, pinyin = null, correctVal, distractorVals, explain }) {
+function makeQuestion({ prompt, audio = null, pinyin = null, correctVal, distractorVals, explain, targetWord = null }) {
   // Lọc distractor trùng với correctVal
   const validDistractors = distractorVals.filter((d) => d && d !== correctVal).slice(0, 3);
   const opts = [correctVal, ...validDistractors];
@@ -66,7 +66,8 @@ function makeQuestion({ prompt, audio = null, pinyin = null, correctVal, distrac
     pinyin,
     options: shuffled,
     correct: correctIdx >= 0 ? correctIdx : 0,
-    explain
+    explain,
+    targetWord
   };
 }
 
@@ -96,7 +97,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
             prompt: `Từ chữ Hán "${w.hanzi}" (${w.pinyin}) có ý nghĩa là gì?`,
             correctVal: w.mean,
             distractorVals: distractors,
-            explain: `"${w.hanzi}" [${w.pinyin}]${w.sino ? ` (Hán-Việt: ${w.sino})` : ''} nghĩa là "${w.mean}".${w.exampleHanzi ? ` Ví dụ: ${w.exampleHanzi} (${w.exampleMean})` : ''}`
+            explain: `"${w.hanzi}" [${w.pinyin}]${w.sino ? ` (Hán-Việt: ${w.sino})` : ''} nghĩa là "${w.mean}".${w.exampleHanzi ? ` Ví dụ: ${w.exampleHanzi} (${w.exampleMean})` : ''}`,
+            targetWord: w.hanzi
           })
         );
       }
@@ -110,7 +112,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
               prompt: `Chọn chữ Hán điền vào chỗ trống: "${w.exampleHanzi.replace(w.hanzi, '_____')}" (${w.exampleMean})`,
               correctVal: w.hanzi,
               distractorVals: hanziDistractors,
-              explain: `Chữ Hán cần điền là "${w.hanzi}" (${w.pinyin}: ${w.mean}). Câu hoàn chỉnh: "${w.exampleHanzi}".`
+              explain: `Chữ Hán cần điền là "${w.hanzi}" (${w.pinyin}: ${w.mean}). Câu hoàn chỉnh: "${w.exampleHanzi}".`,
+              targetWord: w.hanzi
             })
           );
         }
@@ -118,6 +121,7 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
     });
 
     if (hanziQuestions.length > 0) {
+      const shuffledHanzi = [...hanziQuestions].sort(() => 0.5 - Math.random());
       topics.push({
         id: `vocab-${lvlTag}-hanzi`,
         skill: 'hanzi',
@@ -125,8 +129,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
         level: lvl,
         title: `Chữ Hán & Từ Vựng ${lvl}: Nhận Diện & Nghĩa Từ`,
         desc: `Luyện nhận diện chữ Hán, nghĩa tiếng Việt và cách dùng của kho ${lvlWords.length} từ vựng chuẩn ${lvl}.`,
-        questionsCount: hanziQuestions.length,
-        questions: hanziQuestions
+        questionsCount: shuffledHanzi.length,
+        questions: shuffledHanzi
       });
     }
 
@@ -143,7 +147,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
             prompt: `Phiên âm Pinyin chính xác của "${w.hanzi}" (${w.mean}) là gì?`,
             correctVal: w.pinyin,
             distractorVals: pinyinDistractors,
-            explain: `Chữ Hán "${w.hanzi}" có phiên âm chuẩn là "${w.pinyin}". Nghĩa: ${w.mean}.`
+            explain: `Chữ Hán "${w.hanzi}" có phiên âm chuẩn là "${w.pinyin}". Nghĩa: ${w.mean}.`,
+            targetWord: w.hanzi
           })
         );
       }
@@ -157,13 +162,15 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
             prompt: `Chữ Hán "${w.hanzi}" (${w.pinyin}) mang thanh điệu nào?`,
             correctVal: toneCorrect,
             distractorVals: toneDistractors,
-            explain: `Chữ "${w.hanzi}" đọc là "${w.pinyin}", mang thanh ${w.tone}: ${toneCorrect}.`
+            explain: `Chữ "${w.hanzi}" đọc là "${w.pinyin}", mang thanh ${w.tone}: ${toneCorrect}.`,
+            targetWord: w.hanzi
           })
         );
       }
     });
 
     if (pinyinQuestions.length > 0) {
+      const shuffledPinyin = [...pinyinQuestions].sort(() => 0.5 - Math.random());
       topics.push({
         id: `vocab-${lvlTag}-pinyin`,
         skill: 'pinyin',
@@ -171,8 +178,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
         level: lvl,
         title: `Pinyin & Thanh Điệu ${lvl}: Chuẩn Hóa Phát Âm`,
         desc: `Rèn luyện đọc chuẩn phiên âm Pinyin và phân biệt 4 thanh điệu của từ vựng cấp độ ${lvl}.`,
-        questionsCount: pinyinQuestions.length,
-        questions: pinyinQuestions
+        questionsCount: shuffledPinyin.length,
+        questions: shuffledPinyin
       });
     }
 
@@ -195,13 +202,15 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
             pinyin: w.pinyin,
             correctVal: sentenceMean,
             distractorVals: distractors,
-            explain: `Câu thoại: "${sentence}" [${w.pinyin}] — Nghĩa: ${sentenceMean}. Từ khóa cốt lõi: "${w.hanzi}" (${w.mean}).`
+            explain: `Câu thoại: "${sentence}" [${w.pinyin}] — Nghĩa: ${sentenceMean}. Từ khóa cốt lõi: "${w.hanzi}" (${w.mean}).`,
+            targetWord: w.hanzi
           })
         );
       }
     });
 
     if (listeningQuestions.length > 0) {
+      const shuffledListening = [...listeningQuestions].sort(() => 0.5 - Math.random());
       topics.push({
         id: `vocab-${lvlTag}-listening`,
         skill: 'listening',
@@ -209,8 +218,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
         level: lvl,
         title: `Luyện Nghe Câu Ví Dụ & Từ Vựng ${lvl}`,
         desc: `Lắng nghe câu thoại phát âm giọng chuẩn, nhận diện từ vựng và nắm bắt ngữ nghĩa giao tiếp ${lvl}.`,
-        questionsCount: listeningQuestions.length,
-        questions: listeningQuestions
+        questionsCount: shuffledListening.length,
+        questions: shuffledListening
       });
     }
 
@@ -227,7 +236,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
               prompt: `Đọc câu: "${w.exampleHanzi}". Hãy cho biết từ "${w.hanzi}" trong câu mang nghĩa là gì?`,
               correctVal: w.mean,
               distractorVals: distractors,
-              explain: `Trong câu "${w.exampleHanzi}" (${w.exampleMean}), từ "${w.hanzi}" giữ vai trò ${w.wordType} mang nghĩa là "${w.mean}".`
+              explain: `Trong câu "${w.exampleHanzi}" (${w.exampleMean}), từ "${w.hanzi}" giữ vai trò ${w.wordType} mang nghĩa là "${w.mean}".`,
+              targetWord: w.hanzi
             })
           );
         }
@@ -235,6 +245,7 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
     });
 
     if (readingQuestions.length > 0) {
+      const shuffledReading = [...readingQuestions].sort(() => 0.5 - Math.random());
       topics.push({
         id: `vocab-${lvlTag}-reading`,
         skill: 'reading',
@@ -242,8 +253,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
         level: lvl,
         title: `Đọc Hiểu Câu Mẫu & Ngữ Cảnh ${lvl}`,
         desc: `Đọc câu thực tế, phân tích ngữ nghĩa của từ vựng ${lvl} khi đặt trong ngữ cảnh văn bản hoàn chỉnh.`,
-        questionsCount: readingQuestions.length,
-        questions: readingQuestions
+        questionsCount: shuffledReading.length,
+        questions: shuffledReading
       });
     }
 
@@ -253,7 +264,6 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
     const grammarQuestions = [];
     lvlWords.forEach((w) => {
       if (w.exampleHanzi) {
-        const distractors = getDistractors(lvlWords, w, 'wordType', 3);
         const typeOptions = ['Danh từ', 'Động từ', 'Tính từ', 'Phó từ', 'Lượng từ', 'Giới từ', 'Đại từ'];
         const validDistractors = typeOptions.filter((t) => t !== w.wordType).slice(0, 3);
 
@@ -262,13 +272,15 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
             prompt: `Trong câu "${w.exampleHanzi}", từ "${w.hanzi}" (${w.pinyin}: ${w.mean}) thuộc từ loại nào?`,
             correctVal: w.wordType,
             distractorVals: validDistractors,
-            explain: `"${w.hanzi}" là ${w.wordType}. Câu ví dụ hoàn chỉnh: "${w.exampleHanzi}" (${w.exampleMean}).`
+            explain: `"${w.hanzi}" là ${w.wordType}. Câu ví dụ hoàn chỉnh: "${w.exampleHanzi}" (${w.exampleMean}).`,
+            targetWord: w.hanzi
           })
         );
       }
     });
 
     if (grammarQuestions.length > 0) {
+      const shuffledGrammar = [...grammarQuestions].sort(() => 0.5 - Math.random());
       topics.push({
         id: `vocab-${lvlTag}-grammar`,
         skill: 'grammar',
@@ -276,8 +288,8 @@ export function buildVocabPracticeTopics(rawList = HSK_VOCABULARY_LIST) {
         level: lvl,
         title: `Ngữ Pháp & Từ Loại Trong Câu ${lvl}`,
         desc: `Nắm vững đặc điểm từ loại, vị trí cú pháp và cấu trúc ngữ pháp thông dụng của từ vựng ${lvl}.`,
-        questionsCount: grammarQuestions.length,
-        questions: grammarQuestions
+        questionsCount: shuffledGrammar.length,
+        questions: shuffledGrammar
       });
     }
   });
