@@ -22,7 +22,7 @@ export const CoursesView = ({
   onOpenStreakModal,
   onNavigate
 }) => {
-  const { user, setIsAuthModalOpen } = useAuth();
+  const { user } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
 
   // Modal State for Create / Edit Course
@@ -184,17 +184,6 @@ export const CoursesView = ({
               ? 'Toàn quyền thêm, chỉnh sửa hoặc xóa khóa học; cấu hình lộ trình các bài giảng và bài tập về nhà cho học sinh.'
               : '"千里之行，始于足下" — Hành trình vạn dặm bắt đầu từ những bước chân đầu tiên.'}
           </p>
-
-          {!user && (
-            <button
-              type="button"
-              className="btn-banner-login"
-              onClick={() => setIsAuthModalOpen(true)}
-            >
-              <i className="fa-solid fa-right-to-bracket"></i>
-              <span>Đăng nhập để lưu tiến độ bài tập</span>
-            </button>
-          )}
 
           {/* Action buttons for Teacher & Admin */}
           {isTeacherOrAdmin && (
