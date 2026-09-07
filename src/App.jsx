@@ -730,9 +730,7 @@ export function AppContent() {
               Đây là bản xem trước khu luyện tập. Đăng nhập để chọn đáp án, nghe bài và ghi nhận kết quả.
             </GuestPreviewNotice>
           )}
-          <div style={!user ? { pointerEvents: 'none', userSelect: 'none' } : undefined} aria-disabled={!user || undefined}>
-            <PracticeView />
-          </div>
+          <PracticeView />
         </>
       )}
 

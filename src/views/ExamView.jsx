@@ -338,7 +338,7 @@ export const ExamView = ({
   return (
     <main className="main-content">
       {/* Header Banner */}
-      <section className="courses-header" style={{
+      <section className={`courses-header${isTeacherOrAdmin ? '' : ' feature-page-header'}`} style={{
         marginBottom: '2.5rem',
         background: isTeacherOrAdmin ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : undefined,
         padding: isTeacherOrAdmin ? '1.75rem 2rem' : undefined,
