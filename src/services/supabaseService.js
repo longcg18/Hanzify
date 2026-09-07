@@ -610,6 +610,91 @@ export async function deleteClassroomFromSupabase(classId) {
   }
 }
 
+export async function transferStudentBetweenClasses(fromClassId, toClassId, student) {
+  try {
+    if (!fromClassId || !toClassId || !student) {
+      throw new Error('Thiếu thông tin lớp học hoặc học sinh cần chuyển.');
+    }
+
+    // 1. Try updating existing row in classroom_students if student.id exists
+    let updated = false;
+    if (student.id) {
+      const { data, error } = await supabase
+        .from('classroom_students')
+        .update({
+          classroom_id: toClassId,
+          name: student.name,
+          username: student.username || null,
+          is_activated: Boolean(student.isActivated),
+          activated_at: student.activatedAt || (student.isActivated ? new Date().toISOString() : null)
+        })
+        .eq('id', student.id)
+        .select();
+
+      if (!error && data && data.length > 0) {
+        updated = true;
+      }
+    }
+
+    // 2. Fallback if not updated by ID: delete from old class and insert into target class
+    if (!updated) {
+      if (student.id) {
+        await supabase
+          .from('classroom_students')
+          .delete()
+          .eq('classroom_id', fromClassId)
+          .eq('id', student.id);
+      } else {
+        await supabase
+          .from('classroom_students')
+          .delete()
+          .eq('classroom_id', fromClassId)
+          .eq('name', student.name);
+      }
+
+      const newStudentRow = {
+        id: student.id || `student-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        classroom_id: toClassId,
+        name: student.name,
+        username: student.username || null,
+        is_activated: Boolean(student.isActivated),
+        activated_at: student.activatedAt || (student.isActivated ? new Date().toISOString() : null)
+      };
+
+      const { error: insErr } = await supabase
+        .from('classroom_students')
+        .upsert(newStudentRow, { onConflict: 'id' });
+
+      if (insErr) {
+        console.error('Error inserting student to target classroom:', insErr);
+        throw insErr;
+      }
+    }
+
+    // 3. Sync user profile and streak record if student has a linked username
+    if (student.username) {
+      try {
+        await supabase
+          .from('users')
+          .update({ class_id: toClassId })
+          .eq('username', student.username);
+
+        await supabase
+          .from('user_streaks')
+          .update({ classroom_id: toClassId })
+          .eq('username', student.username);
+      } catch (syncErr) {
+        console.warn('Sync user class_id warning (non-fatal):', syncErr);
+      }
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error('Error transferring student between classrooms:', e);
+    return { success: false, error: e };
+  }
+}
+
 // ==========================================
 // 5. EXAMS (HSK Simulation)
 // ==========================================

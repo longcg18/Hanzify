@@ -17,10 +17,18 @@ import { useAuth } from '../context/AuthContext';
 
 
 
-export const AdminUsersView = () => {
+export const AdminUsersView = ({ classrooms = [], onTransferStudent }) => {
   const { user } = useAuth();
-  // Main admin sub-tab: 'users' | 'entertainment'
+  // Main admin sub-tab: 'users' | 'classrooms' | 'entertainment'
   const [adminSection, setAdminSection] = useState('users');
+
+  // Classroom & Student Coordinator State
+  const [selectedClassFilter, setSelectedClassFilter] = useState('all');
+  const [studentSearchKeyword, setStudentSearchKeyword] = useState('');
+  const [adminTransferringStudent, setAdminTransferringStudent] = useState(null); // { student, fromClassId }
+  const [adminTargetClassId, setAdminTargetClassId] = useState('');
+  const [isAdminTransferring, setIsAdminTransferring] = useState(false);
+  const [transferToast, setTransferToast] = useState(null);
 
   // Supabase connection & live state
   const [dbStatus, setDbStatus] = useState({ connected: false, loading: true });
@@ -224,6 +232,31 @@ export const AdminUsersView = () => {
     }
   };
 
+  // Transfer Student between Classrooms Handler
+  const handleAdminTransfer = async () => {
+    if (!adminTransferringStudent || !adminTargetClassId || !onTransferStudent) return;
+    const targetClass = classrooms.find((c) => String(c.id) === String(adminTargetClassId));
+    const confirmMsg = `Xác nhận chuyển học viên "${adminTransferringStudent.student.name}" sang lớp "${targetClass?.name || adminTargetClassId}"?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsAdminTransferring(true);
+    try {
+      const ok = await onTransferStudent({
+        student: adminTransferringStudent.student,
+        fromClassId: adminTransferringStudent.fromClassId,
+        toClassId: adminTargetClassId
+      });
+      if (ok) {
+        setTransferToast(`✅ Đã chuyển học viên "${adminTransferringStudent.student.name}" sang lớp "${targetClass?.name}" thành công!`);
+        setTimeout(() => setTransferToast(null), 3500);
+        setAdminTransferringStudent(null);
+        setAdminTargetClassId('');
+      }
+    } finally {
+      setIsAdminTransferring(false);
+    }
+  };
+
   return (
     <main className="main-content">
       {/* Admin Header */}
@@ -277,19 +310,27 @@ export const AdminUsersView = () => {
         </div>
 
         <h1 className="header-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span>{adminSection === 'users' ? 'Quản Lý Người Dùng & Phân Quyền' : 'Quản Trị Góc Giải Trí & Mini-Games'}</span>
+          <span>
+            {adminSection === 'users'
+              ? 'Quản Lý Người Dùng & Phân Quyền'
+              : adminSection === 'classrooms'
+              ? 'Điều Phối Học Sinh & Lớp Học'
+              : 'Quản Trị Góc Giải Trí & Mini-Games'}
+          </span>
           <span style={{ fontSize: '1.25rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>
-            {adminSection === 'users' ? '用户权限管理' : '娱乐游戏管理'}
+            {adminSection === 'users' ? '用户权限管理' : adminSection === 'classrooms' ? '班级学员调配' : '娱乐游戏管理'}
           </span>
         </h1>
 
         <p className="header-desc">
           {adminSection === 'users'
             ? 'Quản lý tài khoản Admin, Teacher (Giáo viên chấm bài) và Student (Học viên). Cấp quyền và theo dõi hoạt động.'
+            : adminSection === 'classrooms'
+            ? 'Quản lý danh sách học viên theo từng lớp học, chuyển học sinh giữa các lớp và tự động đồng bộ sĩ số tức thì.'
             : 'Quản trị ngân hàng thẻ từ vựng Lật Thẻ Ghép Đôi, kho câu đố Thử Thách Thanh Điệu và theo dõi bảng xếp hạng học viên.'}
         </p>
 
-        {/* Primary Sub-Nav Switcher: Người Dùng & Giải Trí */}
+        {/* Primary Sub-Nav Switcher: Người Dùng, Lớp Học & Giải Trí */}
         <div style={{
           display: 'flex',
           gap: '0.6rem',
@@ -322,6 +363,29 @@ export const AdminUsersView = () => {
           >
             <i className="fa-solid fa-users-gear"></i>
             <span>Người Dùng & Phân Quyền ({users.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAdminSection('classrooms')}
+            style={{
+              padding: '0.65rem 1.25rem',
+              borderRadius: '12px',
+              border: 'none',
+              background: adminSection === 'classrooms' ? '#A11D24' : 'transparent',
+              color: adminSection === 'classrooms' ? '#ffffff' : '#64748b',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: adminSection === 'classrooms' ? '0 4px 12px rgba(161, 29, 36, 0.25)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <i className="fa-solid fa-graduation-cap"></i>
+            <span>Điều Phối Học Sinh & Lớp Học ({classrooms.length} Lớp)</span>
           </button>
 
           <button
@@ -449,6 +513,7 @@ export const AdminUsersView = () => {
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Họ và Tên</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Email / Số Điện Thoại</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Vai Trò (Role)</th>
+                  <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Lớp Học</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Ngày Tham Gia</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Trạng Thái</th>
                 </tr>
@@ -484,6 +549,77 @@ export const AdminUsersView = () => {
                           {roleBadge.label}
                         </span>
                       </td>
+
+                      {/* Lớp Học Column */}
+                      <td style={{ padding: '1.2rem 1.5rem', whiteSpace: 'nowrap' }}>
+                        {(() => {
+                          const userClass = classrooms.find((c) =>
+                            (c.students || []).some((s) =>
+                              (u.id && (String(s.id) === String(u.id) || String(s.userId || s.user_id) === String(u.id))) ||
+                              (u.username && s.username && u.username.toLowerCase() === s.username.toLowerCase()) ||
+                              (u.name && s.name && u.name.toLowerCase() === s.name.toLowerCase())
+                            )
+                          );
+
+                          if (!userClass) {
+                            return (
+                              <span style={{ color: '#94a3b8', fontSize: '0.82rem', fontStyle: 'italic' }}>
+                                {u.role === 'student' ? 'Chưa phân lớp' : 'Toàn hệ thống'}
+                              </span>
+                            );
+                          }
+
+                          const matchedStudent = (userClass.students || []).find((s) =>
+                            (u.username && s.username && u.username.toLowerCase() === s.username.toLowerCase()) ||
+                            (u.name && s.name && u.name.toLowerCase() === s.name.toLowerCase())
+                          ) || { name: u.name, username: u.username };
+
+                          return (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <span style={{
+                                background: '#fef2f2',
+                                color: '#A11D24',
+                                border: '1px solid #fecaca',
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '8px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700
+                              }}>
+                                {userClass.name}
+                              </span>
+                              <button
+                                type="button"
+                                title="Đổi lớp học cho học viên này"
+                                onClick={() => {
+                                  setSelectedClassFilter(userClass.id);
+                                  setAdminTransferringStudent({
+                                    student: matchedStudent,
+                                    fromClassId: userClass.id
+                                  });
+                                  setAdminSection('classrooms');
+                                }}
+                                style={{
+                                  border: '1px solid #fed7aa',
+                                  background: '#fff7ed',
+                                  color: '#c2410c',
+                                  padding: '0.22rem 0.55rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}
+                              >
+                                <i className="fa-solid fa-right-left"></i>
+                                <span>Đổi lớp</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </td>
+
                       <td style={{ padding: '1.2rem 1.5rem', whiteSpace: 'nowrap', color: '#64748b', fontSize: '0.88rem' }}>
                         {u.joinedDate}
                       </td>
@@ -507,6 +643,356 @@ export const AdminUsersView = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* SECTION 2: CLASSROOMS & STUDENTS COORDINATOR              */}
+      {/* ========================================================= */}
+      {adminSection === 'classrooms' && (
+        <div>
+          {/* Quick Metrics */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.75rem'
+          }}>
+            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(161, 29, 36, 0.04)' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Tổng số lớp học</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#A11D24', marginTop: '0.25rem' }}>
+                {classrooms.length} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>lớp</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Tổng học sinh trong các lớp</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', marginTop: '0.25rem' }}>
+                {classrooms.reduce((sum, c) => sum + (c.students?.length || 0), 0)} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>bạn</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1.5px solid #bbf7d0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(22, 101, 52, 0.04)' }}>
+              <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>Đã kích hoạt tài khoản</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#15803d', marginTop: '0.25rem' }}>
+                {classrooms.reduce((sum, c) => sum + (c.students?.filter((s) => s.isActivated)?.length || 0), 0)} <span style={{ fontSize: '0.9rem', color: '#86efac', fontWeight: 500 }}>bạn</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Transfer Toast */}
+          {transferToast && (
+            <div style={{
+              background: '#f0fdf4',
+              border: '1.5px solid #86efac',
+              color: '#166534',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '14px',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(22, 101, 52, 0.1)'
+            }}>
+              <i className="fa-solid fa-circle-check"></i>
+              <span>{transferToast}</span>
+            </div>
+          )}
+
+          {/* Active Transfer Banner */}
+          {adminTransferringStudent && (
+            <div style={{
+              background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+              border: '2px solid #fdba74',
+              borderRadius: '20px',
+              padding: '1.25rem 1.5rem',
+              marginBottom: '1.5rem',
+              boxShadow: '0 8px 24px rgba(194, 65, 12, 0.12)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ background: '#ea580c', color: '#fff', padding: '3px 8px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 800 }}>
+                    ĐIỀU CHUYỂN LỚP
+                  </span>
+                  <strong style={{ fontSize: '1.05rem', color: '#9a3412' }}>
+                    Học sinh: {adminTransferringStudent.student.name}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminTransferringStudent(null);
+                    setAdminTargetClassId('');
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#9a3412', cursor: 'pointer', fontWeight: 800, fontSize: '0.9rem' }}
+                >
+                  ✕ Đóng
+                </button>
+              </div>
+
+              <p style={{ margin: '0 0 0.85rem', fontSize: '0.86rem', color: '#7c2d12' }}>
+                Đang chuyển từ lớp: <strong>{classrooms.find((c) => String(c.id) === String(adminTransferringStudent.fromClassId))?.name || 'Lớp hiện tại'}</strong>. Chọn lớp đích bên dưới và bấm Xác nhận:
+              </p>
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <select
+                  value={adminTargetClassId}
+                  onChange={(e) => setAdminTargetClassId(e.target.value)}
+                  style={{
+                    flex: '1 1 280px',
+                    padding: '0.65rem 1rem',
+                    borderRadius: '12px',
+                    border: '1.5px solid #fdba74',
+                    background: '#ffffff',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#0f172a',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">-- Chọn lớp học đích cần chuyển đến --</option>
+                  {classrooms
+                    .filter((c) => String(c.id) !== String(adminTransferringStudent.fromClassId))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.code}) - {c.level} ({c.students?.length || 0} học sinh)
+                      </option>
+                    ))}
+                </select>
+
+                <button
+                  type="button"
+                  disabled={!adminTargetClassId || isAdminTransferring}
+                  onClick={handleAdminTransfer}
+                  style={{
+                    padding: '0.65rem 1.4rem',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    cursor: adminTargetClassId && !isAdminTransferring ? 'pointer' : 'not-allowed',
+                    opacity: adminTargetClassId && !isAdminTransferring ? 1 : 0.6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 14px rgba(234, 88, 12, 0.35)'
+                  }}
+                >
+                  {isAdminTransferring ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin"></i>
+                      <span>Đang chuyển dữ liệu...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-right-left"></i>
+                      <span>Xác Nhận Chuyển Lớp</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Filter Bar */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #fee2e2',
+            borderRadius: '18px',
+            padding: '1.1rem 1.35rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', flex: '1 1 320px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                <i className="fa-solid fa-filter" style={{ color: '#A11D24', marginRight: '5px' }}></i> Lọc theo lớp:
+              </span>
+              <select
+                value={selectedClassFilter}
+                onChange={(e) => setSelectedClassFilter(e.target.value)}
+                style={{
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  outline: 'none'
+                }}
+              >
+                <option value="all">Tất cả các lớp ({classrooms.length})</option>
+                {classrooms.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.students?.length || 0} học sinh)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ flex: '1 1 240px', position: 'relative' }}>
+              <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.85rem' }}></i>
+              <input
+                type="text"
+                value={studentSearchKeyword}
+                onChange={(e) => setStudentSearchKeyword(e.target.value)}
+                placeholder="Tìm học sinh theo tên..."
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.85rem 0.5rem 2.2rem',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.85rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Roster Tables per Class */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {classrooms
+              .filter((cls) => selectedClassFilter === 'all' || String(cls.id) === String(selectedClassFilter))
+              .map((cls) => {
+                const filteredStudents = (cls.students || []).filter((s) => {
+                  if (!studentSearchKeyword.trim()) return true;
+                  const kw = studentSearchKeyword.trim().toLowerCase();
+                  return (
+                    (s.name && s.name.toLowerCase().includes(kw)) ||
+                    (s.username && s.username.toLowerCase().includes(kw))
+                  );
+                });
+
+                return (
+                  <div
+                    key={cls.id}
+                    style={{
+                      background: '#ffffff',
+                      border: '1.5px solid #fee2e2',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      boxShadow: '0 8px 30px rgba(161, 29, 36, 0.03)'
+                    }}
+                  >
+                    {/* Class Roster Header */}
+                    <div style={{
+                      padding: '1.1rem 1.5rem',
+                      background: 'linear-gradient(135deg, #fffbfb 0%, #fef2f2 100%)',
+                      borderBottom: '1px solid #fee2e2',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                          <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{cls.name}</strong>
+                          <span style={{ fontSize: '0.74rem', background: '#fef2f2', color: '#A11D24', border: '1px solid #fecaca', padding: '2px 7px', borderRadius: '6px', fontWeight: 700 }}>
+                            {cls.code}
+                          </span>
+                          <span style={{ fontSize: '0.74rem', background: '#f1f5f9', color: '#475569', padding: '2px 7px', borderRadius: '6px', fontWeight: 700 }}>
+                            {cls.level}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                          Giáo viên: <strong>{cls.teacher}</strong> · Lịch học: {cls.schedule?.days?.join(', ')} ({cls.schedule?.shift})
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#16a34a', background: '#f0fdf4', padding: '0.35rem 0.8rem', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                          ✓ {(cls.students || []).filter((s) => s.isActivated).length} / {(cls.students || []).length} bạn kích hoạt
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Student List in Class */}
+                    {filteredStudents.length === 0 ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                        {studentSearchKeyword.trim() ? 'Không tìm thấy học sinh nào phù hợp từ khóa tìm kiếm.' : 'Lớp học hiện tại chưa có học sinh nào.'}
+                      </div>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <th style={{ padding: '0.85rem 1.5rem', width: '50px' }}>#</th>
+                            <th style={{ padding: '0.85rem 1.5rem' }}>Họ và Tên</th>
+                            <th style={{ padding: '0.85rem 1.5rem' }}>Tài Khoản (Username)</th>
+                            <th style={{ padding: '0.85rem 1.5rem' }}>Trạng Thái Kích Hoạt</th>
+                            <th style={{ padding: '0.85rem 1.5rem', textAlign: 'right' }}>Thao Tác Điều Chuyển</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredStudents.map((st, sIdx) => (
+                            <tr key={st.id || sIdx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '0.9rem 1.5rem', color: '#94a3b8', fontSize: '0.82rem' }}>
+                                #{sIdx + 1}
+                              </td>
+                              <td style={{ padding: '0.9rem 1.5rem', fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
+                                {st.name}
+                              </td>
+                              <td style={{ padding: '0.9rem 1.5rem', color: '#475569', fontSize: '0.85rem' }}>
+                                {st.username ? `@${st.username}` : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa đăng ký</span>}
+                              </td>
+                              <td style={{ padding: '0.9rem 1.5rem' }}>
+                                {st.isActivated ? (
+                                  <span style={{ fontSize: '0.76rem', background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '3px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <i className="fa-solid fa-circle-check"></i> Đã kích hoạt
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.76rem', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>
+                                    Chưa kích hoạt
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.9rem 1.5rem', textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAdminTransferringStudent({
+                                      student: st,
+                                      fromClassId: cls.id
+                                    });
+                                    setAdminTargetClassId('');
+                                    window.scrollTo({ top: 150, behavior: 'smooth' });
+                                  }}
+                                  style={{
+                                    border: '1px solid #fed7aa',
+                                    background: '#fff7ed',
+                                    color: '#c2410c',
+                                    padding: '0.4rem 0.85rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <i className="fa-solid fa-right-left"></i>
+                                  <span>Chuyển Lớp ➔</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

@@ -33,6 +33,7 @@ import {
   updateClassroomInSupabase,
   updateClassroomUnlockedLessons,
   deleteClassroomFromSupabase,
+  transferStudentBetweenClasses,
   fetchExams,
   syncExamToSupabase,
   deleteExamFromSupabase,
@@ -459,6 +460,48 @@ export function AppContent() {
     }
     setRoleToast(`Đã cập nhật thông tin lớp "${updatedClass.name}" thành công!`);
     setTimeout(() => setRoleToast(null), 3500);
+  };
+
+  const handleTransferStudent = async ({ student, fromClassId, toClassId }) => {
+    const fromClass = classrooms.find((c) => String(c.id) === String(fromClassId));
+    const toClass = classrooms.find((c) => String(c.id) === String(toClassId));
+    if (!toClass) {
+      setRoleToast('Lớp học đích không tồn tại.');
+      return false;
+    }
+
+    const res = await transferStudentBetweenClasses(fromClassId, toClassId, student);
+    if (!res.success) {
+      setRoleToast('Lỗi: Không thể chuyển lớp trên máy chủ Supabase.');
+      return false;
+    }
+
+    // Cập nhật ngay danh sách học sinh của cả 2 lớp trong state
+    setClassrooms((prev) =>
+      prev.map((c) => {
+        if (String(c.id) === String(fromClassId)) {
+          return {
+            ...c,
+            students: (c.students || []).filter((s) => s.id !== student.id && s.name !== student.name)
+          };
+        }
+        if (String(c.id) === String(toClassId)) {
+          const studentObj = {
+            ...student,
+            classroom_id: toClassId
+          };
+          return {
+            ...c,
+            students: [...(c.students || []), studentObj]
+          };
+        }
+        return c;
+      })
+    );
+
+    setRoleToast(`✅ Đã chuyển học viên "${student.name}" sang lớp "${toClass.name}" thành công!`);
+    setTimeout(() => setRoleToast(null), 4000);
+    return true;
   };
 
   const handleUpdateLesson = async (courseId, updatedLesson) => {
@@ -907,7 +950,10 @@ export function AppContent() {
 
       {currentView === 'admin-users' && (
         user?.role === 'admin' ? (
-          <AdminUsersView />
+          <AdminUsersView 
+            classrooms={classrooms}
+            onTransferStudent={handleTransferStudent}
+          />
         ) : (
           <main className="main-content" style={{ padding: '3rem 1rem' }}>
             <div style={{
@@ -1035,7 +1081,9 @@ export function AppContent() {
         onClose={() => setEditingClassroom(null)}
         classroom={editingClassroom}
         courses={courses}
+        classrooms={classrooms}
         onSaveSuccess={handleEditClassroom}
+        onTransferStudent={handleTransferStudent}
       />
 
       {/* Global Auth Modal */}

@@ -604,9 +604,17 @@ export const HomeView = ({
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                        <i className="fa-solid fa-layer-group" style={{ color: '#b91c1c', width: '16px' }}></i>
+                        <i className="fa-solid fa-book-bookmark" style={{ color: '#b91c1c', width: '16px' }}></i>
                         <span>
-                          <strong>Khóa học combo:</strong> {cls.courseIds?.length} khóa được mở
+                          <strong>Chương trình:</strong> {(() => {
+                            const cIds = cls.courseIds || cls.course_ids || [];
+                            const matched = courses.filter((c) => cIds.includes(c.id));
+                            if (matched.length > 0) {
+                              const labels = [...new Set(matched.map((c) => c.level || c.title))];
+                              return labels.join(', ');
+                            }
+                            return cls.level || 'HSK 1';
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -689,7 +697,7 @@ export const HomeView = ({
                   {/* Bottom Roster Status */}
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', marginBottom: '0.4rem' }}>
-                      <span style={{ color: '#64748b' }}>Học viên kích hoạt:</span>
+                      <span style={{ color: '#475569', fontWeight: 650 }}>Học cùng với:</span>
                       <strong style={{ color: activatedCount === totalStudents && totalStudents > 0 ? '#16a34a' : '#0f172a' }}>
                         {activatedCount} / {totalStudents} học sinh
                       </strong>
@@ -706,29 +714,78 @@ export const HomeView = ({
                       />
                     </div>
 
-                    {/* Student names preview chips */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.65rem' }}>
-                      {(cls.students || []).slice(0, 4).map((s) => (
-                        <span
-                          key={s.id}
-                          style={{
-                            fontSize: '0.72rem',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '6px',
-                            background: s.isActivated ? '#dcfce7' : '#f8fafc',
-                            color: s.isActivated ? '#166534' : '#64748b',
-                            border: s.isActivated ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
-                            fontWeight: 600
-                          }}
-                        >
-                          {s.name} {s.isActivated ? '✓' : ''}
-                        </span>
-                      ))}
-                      {(cls.students || []).length > 4 && (
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8', alignSelf: 'center' }}>
-                          +{cls.students.length - 4} bạn khác
-                        </span>
-                      )}
+                    {/* Student names chips with "(tôi)" badge */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.38rem', marginTop: '0.65rem' }}>
+                      {(() => {
+                        const studentList = cls.students || [];
+                        if (studentList.length === 0) {
+                          return (
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                              Chưa có học sinh trong lớp
+                            </span>
+                          );
+                        }
+
+                        // Check if student matches the current user
+                        const isStudentMe = (s) => {
+                          if (!user || !s) return false;
+                          const uId = user.id ? String(user.id).trim() : null;
+                          const uUser = (user.username || '').trim().toLowerCase();
+                          const uName = (user.full_name || user.name || '').trim().toLowerCase();
+                          const uEmail = (user.email || '').trim().toLowerCase();
+
+                          const sId = s.id ? String(s.id).trim() : null;
+                          const sUserId = (s.userId || s.user_id) ? String(s.userId || s.user_id).trim() : null;
+                          const sUser = (s.username || '').trim().toLowerCase();
+                          const sName = (s.name || '').trim().toLowerCase();
+                          const sEmail = (s.email || '').trim().toLowerCase();
+
+                          if (uId && (uId === sId || uId === sUserId)) return true;
+                          if (uUser && sUser && uUser === sUser) return true;
+                          if (uEmail && sEmail && uEmail === sEmail) return true;
+                          if (uName && sName && uName === sName) return true;
+                          return false;
+                        };
+
+                        // Sort current user to the first position
+                        const sortedStudents = [...studentList].sort((a, b) => {
+                          const aMe = isStudentMe(a);
+                          const bMe = isStudentMe(b);
+                          if (aMe && !bMe) return -1;
+                          if (!aMe && bMe) return 1;
+                          return 0;
+                        });
+
+                        return sortedStudents.map((s) => {
+                          const isMe = isStudentMe(s);
+
+                          return (
+                            <span
+                              key={s.id || s.name}
+                              style={{
+                                fontSize: '0.74rem',
+                                padding: '0.18rem 0.55rem',
+                                borderRadius: '7px',
+                                background: isMe ? '#fef2f2' : s.isActivated ? '#dcfce7' : '#f8fafc',
+                                color: isMe ? '#A11D24' : s.isActivated ? '#166534' : '#64748b',
+                                border: isMe ? '1.5px solid #fca5a5' : s.isActivated ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                                fontWeight: isMe ? 800 : 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                boxShadow: isMe ? '0 2px 6px rgba(161, 29, 36, 0.12)' : 'none'
+                              }}
+                            >
+                              <span>
+                                {s.name}{isMe ? ' (tôi)' : ''}
+                              </span>
+                              {s.isActivated && (
+                                <span style={{ color: isMe ? '#A11D24' : '#16a34a', fontWeight: 700 }}>✓</span>
+                              )}
+                            </span>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 </div>

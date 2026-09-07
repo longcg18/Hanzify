@@ -13,7 +13,9 @@ export const EditClassModal = ({
   onClose,
   classroom,
   courses = [],
-  onSaveSuccess
+  classrooms = [],
+  onSaveSuccess,
+  onTransferStudent
 }) => {
   const { user } = useAuth();
 
@@ -32,6 +34,11 @@ export const EditClassModal = ({
   const [isSaving, setIsSaving] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
+  // Transfer student state
+  const [transferringStudent, setTransferringStudent] = useState(null);
+  const [targetClassId, setTargetClassId] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+
   // Sync state when classroom prop changes
   useEffect(() => {
     if (classroom) {
@@ -44,6 +51,8 @@ export const EditClassModal = ({
       setStudents(classroom.students || []);
       setNewStudentsText('');
       setActiveTab('general');
+      setTransferringStudent(null);
+      setTargetClassId('');
     }
   }, [classroom, isOpen]);
 
@@ -115,6 +124,38 @@ export const EditClassModal = ({
     navigator.clipboard.writeText(classroom.code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  // Transfer student to another classroom
+  const handleConfirmTransfer = async () => {
+    if (!targetClassId || !transferringStudent) return;
+    if (!onTransferStudent) {
+      alert('Chức năng điều phối chuyển lớp chưa sẵn sàng.');
+      return;
+    }
+
+    const targetClass = classrooms.find((c) => String(c.id) === String(targetClassId));
+    const confirmMsg = `Bạn có chắc muốn chuyển học viên "${transferringStudent.name}" từ "${classroom.name}" sang lớp "${targetClass?.name || targetClassId}"?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsTransferring(true);
+    try {
+      const ok = await onTransferStudent({
+        student: transferringStudent,
+        fromClassId: classroom.id,
+        toClassId: targetClassId
+      });
+      if (ok) {
+        setStudents((prev) => prev.filter((s) => s.id !== transferringStudent.id && s.name !== transferringStudent.name));
+        setTransferringStudent(null);
+        setTargetClassId('');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Có lỗi xảy ra khi chuyển lớp học sinh.');
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   // Save changes
@@ -631,6 +672,101 @@ export const EditClassModal = ({
                     </span>
                   </div>
 
+                  {/* Transfer Student Panel */}
+                  {transferringStudent && (
+                    <div style={{
+                      background: '#fff7ed',
+                      border: '1.5px solid #fdba74',
+                      borderRadius: '12px',
+                      padding: '0.85rem 1rem',
+                      marginBottom: '0.85rem',
+                      boxShadow: '0 4px 14px rgba(194, 65, 12, 0.08)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+                        <strong style={{ fontSize: '0.86rem', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <i className="fa-solid fa-right-left"></i>
+                          Điều chuyển học sinh: {transferringStudent.name}
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTransferringStudent(null);
+                            setTargetClassId('');
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#9a3412',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                            fontWeight: 700
+                          }}
+                        >
+                          ✕ Đóng
+                        </button>
+                      </div>
+                      <p style={{ margin: '0 0 0.55rem', fontSize: '0.78rem', color: '#7c2d12' }}>
+                        Chuyển học viên này từ <strong>{classroom.name}</strong> sang lớp học đích. Danh sách và số lượng học sinh của cả 2 lớp sẽ được cập nhật tự động.
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select
+                          value={targetClassId}
+                          onChange={(e) => setTargetClassId(e.target.value)}
+                          style={{
+                            flex: '1 1 220px',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '8px',
+                            border: '1.5px solid #fdba74',
+                            fontSize: '0.84rem',
+                            background: '#ffffff',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="">-- Chọn lớp học đích --</option>
+                          {classrooms
+                            .filter((c) => String(c.id) !== String(classroom.id))
+                            .map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name} ({c.code}) - {c.level}
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={!targetClassId || isTransferring}
+                          onClick={handleConfirmTransfer}
+                          style={{
+                            padding: '0.5rem 1.1rem',
+                            borderRadius: '8px',
+                            background: '#ea580c',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            cursor: targetClassId && !isTransferring ? 'pointer' : 'not-allowed',
+                            opacity: targetClassId && !isTransferring ? 1 : 0.6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            boxShadow: '0 2px 8px rgba(234, 88, 12, 0.3)'
+                          }}
+                        >
+                          {isTransferring ? (
+                            <>
+                              <i className="fa-solid fa-spinner fa-spin"></i>
+                              <span>Đang chuyển...</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-arrow-right"></i>
+                              <span>Xác Nhận Chuyển</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {students.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
                       Chưa có học sinh nào trong lớp. Hãy nhập tên ở ô trên để thêm!
@@ -668,26 +804,55 @@ export const EditClassModal = ({
                             )}
                           </div>
 
-                          <button
-                            type="button"
-                            title={`Xóa học viên ${student.name}`}
-                            onClick={() => handleRemoveStudent(student.id, student.name, student.isActivated)}
-                            style={{
-                              border: 'none',
-                              background: '#fef2f2',
-                              color: '#dc2626',
-                              width: '26px',
-                              height: '26px',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '0.75rem'
-                            }}
-                          >
-                            ✕
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {classrooms.filter((c) => String(c.id) !== String(classroom.id)).length > 0 && (
+                              <button
+                                type="button"
+                                title={`Chuyển học viên ${student.name} sang lớp khác`}
+                                onClick={() => {
+                                  setTransferringStudent(transferringStudent?.id === student.id ? null : student);
+                                  setTargetClassId('');
+                                }}
+                                style={{
+                                  border: '1px solid #fed7aa',
+                                  background: transferringStudent?.id === student.id ? '#ea580c' : '#fff7ed',
+                                  color: transferringStudent?.id === student.id ? '#ffffff' : '#c2410c',
+                                  padding: '0.25rem 0.6rem',
+                                  borderRadius: '7px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700
+                                }}
+                              >
+                                <i className="fa-solid fa-right-left"></i>
+                                <span>Chuyển Lớp</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              title={`Xóa học viên ${student.name}`}
+                              onClick={() => handleRemoveStudent(student.id, student.name, student.isActivated)}
+                              style={{
+                                border: 'none',
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
