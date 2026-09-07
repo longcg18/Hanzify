@@ -1094,66 +1094,7 @@ export async function fetchLeaderboard() {
     console.error('Error injecting local user into leaderboard:', e);
   }
 
-  // 4. Enrich with benchmark top learners if list has few entries
-  const sampleStudents = [
-    {
-      id: 'bench-1',
-      name: 'Hoàng Kim Jessi',
-      chineseName: '金安',
-      avatar: '杰',
-      avatarBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      level: 'HSK 2',
-      badge: 'Chăm chỉ nhất tuần 👑',
-      xp: 350,
-      score: 350,
-      points: 350,
-      classId: 'all',
-      classroom_id: 'all',
-      completionRate: 100,
-      teacherGrade: 9.8,
-      lessonsCompleted: 4
-    },
-    {
-      id: 'bench-2',
-      name: 'Đỗ Tuấn Kiệt',
-      chineseName: '杜俊杰',
-      avatar: '杰',
-      avatarBg: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-      level: 'HSK 1',
-      badge: 'Bài tập điểm 10 🥈',
-      xp: 220,
-      score: 220,
-      points: 220,
-      classId: 'all',
-      classroom_id: 'all',
-      completionRate: 100,
-      teacherGrade: 9.5,
-      lessonsCompleted: 3
-    },
-    {
-      id: 'bench-3',
-      name: 'Phạm Thị Mai',
-      chineseName: '范氏梅',
-      avatar: '梅',
-      avatarBg: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
-      level: 'HSK 1',
-      badge: 'Phát âm chuẩn 🥉',
-      xp: 180,
-      score: 180,
-      points: 180,
-      classId: 'all',
-      classroom_id: 'all',
-      completionRate: 100,
-      teacherGrade: 9.2,
-      lessonsCompleted: 2
-    }
-  ];
 
-  sampleStudents.forEach((st) => {
-    if (!entryMap.has(st.id) && !entryMap.has(st.name)) {
-      entryMap.set(st.id, st);
-    }
-  });
 
   // Sort descending by real XP
   const resultList = Array.from(entryMap.values())
