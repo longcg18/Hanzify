@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchForumPosts, fetchLeaderboard, fetchSubmissions, fetchExams } from '../services/supabaseService';
+import { isStudentInClassroom, getStudentEnrolledCourseIds } from '../utils/classEnrollment';
 
 export const HomeView = ({ 
   courses = [], 
@@ -18,6 +19,11 @@ export const HomeView = ({
 }) => {
   const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+
+  // Filter classrooms visible to the logged-in user
+  const visibleClassrooms = isTeacherOrAdmin
+    ? classrooms
+    : classrooms.filter((cls) => isStudentInClassroom(cls, user));
 
   const [selectedClassId, setSelectedClassId] = useState('all');
   const [copiedCodeClassId, setCopiedCodeClassId] = useState(null);
@@ -63,15 +69,30 @@ export const HomeView = ({
     setTimeout(() => setCopiedCodeClassId(null), 2500);
   };
 
-  // Active course
-  const currentCourse = courses?.[0];
-  const nextLesson = currentCourse?.lessons?.find((l) => l.status === 'active') || currentCourse?.lessons?.[0];
+  // Student-specific enrolled courses
+  const studentEnrolledCourseIds = isTeacherOrAdmin
+    ? null
+    : getStudentEnrolledCourseIds(classrooms, user);
+
+  const studentCourses = isTeacherOrAdmin
+    ? courses
+    : courses.filter((c) => studentEnrolledCourseIds?.has(c.id));
+
+  // Active course and next unlocked lesson for this user
+  const currentCourse = studentCourses?.[0] || (isTeacherOrAdmin ? courses?.[0] : null);
+  const currentClass = visibleClassrooms.find((cls) =>
+    (cls.courseIds || cls.course_ids || []).includes(currentCourse?.id)
+  );
+  const unlockedLessonIds = currentClass?.unlockedLessons || [];
+  const nextLesson = isTeacherOrAdmin
+    ? (currentCourse?.lessons?.find((l) => l.status === 'active') || currentCourse?.lessons?.[0])
+    : (currentCourse?.lessons?.find((l) => unlockedLessonIds.includes(l.id)) || currentCourse?.lessons?.[0]);
 
   // Submissions stats
   const pendingSubmissions = submissions.filter((s) => s.status === 'pending');
   const pendingCount = pendingSubmissions.length;
   const totalLessons = (courses || []).reduce((acc, c) => acc + (c.lessons?.length || 0), 0);
-  const totalEnrolledStudents = (classrooms || []).reduce((acc, c) => acc + (c.students?.length || 0), 0);
+  const totalEnrolledStudents = (visibleClassrooms || []).reduce((acc, c) => acc + (c.students?.length || 0), 0);
 
   // Leaderboard data for preview
   const classLeaderboard = (selectedClassId === 'all' ? leaderboard : leaderboard.filter((item) => item.classroom_id === selectedClassId)).slice(0, 3);
@@ -391,7 +412,7 @@ export const HomeView = ({
         </div>
 
         {/* Classes Cards Grid or Empty State */}
-        {classrooms.length === 0 ? (
+        {visibleClassrooms.length === 0 ? (
           <div style={{
             background: '#ffffff',
             borderRadius: '18px',
@@ -422,11 +443,11 @@ export const HomeView = ({
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
-            {classrooms.map((cls) => {
+            {visibleClassrooms.map((cls) => {
               const activatedCount = (cls.students || []).filter((s) => s.isActivated).length;
               const totalStudents = (cls.students || []).length;
               const isCopied = copiedCodeClassId === cls.id;
-              const isStudentInClass = user?.classId === cls.id;
+              const isStudentInClass = isStudentInClassroom(cls, user);
 
               return (
                 <div
@@ -975,7 +996,7 @@ export const HomeView = ({
                   cursor: 'pointer'
                 }}
               >
-                {[{ id: 'all', name: 'Toàn hệ thống' }, ...classrooms].map((c) => (
+                {[{ id: 'all', name: 'Toàn hệ thống' }, ...visibleClassrooms].map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

@@ -37,6 +37,7 @@ import {
   fetchUserStreak,
   checkInUser
 } from './services/supabaseService';
+import { isCourseAssignedToStudent, isLessonUnlockedForStudent } from './utils/classEnrollment';
 
 
 const RequireLoginCard = ({ title, subtitle, onLogin, onBack }) => (
@@ -524,6 +525,24 @@ export function AppContent() {
       setTimeout(() => setRoleToast(null), 4000);
       return;
     }
+
+    // Protect against opening lessons from other classrooms
+    const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+    if (!isTeacherOrAdmin && activeCourse) {
+      const isAssigned = isCourseAssignedToStudent(activeCourse.id, classrooms, user);
+      if (!isAssigned) {
+        setRoleToast('Khóa học này thuộc lớp khác và chưa được mở cho lớp của bạn!');
+        setTimeout(() => setRoleToast(null), 4000);
+        return;
+      }
+      const isUnlocked = isLessonUnlockedForStudent(lesson.id, activeCourse.id, classrooms, user);
+      if (!isUnlocked) {
+        setRoleToast('Bài học này chưa được Cô Hoài mở cho lớp của bạn!');
+        setTimeout(() => setRoleToast(null), 4000);
+        return;
+      }
+    }
+
     setActiveLesson(lesson);
     setCurrentView('homework');
     window.scrollTo({ top: 0, behavior: 'smooth' });

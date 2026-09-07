@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchLeaderboard } from '../services/supabaseService';
+import { getStudentClassrooms } from '../utils/classEnrollment';
 
 export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
   const { user } = useAuth();
@@ -21,7 +22,8 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
 
   const currentList = selectedClassId === 'all' ? entries : entries.filter((item) => item.classId === selectedClassId);
 
-  const classOptions = [{ id: 'all', name: 'Toàn hệ thống' }, ...classrooms];
+  const visibleClassrooms = getStudentClassrooms(classrooms, user);
+  const classOptions = [{ id: 'all', name: 'Toàn hệ thống' }, ...visibleClassrooms];
   const selectedClassInfo = classOptions.find((c) => c.id === selectedClassId);
 
   // Podium positions: 2nd (left), 1st (center), 3rd (right)

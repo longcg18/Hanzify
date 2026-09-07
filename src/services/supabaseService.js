@@ -46,8 +46,34 @@ export async function loginWithSupabase(usernameOrEmail, password) {
     avatar: data.avatar || (data.role === 'admin' ? '👑' : data.role === 'teacher' ? '怀' : '学'),
     phone: data.phone,
     badge: data.role === 'admin' ? 'Quản trị viên' : data.role === 'teacher' ? 'Giáo viên phụ trách' : 'Học viên',
-    status: data.status
+    status: data.status,
+    classId: null,
+    classIds: []
   };
+
+  // Lookup student enrolled classrooms
+  if (data.role === 'student') {
+    try {
+      const studentMatchQueries = [];
+      if (data.username) studentMatchQueries.push(`username.ilike.${data.username}`);
+      if (data.full_name) studentMatchQueries.push(`name.ilike.${data.full_name}`);
+      
+      if (studentMatchQueries.length > 0) {
+        const { data: enrollments } = await supabase
+          .from('classroom_students')
+          .select('classroom_id')
+          .or(studentMatchQueries.join(','));
+        
+        if (enrollments && enrollments.length > 0) {
+          const distinctIds = Array.from(new Set(enrollments.map((e) => e.classroom_id).filter(Boolean)));
+          safeUser.classId = distinctIds[0] || null;
+          safeUser.classIds = distinctIds;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load student classrooms on login:', e);
+    }
+  }
 
   return { success: true, user: safeUser };
 }
@@ -110,7 +136,9 @@ export async function registerStudentInSupabase({ classId, studentId, name, user
       role: 'student',
       avatar: profile.avatar,
       badge: 'Học viên',
-      status: 'active'
+      status: 'active',
+      classId: classId || null,
+      classIds: classId ? [classId] : []
     }
   };
 }

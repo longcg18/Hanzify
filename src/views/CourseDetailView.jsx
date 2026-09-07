@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { isStudentInClassroom } from '../utils/classEnrollment';
 
 export const CourseDetailView = ({ 
   course, 
@@ -16,6 +17,12 @@ export const CourseDetailView = ({
 }) => {
   const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+
+  // Check if student belongs to a class that is assigned this course
+  const studentClass = classrooms.find(
+    (c) => isStudentInClassroom(c, user) && (c.courseIds || c.course_ids || []).includes(course?.id)
+  );
+  const isCourseEnrolled = isTeacherOrAdmin ? true : Boolean(studentClass);
 
   // Modal State for Adding Lesson
   const [isAddLessonModalOpen, setIsAddLessonModalOpen] = useState(false);
@@ -317,15 +324,35 @@ export const CourseDetailView = ({
           )}
         </div>
 
+        {!isTeacherOrAdmin && user && !isCourseEnrolled && (
+          <div style={{
+            background: '#fff7ed',
+            border: '1.5px solid #fed7aa',
+            borderRadius: '16px',
+            padding: '1.25rem 1.5rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            color: '#9a3412'
+          }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '1.5rem', color: '#ea580c', flexShrink: 0 }}></i>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.2rem' }}>
+                Khóa học này thuộc lớp khác và chưa được mở cho lớp của bạn
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#7c2d12' }}>
+                Bạn chỉ có thể xem và làm bài tập của các khóa học được phân bổ cho lớp mình tham gia. Vui lòng liên hệ Cô Hoài hoặc nhập mã lớp để mở khóa.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="lesson-list">
           {(course.lessons || []).map((lesson, index) => {
-            // Check student's classroom unlocked lessons
-            const studentClass = classrooms.find(
-              (c) => c.id === user?.classId || (c.students || []).some((s) => s.username === user?.username)
-            );
             const isLessonOpenForClass = studentClass
               ? (studentClass.unlockedLessons || []).includes(lesson.id)
-              : (index === 0 || lesson.status === 'active');
+              : false;
 
             const isCompleted = lesson.status === 'completed';
             const isActive = isTeacherOrAdmin ? true : isLessonOpenForClass;

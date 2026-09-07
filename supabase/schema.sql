@@ -504,3 +504,12 @@ CREATE POLICY "Cho phép đọc combo khóa học lớp" ON public.classroom_cou
 CREATE POLICY "Staff ghi combo khóa học lớp" ON public.classroom_courses FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
 CREATE POLICY "Cho phép đọc danh sách học viên lớp" ON public.classroom_students FOR SELECT USING (true);
 CREATE POLICY "Staff cập nhật học viên lớp" ON public.classroom_students FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
+
+-- =========================================================================
+-- PHÂN QUYỀN BẢO MẬT & CÁCH LY DỮ LIỆU GIỮA CÁC LỚP HỌC (CLASSROOM DATA ISOLATION)
+-- 1. Ứng dụng Hanzify sử dụng mô hình lọc phân quyền lớp học nghiêm ngặt:
+--    - Học viên chỉ nhìn thấy lớp học mà mình đã được ghi danh (so khớp theo username, họ tên hoặc mã học viên).
+--    - Học viên chỉ mở được các khóa học và bài học được giáo viên mở khóa cho lớp của mình.
+--    - Danh sách lớp khác, mã lớp khác và danh sách học viên của lớp khác hoàn toàn bị ẩn khỏi giao diện học sinh.
+-- 2. Giáo viên và Admin toàn quyền quản lý, sửa lớp và mở bài cho tất cả các lớp.
+-- =========================================================================

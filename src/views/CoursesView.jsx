@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { isCourseAssignedToStudent } from '../utils/classEnrollment';
 
 const GRADIENT_PRESETS = [
   { label: 'Đỏ Imperial', value: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', color: '#b91c1c' },
@@ -383,6 +384,7 @@ export const CoursesView = ({
           const totalL = course.lessons?.length || course.totalLessons || 1;
           const completedL = course.completedLessons || 0;
           const percent = Math.min(100, Math.round((completedL / totalL) * 100));
+          const isEnrolled = isTeacherOrAdmin ? true : isCourseAssignedToStudent(course.id, classrooms, user);
           const courseStudentsCount = (classrooms || [])
             .filter((cls) => (cls.course_ids || cls.courseIds || []).includes(course.id))
             .reduce((acc, cls) => acc + (cls.students?.length || 0), 0);
@@ -392,7 +394,10 @@ export const CoursesView = ({
               key={course.id} 
               className="course-card"
               onClick={() => onSelectCourse(course)}
-              style={{ position: 'relative' }}
+              style={{
+                position: 'relative',
+                opacity: !user || isTeacherOrAdmin || isEnrolled ? 1 : 0.85
+              }}
             >
               {/* Header Gradient with Chinese Calligraphy Watermark */}
               <div 
@@ -402,7 +407,9 @@ export const CoursesView = ({
                 <span className="cover-watermark">{course.charWatermark || '学'}</span>
                 <div className="cover-tags">
                   <span className="course-level-badge">{course.level}</span>
-                  <span className="course-status-badge">{course.badge}</span>
+                  <span className="course-status-badge">
+                    {!user ? course.badge : isEnrolled ? (isTeacherOrAdmin ? course.badge : '✓ Lớp của bạn') : '🔒 Khóa ngoài lớp'}
+                  </span>
                 </div>
                 <div className="cover-chinese-sub">{course.chineseTitle}</div>
 
@@ -516,11 +523,11 @@ export const CoursesView = ({
                     type="button"
                     className="btn-enter-course"
                     style={{
-                      background: isTeacherOrAdmin ? '#0f172a' : undefined
+                      background: isTeacherOrAdmin ? '#0f172a' : !isEnrolled && user ? '#64748b' : undefined
                     }}
                   >
-                    <span>{isTeacherOrAdmin ? 'Quản Trị Bài Học' : 'Vào Lớp Học'}</span>
-                    <i className={isTeacherOrAdmin ? "fa-solid fa-pen-to-square" : "fa-solid fa-chevron-right"}></i>
+                    <span>{isTeacherOrAdmin ? 'Quản Trị Bài Học' : isEnrolled ? 'Vào Lớp Học' : 'Khóa Ngoài Lớp'}</span>
+                    <i className={isTeacherOrAdmin ? "fa-solid fa-pen-to-square" : isEnrolled ? "fa-solid fa-chevron-right" : "fa-solid fa-lock"}></i>
                   </button>
                 </div>
               </div>
