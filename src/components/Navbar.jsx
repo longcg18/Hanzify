@@ -312,7 +312,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
                   setIsProfileDropdownOpen(true);
                 }
               }}
-              title="Bấm để mở Menu Hồ sơ, Đổi Avatar & Chuyển quyền"
+              title="Bấm để mở Menu Hồ sơ & Đổi Avatar"
             >
               <span className="user-name" style={{ whiteSpace: 'nowrap', fontWeight: 700, fontSize: '0.92rem', color: '#0f172a' }}>
                 {user.name}

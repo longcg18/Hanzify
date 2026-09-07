@@ -224,8 +224,8 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
             transition: 'all 0.15s'
           }}
         >
-          <i className="fa-solid fa-user-gear"></i>
-          <span>Hồ Sơ & Quyền</span>
+          <i className="fa-solid fa-user"></i>
+          <span>Hồ Sơ</span>
         </button>
 
         <button
