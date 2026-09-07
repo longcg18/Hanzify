@@ -27,6 +27,14 @@ export const HomeView = ({
   const [examsCount, setExamsCount] = useState(0);
 
   useEffect(() => {
+    if (!user) {
+      setLeaderboard([]);
+      setForumPosts([]);
+      setSubmissions([]);
+      setExamsCount(0);
+      return;
+    }
+
     Promise.all([
       fetchLeaderboard(),
       fetchForumPosts(),
@@ -38,7 +46,7 @@ export const HomeView = ({
       setSubmissions(subResult?.data || []);
       if (examResult?.data) setExamsCount(examResult.data.length);
     });
-  }, []);
+  }, [user?.id]);
 
   const handleCopyClassCode = (code, classId, e) => {
     e?.stopPropagation();
@@ -242,6 +250,9 @@ export const HomeView = ({
           </div>
         </div>
       </section>
+
+      {user && (
+        <>
 
       {/* ========================================================================= */}
       {/* 1.5. KHU VỰC QUẢN LÝ LỚP HỌC & LỊCH HỌC TRỰC TUYẾN */}
@@ -1250,6 +1261,9 @@ export const HomeView = ({
           <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{totalEnrolledStudents} học viên ghi danh</div>
         </div>
       </section>
+
+        </>
+      )}
 
     </div>
   );
