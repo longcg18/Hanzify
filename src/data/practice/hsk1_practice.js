@@ -191,7 +191,7 @@ export const hsk1PracticeTopics = [
     questions: [
       {
         prompt: 'Đọc câu: "今天星期日，学校没有人。" Phán đoán: Hôm nay trường học rất đông học sinh.',
-        options: ['对 (Đúng)', '错 (Sai - Trường không có ai)'],
+        options: ['对 (Đúng)', '错 (Sai)'],
         correct: 1,
         explain: '"没有人" nghĩa là không có người.'
       },
@@ -409,10 +409,10 @@ export const hsk1PracticeTopics = [
       {
         prompt: 'Chọn câu ghép liên từ "和" (và) chính xác:',
         options: [
-          '我和他是好朋友。(Tôi và anh ấy là bạn tốt.)',
-          '我吃饭和他。(Sai)',
-          '他是老师和我。(Sai)',
-          '和我很喜欢他。(Sai)'
+          '我和他是好朋友。',
+          '我吃饭和他。',
+          '他是老师和我。',
+          '和我很喜欢他。'
         ],
         correct: 0,
         explain: '"和" nối 2 danh từ hoặc đại từ: A 和 B.'
@@ -438,10 +438,10 @@ export const hsk1PracticeTopics = [
       {
         prompt: 'Chọn câu diễn tả địa điểm đứng trước hành động đúng chuẩn:',
         options: [
-          '我们在教室里写汉字。(Chúng tôi ở trong lớp viết chữ Hán.)',
-          '我们写汉字在教室里。(Sai ngữ pháp)',
-          '教室里我们在写汉字。(Ít tự nhiên)',
-          '写汉字在教室里我们。(Sai)'
+          '我们在教室里写汉字。',
+          '我们写汉字在教室里。',
+          '教室里我们在写汉字。',
+          '写汉字在教室里我们。'
         ],
         correct: 0,
         explain: 'Cấu trúc tiếng Trung: Chủ ngữ + 在 + Địa điểm + Động từ + Tân ngữ.'

@@ -191,13 +191,13 @@ export const hsk2PracticeTopics = [
     questions: [
       {
         prompt: 'Đoạn văn: "小李每天早晨坚持跑步五公里，风雨无阻。所以他的身体非常健康。" ★ Nhận định: Tiểu Lý rất ít khi tập thể dục.',
-        options: ['对 (Đúng)', '错 (Sai - Tiểu Lý chạy bộ mỗi ngày)'],
+        options: ['对 (Đúng)', '错 (Sai)'],
         correct: 1,
         explain: 'Tiểu Lý chạy bộ mỗi sáng 5km nên nhận định "ít tập thể dục" là Sai.'
       },
       {
         prompt: 'Đoạn văn: "这家咖啡馆的咖啡味道香浓，服务员态度也很好，就是价格稍微有点儿贵。" ★ Nhận định: Quán cà phê này có giá cả rất rẻ.',
-        options: ['对 (Đúng)', '错 (Sai - Giá hơi đắt một chút)'],
+        options: ['对 (Đúng)', '错 (Sai)'],
         correct: 1,
         explain: 'Bài nói "价格稍微有点儿贵" (giá hơi đắt) nên nhận định rẻ là Sai.'
       },
@@ -327,10 +327,10 @@ export const hsk2PracticeTopics = [
       {
         prompt: 'Chọn câu so sánh chữ "比" đúng chuẩn ngữ pháp:',
         options: [
-          '哥哥比我高五厘米。(Anh trai cao hơn tôi 5 cm.)',
-          '哥哥比我很长。(Sai)',
-          '我比哥哥高五厘米。（Nghĩa ngược lại）',
-          '比哥哥我高五厘米。(Sai trật tự)'
+          '哥哥比我高五厘米。',
+          '哥哥比我很长。',
+          '我比哥哥高五厘米。',
+          '比哥哥我高五厘米。'
         ],
         correct: 0,
         explain: 'Cấu trúc so sánh: A + 比 + B + Tính từ + Lượng từ sai biệt ("哥哥比我高五厘米").'
@@ -391,10 +391,10 @@ export const hsk2PracticeTopics = [
       {
         prompt: 'Chọn câu dùng phó từ "再" (lại trong tương lai) chính xác:',
         options: [
-          '明天我们再去那家饭馆吃烤鸭。(Ngày mai chúng ta lại đến quán đó ăn vịt quay nhé.)',
-          '昨天他再去了。(Sai - quá khứ dùng 又)',
-          '再见是他。(Sai)',
-          '我再吃了饭昨天。(Sai)'
+          '明天我们再去那家饭馆吃烤鸭。',
+          '昨天他再去了。',
+          '再见是他。',
+          '我再吃了饭昨天。'
         ],
         correct: 0,
         explain: '"再" biểu thị hành động lặp lại chưa xảy ra (trong tương lai).'
@@ -431,10 +431,10 @@ export const hsk2PracticeTopics = [
       {
         prompt: 'Chọn câu diễn tả sự thay đổi trạng thái với trợ từ "了":',
         options: [
-          '春天来了，花儿都开了。(Mùa xuân đến rồi, hoa đều nở rồi.)',
-          '春天是花。(Sai)',
-          '花开春天。(Sai)',
-          '了春天开花。(Sai)'
+          '春天来了，花儿都开了。',
+          '春天是花。',
+          '花开春天。',
+          '了春天开花。'
         ],
         correct: 0,
         explain: 'Trợ từ ngữ khí "了" ở cuối câu biểu thị sự xuất hiện trạng thái/tình hình mới.'
@@ -460,10 +460,10 @@ export const hsk2PracticeTopics = [
       {
         prompt: 'Chọn câu dùng phó từ "可能" (có thể / có lẽ) đúng vị trí:',
         options: [
-          '明天可能会下雪。(Ngày mai có lẽ sẽ đổ tuyết.)',
-          '明天会下雪可能。(Sai)',
-          '可能明天会下雪。(Cũng đúng nhưng trước động từ là chuẩn nhất)',
-          '下雪可能会明天。(Sai)'
+          '明天可能会下雪。',
+          '明天会下雪可能。',
+          '可能明天会下雪。',
+          '下雪可能会明天。'
         ],
         correct: 0,
         explain: '"可能" thường đứng trước vị ngữ biểu thị phán đoán suy đoán.'

@@ -6,6 +6,15 @@ import { buildVocabPracticeTopics } from '../data/vocabPracticeBuilder';
 import { fetchVocabularies, addGameRewardXp } from '../services/supabaseService';
 import { HSK_LEVELS } from '../data/hskVocabularyData';
 
+// Sanitize option text to strip any giveaway comments or notes
+const cleanOptionText = (text) => {
+  if (typeof text !== 'string') return text;
+  if (text.startsWith('错 (Sai')) return '错 (Sai)';
+  return text
+    .replace(/\s*[\(（](Sai|Sai trật tự|Sai ngữ pháp|Sai cấu trúc|Nghĩa ngược|Ít tự nhiên)[^\)）]*[\)）]/gi, '')
+    .trim();
+};
+
 export const PracticeView = () => {
   const { user, setIsAuthModalOpen } = useAuth();
 
@@ -503,8 +512,8 @@ export const PracticeView = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '260px', overflowY: 'auto', paddingRight: '4px' }}>
                       {wrongAnswers.map((item, idx) => {
                         const q = item.question;
-                        const userChoice = q.options[item.selectedOption] || 'Chưa chọn';
-                        const correctChoice = q.options[q.correct] || '';
+                        const userChoice = cleanOptionText(q.options[item.selectedOption]) || 'Chưa chọn';
+                        const correctChoice = cleanOptionText(q.options[q.correct]) || '';
 
                         return (
                           <div
@@ -799,7 +808,7 @@ export const PracticeView = () => {
                                 {String.fromCharCode(65 + idx)}
                               </span>
                               <span style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: 600 }}>
-                                {opt}
+                                {cleanOptionText(opt)}
                               </span>
                             </div>
                             {isAnswered && isCorrect && (

@@ -327,10 +327,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu chữ "把" (bǎ) có cấu trúc chuẩn xác nhất:',
         options: [
-          '请把空调关上。(Qǐng bǎ kōngtiáo guān shang - Xin hãy tắt điều hòa đi.)',
-          '请把关上空调。(Sai)',
-          '空调把请关上。(Sai)',
-          '关上空调请把。(Sai)'
+          '请把空调关上。',
+          '请把关上空调。',
+          '空调把请关上。',
+          '关上空调请把。'
         ],
         correct: 0,
         explain: 'Cấu trúc câu chữ 把: S + 把 + O (đối tượng chịu tác động) + V + Bổ ngữ kết quả/xu hướng ("把空调关上").'
@@ -338,10 +338,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu bị động chữ "被" (bèi) chuẩn xác:',
         options: [
-          '桌子上的蛋糕被弟弟吃了。(Bánh trên bàn bị em trai ăn mất rồi.)',
-          '弟弟被蛋糕吃了。(Nghĩa ngược vô lý)',
-          '蛋糕吃了被弟弟。(Sai ngữ pháp)',
-          '被弟弟吃了蛋糕。(Sai)'
+          '桌子上的蛋糕被弟弟吃了。',
+          '弟弟被蛋糕吃了。',
+          '蛋糕吃了被弟弟。',
+          '被弟弟吃了蛋糕。'
         ],
         correct: 0,
         explain: 'Cấu trúc câu bị động: Chủ thể bị tác động (蛋糕) + 被 + Chủ thể gây ra (弟弟) + V + 了 (吃了).'
@@ -367,10 +367,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu có bổ ngữ trình độ/trạng thái với chữ "得" chuẩn xác:',
         options: [
-          '他汉字写得非常漂亮。(Chữ Hán của anh ấy viết rất đẹp.)',
-          '他非常写汉字得漂亮。(Sai)',
-          '汉字他漂亮写得。(Sai)',
-          '写得漂亮他汉字。(Sai)'
+          '他汉字写得非常漂亮。',
+          '他非常写汉字得漂亮。',
+          '汉字他漂亮写得。',
+          '写得漂亮他汉字。'
         ],
         correct: 0,
         explain: 'Cấu trúc: S + (O) + V + 得 + Phó từ + Tính từ ("他汉字写得非常漂亮").'
@@ -422,10 +422,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu dùng phó từ "越……越……" (càng... càng...) đúng ngữ pháp:',
         options: [
-          '风越刮越大，雨越下越急。(Gió càng thổi càng to, mưa càng đổ càng dồn dập.)',
-          '风越大越刮。(Sai)',
-          '越来越风大。(Sai)',
-          '越风越雨。(Sai)'
+          '风越刮越大，雨越下越急。',
+          '风越大越刮。',
+          '越来越风大。',
+          '越风越雨。'
         ],
         correct: 0,
         explain: 'Cấu trúc "越 + Động từ/Tính từ + 越 + Tính từ": 越刮越大.'
@@ -439,10 +439,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu dùng giới từ "除了……以外，还/都……" chuẩn xác:',
         options: [
-          '除了小王以外，大家都按时到了。(Ngoại trừ Tiểu Vương ra, mọi người đều đến đúng giờ.)',
-          '除大家小王都到了。(Sai)',
-          '到了大家都除了小王。(Sai)',
-          '除了大家都到了小王。(Sai)'
+          '除了小王以外，大家都按时到了。',
+          '除大家小王都到了。',
+          '到了大家都除了小王。',
+          '除了大家都到了小王。'
         ],
         correct: 0,
         explain: 'Cấu trúc loại trừ: 除了 A 以外，(B) 都...'
@@ -462,10 +462,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu biểu thị cấu trúc "càng ngày càng..." chuẩn xác:',
         options: [
-          '北京的天气越来越冷了。(Thời tiết Bắc Kinh càng ngày càng lạnh rồi.)',
-          '北京越来越天气冷。(Sai)',
-          '冷越来越北京天气。(Sai)',
-          '天气冷越来越北京。(Sai)'
+          '北京的天气越来越冷了。',
+          '北京越来越天气冷。',
+          '冷越来越北京天气。',
+          '天气冷越来越北京。'
         ],
         correct: 0,
         explain: 'Cấu trúc "越来越 + Tính từ": 越来越冷.'
@@ -491,10 +491,10 @@ export const hsk3PracticeTopics = [
       {
         prompt: 'Chọn câu có trợ từ ngữ khí "吧" dùng để suy đoán hoặc cầu khiến:',
         options: [
-          '你也是大三的学生吧？(Bạn cũng là sinh viên năm 3 đúng không nhỉ?)',
-          '你去了哪儿吧？(Sai)',
-          '谁是谁吧？(Sai)',
-          '什么是汉字吧？(Sai)'
+          '你也是大三的学生吧？',
+          '你去了哪儿吧？',
+          '谁是谁吧？',
+          '什么是汉字吧？'
         ],
         correct: 0,
         explain: 'Trợ từ "吧" cuối câu dùng để đưa ra phỏng đoán có căn cứ hoặc đề nghị nhẹ nhàng.'
