@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streakUtils';
-import { LEADERBOARD_DATA } from '../data/gamificationData';
 
 // ==========================================
 // 1. AUTHENTICATION & USERS (Supabase Direct)
@@ -790,23 +789,7 @@ export async function deleteToneItem(id) {
 }
 
 export async function fetchLeaderboard() {
-  // 1. Base list of students from curated LEADERBOARD_DATA
-  const baseEntries = [];
-  if (LEADERBOARD_DATA?.byClass) {
-    Object.entries(LEADERBOARD_DATA.byClass).forEach(([clsId, students]) => {
-      (students || []).forEach((st) => {
-        baseEntries.push({
-          ...st,
-          classId: st.classId || clsId,
-          classroom_id: st.classroom_id || clsId,
-          user_name: st.name,
-          score: st.xp || 0
-        });
-      });
-    });
-  }
-
-  // 2. Query Supabase for live users, streaks, submissions, classrooms
+  // Query Supabase for real users, real streaks, real submissions, real classrooms
   let liveStreaks = [];
   let liveSubmissions = [];
   let liveUsers = [];
@@ -829,40 +812,48 @@ export async function fetchLeaderboard() {
 
   const entryMap = new Map();
 
-  // Populate base entries
-  baseEntries.forEach((entry) => {
-    entryMap.set(entry.id || entry.name, { ...entry });
-  });
-
-  // Populate students from live classrooms
+  // 1. Populate real enrolled students from classrooms
   liveClassrooms.forEach((cls) => {
     const students = Array.isArray(cls.students) ? cls.students : [];
     students.forEach((st) => {
       const key = st.id || st.username || st.name;
-      const existing = entryMap.get(key) || {};
+      if (!key) return;
+
+      const userStreak = liveStreaks.find((s) => s.user_id === st.id);
+      const userSubs = liveSubmissions.filter(
+        (s) => s.student_id === st.id || s.student_name === st.name || s.student_name === st.username
+      );
+      const streakXp = userStreak?.total_xp || 0;
+      const subsXp = userSubs.reduce((acc, sub) => acc + (Number(sub.score) || 0) * 10, 0);
+      const totalXp = streakXp + subsXp + (Number(st.score) || 0);
+
       entryMap.set(key, {
-        id: key,
+        id: st.id || key,
         name: st.name || st.username || 'Học viên',
         user_name: st.name || st.username || 'Học viên',
-        chineseName: st.chineseName || '',
+        chineseName: st.chineseName || st.chinese_name || '',
         avatar: st.avatar || (st.name ? st.name.slice(0, 1) : '学'),
         avatarBg: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
         level: cls.level || 'HSK 1',
-        badge: 'Học viên lớp ' + (cls.name || ''),
-        xp: existing.xp || 1200,
-        score: existing.score || existing.xp || 1200,
+        badge: 'Lớp ' + (cls.name || ''),
+        xp: totalXp,
+        score: totalXp,
+        points: totalXp,
         classId: cls.id,
         classroom_id: cls.id,
-        completionRate: 85,
-        teacherGrade: 9.0
+        completionRate: userSubs.length > 0 ? 100 : 0,
+        teacherGrade: userSubs.length > 0 ? 10 : null,
+        lessonsCompleted: userSubs.length
       });
     });
   });
 
-  // Calculate live XP from streaks and submissions for real users in database
+  // 2. Add real student accounts from Supabase users table
   liveUsers.forEach((u) => {
-    if (u.role !== 'student') return;
+    if (u.role !== 'student') return; // Only rank students
     const key = u.id || u.username;
+    if (!key) return;
+
     const userStreak = liveStreaks.find((s) => s.user_id === u.id);
     const userSubs = liveSubmissions.filter(
       (s) => s.student_id === u.id || s.student_name === u.full_name || s.student_name === u.username
@@ -870,7 +861,7 @@ export async function fetchLeaderboard() {
 
     const streakXp = userStreak?.total_xp || 0;
     const subsXp = userSubs.reduce((acc, sub) => acc + (Number(sub.score) || 0) * 10, 0);
-    const calculatedXp = Math.max(streakXp + subsXp, 50);
+    const calculatedXp = streakXp + subsXp;
 
     const existing = entryMap.get(key) || entryMap.get(u.full_name) || entryMap.get(u.username) || {};
 
@@ -886,24 +877,25 @@ export async function fetchLeaderboard() {
     entryMap.set(key, {
       ...existing,
       id: u.id,
-      name: u.full_name || u.username,
-      user_name: u.full_name || u.username,
+      name: u.full_name || u.username || 'Học viên',
+      user_name: u.full_name || u.username || 'Học viên',
       chineseName: u.chinese_name || existing.chineseName || '',
       avatar: u.avatar || (u.full_name ? u.full_name.slice(0, 1) : '学'),
       avatarBg: existing.avatarBg || 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
       level: existing.level || 'HSK 1',
-      badge: existing.badge || 'Học viên chăm chỉ 🌟',
+      badge: existing.badge || 'Học viên',
       xp: Math.max(existing.xp || 0, calculatedXp),
       score: Math.max(existing.score || 0, calculatedXp),
+      points: Math.max(existing.points || 0, calculatedXp),
       classId: userClassId,
       classroom_id: userClassId,
-      completionRate: existing.completionRate || (userSubs.length > 0 ? 100 : 60),
-      teacherGrade: existing.teacherGrade || (userSubs.length > 0 ? 9.5 : null),
+      completionRate: existing.completionRate || (userSubs.length > 0 ? 100 : 0),
+      teacherGrade: existing.teacherGrade || (userSubs.length > 0 ? 10 : null),
       lessonsCompleted: Math.max(existing.lessonsCompleted || 0, userSubs.length)
     });
   });
 
-  // 3. Inject currently logged-in user from localStorage
+  // 3. Add currently logged-in student user from localStorage
   try {
     const rawUser = localStorage.getItem('hanzify_user');
     if (rawUser) {
@@ -917,7 +909,7 @@ export async function fetchLeaderboard() {
         const key = localUser.id || localUser.username || 'current-user';
         const existing = entryMap.get(key) || entryMap.get(localUser.name) || entryMap.get(localUser.full_name) || {};
 
-        const totalXp = Math.max(existing.xp || 0, streakXp, 50);
+        const totalXp = Math.max(existing.xp || 0, streakXp);
 
         let userClassId = localUser.classId || (Array.isArray(localUser.classIds) && localUser.classIds[0]) || existing.classId;
         if (!userClassId && liveClassrooms.length > 0) {
@@ -934,17 +926,17 @@ export async function fetchLeaderboard() {
           name: localUser.full_name || localUser.name || localUser.username || 'Bạn',
           user_name: localUser.full_name || localUser.name || localUser.username || 'Bạn',
           chineseName: localUser.chinese_name || localUser.chineseName || '',
-          avatar: localUser.avatar || '安',
-          avatarBg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-          level: localUser.level || 'HSK 1',
+          avatar: localUser.avatar || (localUser.full_name ? localUser.full_name.slice(0, 1) : '学'),
+          avatarBg: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+          level: localUser.level || existing.level || 'HSK 1',
           badge: 'Học viên tích cực 🔥',
           xp: totalXp,
           score: totalXp,
           points: totalXp,
           classId: userClassId,
           classroom_id: userClassId,
-          completionRate: existing.completionRate || 100,
-          teacherGrade: existing.teacherGrade || 9.8,
+          completionRate: existing.completionRate || (totalXp > 0 ? 100 : 0),
+          teacherGrade: existing.teacherGrade || (totalXp > 0 ? 10 : null),
           isCurrentUser: true
         });
       }
@@ -953,7 +945,7 @@ export async function fetchLeaderboard() {
     console.error('Error injecting local user into leaderboard:', e);
   }
 
-  // Sort descending by XP
+  // Sort descending by real XP
   const resultList = Array.from(entryMap.values())
     .sort((a, b) => (b.xp || 0) - (a.xp || 0))
     .map((item, idx) => ({
