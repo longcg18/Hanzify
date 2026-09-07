@@ -929,56 +929,81 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
           <div style={{
             background: '#fff',
             border: '1.5px solid #fee2e2',
-            borderRadius: '20px',
-            padding: '1rem 1.5rem',
-            marginBottom: '1.5rem',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.03)',
+            borderRadius: '16px',
+            padding: '0.75rem 1.25rem',
+            marginBottom: '1rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1rem'
+            flexDirection: 'column',
+            gap: '0.65rem'
           }}>
-            <button
-              type="button"
-              onClick={() => setActiveGame(null)}
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #cbd5e1',
-                padding: '0.5rem 1.1rem',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                color: '#475569',
-                fontSize: '0.86rem',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'all 0.15s'
-              }}
-            >
-              <i className="fa-solid fa-arrow-left"></i>
-              <span>Đổi Game Khác</span>
-            </button>
+            {/* Row 1: Back Button, Game Title, Quick Reset */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveGame(null)}
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.4rem 0.9rem',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <i className="fa-solid fa-arrow-left"></i>
+                  <span>Đổi Game Khác</span>
+                </button>
 
-            {/* Current Game Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.4rem' }}>
-                {GAMES_CATALOG.find((g) => g.id === activeGame)?.icon}
-              </span>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>
-                  {GAMES_CATALOG.find((g) => g.id === activeGame)?.title}
-                </h3>
-                <div style={{ fontSize: '0.78rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>
-                  {GAMES_CATALOG.find((g) => g.id === activeGame)?.chineseTitle}
+                {/* Current Game Title */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>
+                    {GAMES_CATALOG.find((g) => g.id === activeGame)?.icon}
+                  </span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>
+                      {GAMES_CATALOG.find((g) => g.id === activeGame)?.title}
+                    </h3>
+                    <div style={{ fontSize: '0.72rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>
+                      {GAMES_CATALOG.find((g) => g.id === activeGame)?.chineseTitle}
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Quick Reset Button */}
+              <button
+                type="button"
+                onClick={() => handleSelectGame(activeGame, currentGameLevel)}
+                style={{
+                  background: 'rgba(161, 29, 36, 0.08)',
+                  border: 'none',
+                  padding: '0.4rem 0.9rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  color: '#A11D24',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <i className="fa-solid fa-rotate-right"></i>
+                <span>Chơi Lại</span>
+              </button>
             </div>
 
-            {/* Level Switcher in Runner with difficulty points badges */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
+            {/* Row 2: Level Switcher in Runner with difficulty points badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', borderTop: '1px solid #f8fafc', paddingTop: '0.45rem' }}>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
               {HSK_LEVELS.map((lvl) => {
                 const r = GAME_DIFFICULTY_REWARDS[lvl];
                 const isActive = currentGameLevel === lvl;
@@ -989,27 +1014,27 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     onClick={() => handleLevelChangeInRunner(lvl)}
                     title={`Độ khó: ${r.label} - Thưởng ${r.tag}`}
                     style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '8px',
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '7px',
                       border: isActive ? '1.5px solid #A11D24' : '1px solid #cbd5e1',
                       background: isActive ? '#A11D24' : '#fff',
                       color: isActive ? '#fff' : '#475569',
-                      fontSize: '0.82rem',
+                      fontSize: '0.78rem',
                       fontWeight: isActive ? 700 : 600,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.35rem',
+                      gap: '0.3rem',
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{lvl}</span>
                     <span style={{
-                      fontSize: '0.7rem',
+                      fontSize: '0.68rem',
                       background: isActive ? 'rgba(255,255,255,0.22)' : r.badgeBg,
                       color: isActive ? '#ffffff' : r.badgeColor,
-                      padding: '1px 6px',
-                      borderRadius: '6px',
+                      padding: '1px 5px',
+                      borderRadius: '5px',
                       fontWeight: 700
                     }}>
                       {r.tag}
@@ -1018,28 +1043,6 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                 );
               })}
             </div>
-
-            {/* Quick Reset Button */}
-            <button
-              type="button"
-              onClick={() => handleSelectGame(activeGame, currentGameLevel)}
-              style={{
-                background: 'rgba(161, 29, 36, 0.08)',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                color: '#A11D24',
-                fontSize: '0.84rem',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              <i className="fa-solid fa-rotate-right"></i>
-              <span>Chơi Lại</span>
-            </button>
           </div>
 
           {/* ================= RUNNER: GAME 1 MEMORY MATCH ================= */}
@@ -1256,25 +1259,26 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
           {/* ================= RUNNER: GAME 3 SPEED WORD MATCH ================= */}
           {activeGame === 'speed-match' && (
-            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '18px', padding: '1.1rem 1.4rem', boxShadow: '0 8px 25px rgba(0,0,0,0.03)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Điểm số ({currentGameLevel}):</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2563eb' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Điểm số ({currentGameLevel}):</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb' }}>
                     {speedScore} điểm
                   </div>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  Đã ghép: <strong>{speedMatchedIds.length} / {currentSpeedPairs.length}</strong>
+                <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  Đã ghép: <strong style={{ color: '#0f172a' }}>{speedMatchedIds.length} / {currentSpeedPairs.length}</strong>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '0.75rem' }}>
                 {/* Hanzi Column (Cột Chữ Hán) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ 
+                    minHeight: '26px',
                     fontWeight: 700, 
-                    fontSize: '0.85rem', 
+                    fontSize: '0.82rem', 
                     color: selectedHanzi ? '#64748b' : '#0f172a', 
                     textTransform: 'uppercase',
                     display: 'flex',
@@ -1299,8 +1303,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                         type="button"
                         onClick={() => handleHanziSelect(item)}
                         style={{
-                          padding: '1rem',
-                          borderRadius: '12px',
+                          height: '46px',
+                          padding: '0 1rem',
+                          borderRadius: '10px',
                           border: isMatched 
                             ? '2px solid #22c55e' 
                             : isSelected 
@@ -1323,33 +1328,37 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                                 ? '#94a3b8' 
                                 : '#0f172a',
                           fontWeight: 700,
-                          fontSize: '1.18rem',
+                          fontSize: '1.15rem',
                           fontFamily: 'Noto Serif SC, serif',
                           cursor: isMatched ? 'default' : 'pointer',
-                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          boxSizing: 'border-box',
                           opacity: isDimmed ? 0.38 : 1,
                           filter: isDimmed ? 'grayscale(50%)' : 'none',
-                          transform: isSelected ? 'scale(1.02)' : 'none',
+                          transform: isSelected ? 'scale(1.015)' : 'none',
                           boxShadow: isSelected 
-                            ? '0 0 16px rgba(37, 99, 235, 0.35)' 
+                            ? '0 0 12px rgba(37, 99, 235, 0.28)' 
                             : isMatched 
                               ? 'none' 
-                              : '0 2px 6px rgba(0,0,0,0.02)',
-                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-                          position: 'relative'
+                              : '0 1px 3px rgba(0,0,0,0.02)',
+                          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                         }}
                       >
-                        {item.hanzi} {isMatched && '✓'}
+                        <span>{item.hanzi}</span>
+                        {isMatched && <span style={{ fontSize: '0.9rem', color: '#16a34a' }}>✓</span>}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Meanings Column (Cột Nghĩa Tiếng Việt - Sáng lên khi đã chọn chữ Hán) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Meanings Column (Cột Nghĩa Tiếng Việt) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ 
+                    minHeight: '26px',
                     fontWeight: 800, 
-                    fontSize: '0.85rem', 
+                    fontSize: '0.82rem', 
                     color: selectedHanzi ? '#1d4ed8' : '#94a3b8', 
                     textTransform: 'uppercase',
                     display: 'flex',
@@ -1386,9 +1395,11 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                         key={item.id}
                         type="button"
                         onClick={() => handleMeanSelect(item)}
+                        title={item.mean}
                         style={{
-                          padding: '1rem',
-                          borderRadius: '12px',
+                          height: '46px',
+                          padding: '0 1rem',
+                          borderRadius: '10px',
                           border: isMatched 
                             ? '2px solid #22c55e' 
                             : isWrong 
@@ -1411,24 +1422,30 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                                 ? '#1e3a8a' 
                                 : '#94a3b8',
                           fontWeight: isReadyToMatch ? 700 : 600,
-                          fontSize: '0.94rem',
+                          fontSize: '0.9rem',
                           cursor: isMatched ? 'default' : isReadyToMatch ? 'pointer' : 'not-allowed',
-                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          boxSizing: 'border-box',
                           opacity: isMatched ? 0.9 : isReadyToMatch ? 1 : 0.45,
                           boxShadow: isWrong 
-                            ? '0 0 14px rgba(239, 68, 68, 0.4)' 
+                            ? '0 0 12px rgba(239, 68, 68, 0.35)' 
                             : isReadyToMatch 
-                              ? '0 4px 16px rgba(59, 130, 246, 0.22)' 
+                              ? '0 2px 10px rgba(59, 130, 246, 0.18)' 
                               : 'none',
                           transform: isWrong 
                             ? 'translateX(4px)' 
                             : isReadyToMatch 
-                              ? 'translateY(-2px)' 
+                              ? 'translateY(-1px)' 
                               : 'none',
-                          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+                          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                         }}
                       >
-                        {item.mean} {isMatched && '✓'}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.mean}
+                        </span>
+                        {isMatched && <span style={{ fontSize: '0.9rem', color: '#16a34a' }}>✓</span>}
                       </button>
                     );
                   })}
