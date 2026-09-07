@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { fetchLessonQuestions, submitHomeworkToSupabase } from '../services/supabaseService';
+import { fetchLessonQuestions, submitHomeworkToSupabase, uploadMediaToSupabase } from '../services/supabaseService';
 import { useAuth } from '../context/AuthContext';
 
 export const HomeworkView = ({ lesson, onBack }) => {
@@ -25,13 +25,19 @@ export const HomeworkView = ({ lesson, onBack }) => {
   // Q4 Dynamic Reading Answers (2 options True/False, 3 options, 4 options)
   const [q4Answers, setQ4Answers] = useState({});
 
-  // Q5 Voice Recording State
+  // Q5 Real Voice Recording State (MediaRecorder)
   const [q5Recorded, setQ5Recorded] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState('00:00');
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
+  const [micError, setMicError] = useState('');
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const recordIntervalRef = useRef(null);
 
   // Q6 Writing 7A: Handwritten Photo
+  const [q6File, setQ6File] = useState(null);
   const [q6Photo, setQ6Photo] = useState(null);
 
   // Q7 Writing 7B: Essay Textarea with Character Counter
@@ -42,6 +48,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioSpeed, setAudioSpeed] = useState(1.0);
   const [audioTime, setAudioTime] = useState('00:00');
+  const [uploadStatusMsg, setUploadStatusMsg] = useState('');
 
   // Submission Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,31 +124,109 @@ export const HomeworkView = ({ lesson, onBack }) => {
     setQ3Words(q3Words.filter((w) => w.id !== chipId));
   };
 
-  // Q5 Voice Recorder
-  const startRecording = () => {
-    setRecording(true);
-    let sec = 0;
-    recordIntervalRef.current = setInterval(() => {
-      sec++;
-      const m = Math.floor(sec / 60).toString().padStart(2, '0');
-      const s = (sec % 60).toString().padStart(2, '0');
-      setRecordingTime(`${m}:${s}`);
-    }, 1000);
+  // Q5 Real Voice Recorder (MediaRecorder API)
+  const startRecording = async () => {
+    setMicError('');
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Trình duyệt không hỗ trợ ghi âm trực tiếp.');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      let mimeType = 'audio/webm';
+      if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+        else if (MediaRecorder.isTypeSupported('audio/ogg')) mimeType = 'audio/ogg';
+        else mimeType = '';
+      }
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const actualMime = recorder.mimeType || 'audio/webm';
+        const recordedBlob = new Blob(audioChunksRef.current, { type: actualMime });
+        setAudioBlob(recordedBlob);
+
+        if (audioPreviewUrl) {
+          URL.revokeObjectURL(audioPreviewUrl);
+        }
+        const preview = URL.createObjectURL(recordedBlob);
+        setAudioPreviewUrl(preview);
+        setQ5Recorded(true);
+
+        // Turn off microphone light/tracks
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start(200); // 200ms slice
+      setRecording(true);
+
+      let sec = 0;
+      setRecordingTime('00:00');
+      if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
+      recordIntervalRef.current = setInterval(() => {
+        sec++;
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        setRecordingTime(`${m}:${s}`);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone error:', err);
+      setMicError('Không thể truy cập Micro. Vui lòng cho phép quyền micro trong trình duyệt để ghi âm.');
+      setRecording(false);
+    }
   };
 
   const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     setRecording(false);
-    clearInterval(recordIntervalRef.current);
-    setQ5Recorded(true);
+    if (recordIntervalRef.current) {
+      clearInterval(recordIntervalRef.current);
+    }
+  };
+
+  const resetRecording = () => {
+    stopRecording();
+    if (audioPreviewUrl) {
+      URL.revokeObjectURL(audioPreviewUrl);
+    }
+    setAudioBlob(null);
+    setAudioPreviewUrl(null);
+    setQ5Recorded(false);
+    setRecordingTime('00:00');
+    setMicError('');
   };
 
   // Q6 Photo Upload Handler
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (q6Photo?.url) {
+        URL.revokeObjectURL(q6Photo.url);
+      }
       const url = URL.createObjectURL(file);
+      setQ6File(file);
       setQ6Photo({ name: file.name, url, size: (file.size / (1024 * 1024)).toFixed(2) });
     }
+  };
+
+  const handleRemovePhoto = () => {
+    if (q6Photo?.url) {
+      URL.revokeObjectURL(q6Photo.url);
+    }
+    setQ6File(null);
+    setQ6Photo(null);
   };
 
   // Calculate Progress across 7 components
@@ -157,7 +242,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
   const totalParts = 7;
   const progressPercent = Math.round((answeredCount / totalParts) * 100);
 
-  // Submit Homework
+  // Submit Homework with Real Supabase Storage Upload
   const handleSubmit = async () => {
     if (!user) {
       setIsAuthModalOpen(true);
@@ -175,31 +260,66 @@ export const HomeworkView = ({ lesson, onBack }) => {
 
     setFinalScore(score);
 
+    let uploadedAudioUrl = null;
+    let uploadedPhotoUrl = null;
+
     try {
-      const formData = new FormData();
-      formData.append('lesson_id', lesson?.id || 'lesson-4');
-      formData.append('student_id', user?.id || 'user-student-1');
-      formData.append('student_name', user?.name || 'Học viên');
-      formData.append(
-        'answers_json',
-        JSON.stringify({
+      // 1. Upload audio recording to Supabase Storage if recorded
+      if (audioBlob) {
+        setUploadStatusMsg('Đang tải file ghi âm lên Supabase Storage...');
+        uploadedAudioUrl = await uploadMediaToSupabase(
+          audioBlob,
+          'homework-audio',
+          `voice_${user.id || 'student'}.webm`
+        );
+      }
+
+      // 2. Upload photo to Supabase Storage if attached
+      if (q6File) {
+        setUploadStatusMsg('Đang tải ảnh bài viết lên Supabase Storage...');
+        uploadedPhotoUrl = await uploadMediaToSupabase(
+          q6File,
+          'homework-photos',
+          q6File.name
+        );
+      }
+
+      // 3. Save submission payload to Supabase database
+      setUploadStatusMsg('Đang lưu kết quả nộp bài...');
+      const submissionData = {
+        lessonId: lesson?.id || 'lesson-4',
+        studentId: user?.id || 'user-student-1',
+        studentName: user?.name || user?.full_name || 'Học viên',
+        answers: {
           q1Answer,
           q2Answer,
           q3Words: q3Words.map((w) => w.word),
+          q3Sentence: q3Words.map((w) => w.word).join(''),
           q4Answers,
-          q5Recorded,
+          q5Recorded: !!uploadedAudioUrl || q5Recorded,
+          q5AudioUrl: uploadedAudioUrl,
+          q5AudioText: '老板，这件红色的衣服太贵了，便宜一点儿吧！',
           q6Handwriting: q6Photo?.name,
+          q6HandwritingUrl: uploadedPhotoUrl,
+          q6HandwritingImage: uploadedPhotoUrl,
           q7Essay: q7EssayText,
+          q7EssayText: q7EssayText,
           q7CharCount: q7EssayText.trim().length,
           autoGradedScore: score
-        })
-      );
-      await submitHomeworkApi(formData);
+        }
+      };
+
+      const result = await submitHomeworkToSupabase(submissionData);
+      if (!result.success) {
+        console.warn('Lưu bài tập Supabase trả về lỗi, chuyển trạng thái offline.');
+      }
     } catch (e) {
-      console.log('Saved to local state (offline mode)');
+      console.error('Lỗi khi tải file hoặc nộp bài tập:', e);
+    } finally {
+      setIsSubmitting(false);
+      setUploadStatusMsg('');
     }
 
-    setIsSubmitting(false);
     setIsModalOpen(true);
 
     confetti({
@@ -512,22 +632,55 @@ export const HomeworkView = ({ lesson, onBack }) => {
               <div className="hw-sentence-pinyin">Lǎobǎn, zhè jiàn hóngsè de yīfu tài guì le, piányi yìdiǎnr ba!</div>
             </div>
 
-            <div className="hw-recorder-row">
-              {!recording ? (
-                <button type="button" className="hw-rec-btn start" onClick={startRecording}>
-                  <i className="fa-solid fa-microphone"></i>
-                  {q5Recorded ? 'Thu âm lại' : 'Bắt đầu ghi âm'}
-                </button>
-              ) : (
-                <button type="button" className="hw-rec-btn stop" onClick={stopRecording}>
-                  <span className="hw-rec-dot"></span>
-                  <i className="fa-solid fa-stop"></i>
-                  Dừng thu âm ({recordingTime})
-                </button>
+            <div className="hw-recorder-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {!recording ? (
+                  <button type="button" className="hw-rec-btn start" onClick={startRecording}>
+                    <i className="fa-solid fa-microphone"></i>
+                    {q5Recorded ? 'Thu âm lại' : 'Bắt đầu ghi âm'}
+                  </button>
+                ) : (
+                  <button type="button" className="hw-rec-btn stop" onClick={stopRecording}>
+                    <span className="hw-rec-dot"></span>
+                    <i className="fa-solid fa-stop"></i>
+                    Dừng thu âm ({recordingTime})
+                  </button>
+                )}
+                {q5Recorded && !recording && (
+                  <button
+                    type="button"
+                    onClick={resetRecording}
+                    style={{
+                      background: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: '10px',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      color: '#475569',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <i className="fa-solid fa-trash-can"></i> Xóa bản thu
+                  </button>
+                )}
+              </div>
+
+              {micError && (
+                <div style={{ color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.6rem 0.9rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                  <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: '6px' }}></i>
+                  {micError}
+                </div>
               )}
-              {q5Recorded && !recording && (
-                <div className="hw-rec-status">
-                  <i className="fa-solid fa-circle-check"></i> Đã lưu bản ghi âm ({recordingTime}) gửi cô chấm!
+
+              {q5Recorded && !recording && audioPreviewUrl && (
+                <div style={{ width: '100%', maxWidth: '440px', background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <i className="fa-solid fa-circle-check"></i> Đã thu âm ({recordingTime}). Bạn có thể nghe lại trước khi nộp:
+                  </div>
+                  <audio controls src={audioPreviewUrl} style={{ width: '100%', height: '36px' }} />
                 </div>
               )}
             </div>
@@ -570,7 +723,31 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 <span className="hw-upload-sub">Hỗ trợ JPG, PNG, HEIC chụp từ điện thoại</span>
               </label>
               {q6Photo && (
-                <img src={q6Photo.url} alt="Xem trước bài viết" className="hw-preview-img" />
+                <div style={{ marginTop: '0.75rem', position: 'relative', display: 'inline-block' }}>
+                  <img src={q6Photo.url} alt="Xem trước bài viết" className="hw-preview-img" style={{ maxHeight: '240px', borderRadius: '10px' }} />
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'rgba(0,0,0,0.65)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Xóa ảnh này"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -585,26 +762,26 @@ export const HomeworkView = ({ lesson, onBack }) => {
             {q7EssayText.trim().length >= 30 && <div className="hw-answered-badge"><i className="fa-solid fa-circle-check"></i> Đã viết</div>}
           </div>
           <div className="hw-qcard-body">
-            <h2 className="hw-instruction">Gõ một đoạn văn ngắn (tối thiểu 50 chữ Hán) kể về một lần đi mua sắm gần nhất:</h2>
+            <h2 className="hw-instruction">
+              Dựa vào các từ vựng đã học ở Bài 04, hãy viết một đoạn văn ngắn (tối thiểu {minEssayChars} chữ) kể về một lần em đi mua đồ ở siêu thị:
+            </h2>
 
-            <div className="hw-essay-grid">
-              <div>
-                <textarea
-                  rows="6"
-                  className="hw-essay-textarea"
-                  value={q7EssayText}
-                  onChange={(e) => setQ7EssayText(e.target.value)}
-                  placeholder="Ví dụ: 上个星期天，我和朋友去超市买东西。我们买了苹果和西瓜..."
-                />
-                <div className="hw-essay-counter-row">
-                  <span className={`hw-essay-counter-msg ${q7EssayText.trim().length >= minEssayChars ? 'ok' : 'warn'}`}>
-                    {q7EssayText.trim().length >= minEssayChars
-                      ? `✓ Đã đạt độ dài yêu cầu (${q7EssayText.trim().length} chữ)`
-                      : `Cần viết thêm: ${Math.max(0, minEssayChars - q7EssayText.trim().length)} chữ`}
-                  </span>
-                  <span style={{ color: 'var(--ink-500)' }}>
-                    Số ký tự: <strong>{q7EssayText.trim().length}</strong> / {minEssayChars}
-                  </span>
+            <div className="hw-essay-layout">
+              <div className="hw-essay-main">
+                <div className="hw-essay-textarea-wrap">
+                  <textarea
+                    className="hw-essay-textarea"
+                    placeholder="Ví dụ: 昨天下午，我和朋友一起去超市买东西。超市里人很多，水果也很新鲜……"
+                    value={q7EssayText}
+                    onChange={(e) => setQ7EssayText(e.target.value)}
+                  />
+                  <div className="hw-essay-counter">
+                    <span className="hw-counter-num">{q7EssayText.trim().length}</span>
+                    <span className="hw-counter-min">/ tối thiểu {minEssayChars} chữ</span>
+                    {q7EssayText.trim().length >= minEssayChars && (
+                      <span className="hw-counter-pass"><i className="fa-solid fa-check"></i> Đạt chuẩn</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -635,7 +812,14 @@ export const HomeworkView = ({ lesson, onBack }) => {
               Đã hoàn thành: <span style={{ color: 'var(--primary-700)' }}>{answeredCount} / {totalParts} phần</span>
             </div>
             <div className="hw-submit-info-sub">
-              Câu trắc nghiệm &amp; ngữ pháp sẽ được máy chấm ngay. Câu thu âm và bài viết sẽ gửi cho cô giáo.
+              {uploadStatusMsg ? (
+                <span style={{ color: '#A11D24', fontWeight: 600 }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '6px' }}></i>
+                  {uploadStatusMsg}
+                </span>
+              ) : (
+                'Câu trắc nghiệm & ngữ pháp sẽ được máy chấm ngay. File thu âm và ảnh viết tay sẽ được tải lên Supabase Storage gửi cho cô giáo.'
+              )}
             </div>
           </div>
 

@@ -681,6 +681,49 @@ export async function fetchLeaderboard() {
   }
 }
 
+// ==========================================
+// 6. STORAGE & MEDIA UPLOADS (Cloud Storage)
+// ==========================================
+export async function uploadMediaToSupabase(fileOrBlob, folder = 'homework', originalName = '') {
+  try {
+    let ext = 'webm';
+    if (originalName && originalName.includes('.')) {
+      ext = originalName.split('.').pop().toLowerCase();
+    } else if (fileOrBlob.type) {
+      if (fileOrBlob.type.includes('png')) ext = 'png';
+      else if (fileOrBlob.type.includes('jpeg') || fileOrBlob.type.includes('jpg')) ext = 'jpg';
+      else if (fileOrBlob.type.includes('webp')) ext = 'webp';
+      else if (fileOrBlob.type.includes('mp4')) ext = 'mp4';
+      else if (fileOrBlob.type.includes('ogg')) ext = 'ogg';
+      else if (fileOrBlob.type.includes('audio') || fileOrBlob.type.includes('webm')) ext = 'webm';
+    }
+
+    const randomSuffix = Math.random().toString(36).substring(2, 9);
+    const fileName = `${folder}/${Date.now()}_${randomSuffix}.${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from('hanzify-media')
+      .upload(fileName, fileOrBlob, {
+        contentType: fileOrBlob.type || (ext === 'webm' ? 'audio/webm' : 'image/jpeg'),
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase storage upload error:', error);
+      throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('hanzify-media')
+      .getPublicUrl(fileName);
+
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.error('uploadMediaToSupabase failed:', err);
+    throw err;
+  }
+}
+
 export async function submitHomeworkToSupabase(submission) {
   try {
     const payload = {

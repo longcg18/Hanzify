@@ -200,33 +200,49 @@ export const TeacherGradingView = () => {
 
             {/* Speaking Recording Review */}
             <div style={{ border: '1px solid #fee2e2', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ fontWeight: 700, color: '#A11D24', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <i className="fa-solid fa-microphone"></i>
                   Câu 5: Bài Thu Âm Khẩu Ngữ Của Học Viên
                 </div>
-                <button
-                  onClick={() => handleReviewAudio(selectedSub.answers.q5AudioText)}
-                  style={{
-                    background: '#A11D24',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '0.4rem 0.9rem',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem'
-                  }}
-                >
-                  <i className={`fa-solid ${isPlayingAudio ? 'fa-pause' : 'fa-play'}`}></i>
-                  {isPlayingAudio ? 'Đang nghe...' : 'Bấm Nghe Bản Thu'}
-                </button>
+                {selectedSub.answers?.q5AudioUrl ? (
+                  <span style={{ fontSize: '0.8rem', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <i className="fa-solid fa-cloud"></i> File thu âm từ Cloud Storage
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleReviewAudio(selectedSub.answers?.q5AudioText || '老板，这件红色的衣服太贵了，便宜一点儿吧！')}
+                    style={{
+                      background: '#A11D24',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <i className={`fa-solid ${isPlayingAudio ? 'fa-pause' : 'fa-play'}`}></i>
+                    {isPlayingAudio ? 'Đang nghe...' : 'Bấm Nghe Bản Mẫu (TTS)'}
+                  </button>
+                )}
               </div>
+
+              {selectedSub.answers?.q5AudioUrl && (
+                <div style={{ margin: '0.75rem 0 0.5rem 0', background: '#fef2f2', padding: '0.75rem', borderRadius: '10px' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#991b1b', marginBottom: '0.35rem', fontWeight: 600 }}>
+                    ▶ Bấm nghe giọng đọc thực tế của học viên:
+                  </div>
+                  <audio controls src={selectedSub.answers.q5AudioUrl} style={{ width: '100%', height: '36px' }} />
+                </div>
+              )}
+
               <div style={{ fontSize: '0.92rem', color: '#334155', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px' }}>
-                "{selectedSub.answers.q5AudioText}"
+                "{selectedSub.answers?.q5AudioText || '老板，这件红色的衣服太贵了，便宜一点儿吧！'}"
               </div>
             </div>
 
@@ -236,16 +252,22 @@ export const TeacherGradingView = () => {
                 <i className="fa-solid fa-pen-nib"></i>
                 Câu 6 (Dạng 7A): Ảnh Chụp Vở Tập Viết Chữ Hán
               </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <img
-                  src={selectedSub.answers.q6HandwritingImage}
-                  alt="Bài viết của học viên"
-                  style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                  onClick={() => window.open(selectedSub.answers.q6HandwritingImage, '_blank')}
-                />
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                {(selectedSub.answers?.q6HandwritingUrl || selectedSub.answers?.q6HandwritingImage) ? (
+                  <img
+                    src={selectedSub.answers.q6HandwritingUrl || selectedSub.answers.q6HandwritingImage}
+                    alt="Bài viết của học viên"
+                    style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                    onClick={() => window.open(selectedSub.answers.q6HandwritingUrl || selectedSub.answers.q6HandwritingImage, '_blank')}
+                  />
+                ) : (
+                  <div style={{ width: '180px', height: '100px', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
+                    Chưa đính kèm ảnh
+                  </div>
+                )}
                 <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  <div>• Học viên đã viết đủ 4 chữ: <strong>买, 卖, 贵, 钱</strong> vào ô điền tự cách.</div>
-                  <div style={{ marginTop: '0.35rem', color: '#A11D24' }}>* Bấm vào ảnh để phóng to xem nét bút thuận.</div>
+                  <div>• Học viên luyện viết 4 chữ Hán: <strong>买, 卖, 贵, 钱</strong> vào ô điền tự cách.</div>
+                  <div style={{ marginTop: '0.35rem', color: '#A11D24' }}>* Bấm vào ảnh để phóng to xem chi tiết nét bút thuận.</div>
                 </div>
               </div>
             </div>
