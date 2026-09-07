@@ -912,6 +912,11 @@ export async function fetchLeaderboard() {
       const subsXp = userSubs.reduce((acc, sub) => acc + (Number(sub.score) || 0) * 10, 0);
       const totalXp = streakXp + subsXp + (Number(st.score) || 0);
 
+      const gradedSubs = userSubs.filter((s) => s.status === 'graded' && (s.total_score != null || s.score != null));
+      const realAvgGrade = gradedSubs.length > 0
+        ? Number((gradedSubs.reduce((sum, s) => sum + Number(s.total_score ?? s.score ?? 0), 0) / gradedSubs.length).toFixed(1))
+        : null;
+
       entryMap.set(key, {
         id: st.id || key,
         name: st.name || st.username || 'Học viên',
@@ -927,7 +932,7 @@ export async function fetchLeaderboard() {
         classId: cls.id,
         classroom_id: cls.id,
         completionRate: userSubs.length > 0 ? 100 : 0,
-        teacherGrade: userSubs.length > 0 ? 10 : null,
+        teacherGrade: realAvgGrade,
         lessonsCompleted: userSubs.length
       });
     });
@@ -943,6 +948,11 @@ export async function fetchLeaderboard() {
     const userSubs = liveSubmissions.filter(
       (s) => s.student_id === u.id || s.student_name === u.full_name || s.student_name === u.username
     );
+
+    const gradedSubs = userSubs.filter((s) => s.status === 'graded' && (s.total_score != null || s.score != null));
+    const realAvgGrade = gradedSubs.length > 0
+      ? Number((gradedSubs.reduce((sum, s) => sum + Number(s.total_score ?? s.score ?? 0), 0) / gradedSubs.length).toFixed(1))
+      : null;
 
     const streakXp = userStreak?.total_xp || 0;
     const subsXp = userSubs.reduce((acc, sub) => acc + (Number(sub.score) || 0) * 10, 0);
@@ -975,7 +985,7 @@ export async function fetchLeaderboard() {
       classId: userClassId,
       classroom_id: userClassId,
       completionRate: existing.completionRate || (userSubs.length > 0 ? 100 : 0),
-      teacherGrade: existing.teacherGrade || (userSubs.length > 0 ? 10 : null),
+      teacherGrade: realAvgGrade || existing.teacherGrade || null,
       lessonsCompleted: Math.max(existing.lessonsCompleted || 0, userSubs.length)
     });
   });
@@ -1021,7 +1031,7 @@ export async function fetchLeaderboard() {
           classId: userClassId,
           classroom_id: userClassId,
           completionRate: existing.completionRate || (totalXp > 0 ? 100 : 0),
-          teacherGrade: existing.teacherGrade || (totalXp > 0 ? 10 : null),
+          teacherGrade: existing.teacherGrade || null,
           isCurrentUser: true
         });
       }

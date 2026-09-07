@@ -1095,11 +1095,6 @@ export const HomeView = ({
                       <span style={{ fontWeight: 800, fontSize: '0.84rem', color: idx === 0 ? '#854d0e' : '#0f172a' }}>
                         {(item.xp || 0).toLocaleString()} XP
                       </span>
-                      {item.teacherGrade && (
-                        <span style={{ display: 'block', fontSize: '0.68rem', color: '#047857', fontWeight: 600 }}>
-                          {item.teacherGrade}đ cô chấm
-                        </span>
-                      )}
                     </div>
                   </div>
                 ))}
