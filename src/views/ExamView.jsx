@@ -345,7 +345,7 @@ export const ExamView = ({
         borderRadius: isTeacherOrAdmin ? '20px' : undefined,
         color: isTeacherOrAdmin ? '#f8fafc' : undefined
       }}>
-        <div className="header-meta">
+        <div className="header-meta" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
           <span className="meta-badge" style={{
             background: isTeacherOrAdmin ? 'rgba(254, 202, 202, 0.15)' : 'rgba(161, 29, 36, 0.1)',
             color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24'
