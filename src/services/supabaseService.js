@@ -1172,6 +1172,49 @@ export async function checkInUser(userId) {
   return { success: true, data: updatedData };
 }
 
+export async function addGameRewardXp(userId, xpToAdd, { gameId = '', gameTitle = '', level = 'HSK 1' } = {}) {
+  const points = Math.max(0, parseInt(xpToAdd, 10) || 0);
+  if (points <= 0) {
+    return { success: false, error: 'Số điểm thưởng không hợp lệ.' };
+  }
+
+  const currentRes = await fetchUserStreak(userId);
+  const current = currentRes.data || { currentStreak: 0, longestStreak: 0, totalXp: 0 };
+  const currentTotal = Number(current.totalXp) || 0;
+  const nextTotalXp = currentTotal + points;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const updatedData = {
+    ...current,
+    totalXp: nextTotalXp
+  };
+
+  // Always persist locally first so UI updates immediately
+  saveLocalStreak(userId, updatedData);
+
+  // Sync to Supabase in background
+  if (userId) {
+    try {
+      const payload = {
+        user_id: userId,
+        current_streak: current.currentStreak || 0,
+        longest_streak: current.longestStreak || (current.currentStreak || 0),
+        last_check_in: current.lastCheckIn || today,
+        total_xp: nextTotalXp,
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
+      if (error) {
+        console.warn('Supabase game reward streak sync warning:', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase game reward streak sync exception:', e);
+    }
+  }
+
+  return { success: true, data: updatedData, earnedXp: points, gameTitle, level };
+}
+
 const formatForumPost = (post) => ({
   id: post.id, category: post.category, title: post.title, content: post.content,
   author: { name: post.author_name, avatar: post.author_avatar, role: post.author_role },

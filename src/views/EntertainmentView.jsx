@@ -1,13 +1,180 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
-import { fetchMatchPairs, fetchToneItems, fetchLeaderboard } from '../services/supabaseService';
+import { fetchMatchPairs, fetchToneItems, fetchLeaderboard, addGameRewardXp } from '../services/supabaseService';
 import {
   MEMORY_PAIRS_BY_LEVEL,
   TONE_ITEMS_BY_LEVEL,
   SPEED_PAIRS_BY_LEVEL,
   RIDDLES_BY_LEVEL
 } from '../data/gamesData';
+
+// Difficulty configurations and point rewards
+export const GAME_DIFFICULTY_REWARDS = {
+  'HSK 1': {
+    label: 'Cơ bản (Dễ)',
+    badgeColor: '#16a34a',
+    badgeBg: '#f0fdf4',
+    border: '#bbf7d0',
+    baseXp: 35,
+    tag: '+35 XP'
+  },
+  'HSK 2': {
+    label: 'Trung cấp (Vừa)',
+    badgeColor: '#d97706',
+    badgeBg: '#fffbeb',
+    border: '#fde68a',
+    baseXp: 70,
+    tag: '+70 XP'
+  },
+  'HSK 3': {
+    label: 'Nâng cao (Khó)',
+    badgeColor: '#dc2626',
+    badgeBg: '#fef2f2',
+    border: '#fecaca',
+    baseXp: 110,
+    tag: '+110 XP'
+  }
+};
+
+// Reusable Game Victory & XP Reward Banner
+const GameRewardCard = ({
+  rewardResult,
+  currentGameLevel,
+  onReplay,
+  onSelectOther,
+  onOpenAuth
+}) => {
+  if (!rewardResult) return null;
+  const { xpEarned, totalXp, gameTitle, level, bonusReason, isGuest } = rewardResult;
+  const levelReward = GAME_DIFFICULTY_REWARDS[level] || GAME_DIFFICULTY_REWARDS['HSK 1'];
+
+  return (
+    <div style={{
+      background: 'linear-gradient(145deg, #ffffff 0%, #fefce8 100%)',
+      border: '2px solid #fef08a',
+      borderRadius: '20px',
+      padding: '2rem 1.5rem',
+      textAlign: 'center',
+      boxShadow: '0 12px 35px rgba(202, 138, 4, 0.12)',
+      marginTop: '1.5rem',
+      animation: 'fadeIn 0.35s ease'
+    }}>
+      <div style={{ fontSize: '3rem', marginBottom: '0.5rem', filter: 'drop-shadow(0 4px 10px rgba(234, 179, 8, 0.35))' }}>
+        🏆
+      </div>
+      <h3 style={{ margin: 0, color: '#854d0e', fontSize: '1.35rem', fontWeight: 800 }}>
+        Chúc Mừng Bạn Đã Hoàn Thành!
+      </h3>
+      <p style={{ color: '#713f12', fontSize: '0.9rem', margin: '0.35rem 0 1.25rem 0' }}>
+        {gameTitle} — Cấp độ <strong>{level}</strong> ({levelReward.label})
+      </p>
+
+      {/* Points Highlight Pill */}
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        background: 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)',
+        border: '1.5px solid #eab308',
+        borderRadius: '999px',
+        padding: '0.6rem 1.6rem',
+        boxShadow: '0 4px 14px rgba(234, 179, 8, 0.25)',
+        marginBottom: '1rem'
+      }}>
+        <span style={{ fontSize: '1.4rem' }}>⭐</span>
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase' }}>
+            Điểm Thưởng Nhận Được
+          </div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#713f12', lineHeight: 1 }}>
+            +{xpEarned} XP
+          </div>
+        </div>
+      </div>
+
+      {bonusReason && (
+        <div style={{ fontSize: '0.82rem', color: '#15803d', fontWeight: 700, marginBottom: '0.75rem' }}>
+          ✨ {bonusReason}
+        </div>
+      )}
+
+      {isGuest ? (
+        <div style={{
+          background: '#fff',
+          border: '1px dashed #ca8a04',
+          borderRadius: '12px',
+          padding: '0.85rem 1rem',
+          maxWidth: '440px',
+          margin: '0 auto 1.25rem',
+          fontSize: '0.84rem',
+          color: '#854d0e'
+        }}>
+          <div>🔒 <em>Bạn đang chơi ở chế độ khách nên điểm chưa được lưu.</em></div>
+          {onOpenAuth && (
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              style={{
+                marginTop: '0.5rem',
+                background: '#854d0e',
+                color: '#fff',
+                border: 'none',
+                padding: '0.45rem 1.1rem',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer'
+              }}
+            >
+              Đăng Nhập Để Lưu +{xpEarned} XP Ngay
+            </button>
+          )}
+        </div>
+      ) : (
+        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
+          Tổng điểm tích lũy của bạn: <strong style={{ color: '#A11D24', fontSize: '0.95rem' }}>{totalXp} XP</strong> 🔥
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={onReplay}
+          style={{
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+            color: '#fff',
+            border: 'none',
+            padding: '0.65rem 1.5rem',
+            borderRadius: '12px',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)'
+          }}
+        >
+          Chơi Lại Ván Mới
+        </button>
+        <button
+          type="button"
+          onClick={onSelectOther}
+          style={{
+            background: '#ffffff',
+            color: '#475569',
+            border: '1.5px solid #cbd5e1',
+            padding: '0.65rem 1.3rem',
+            borderRadius: '12px',
+            fontWeight: 600,
+            fontSize: '0.88rem',
+            cursor: 'pointer'
+          }}
+        >
+          Chọn Game Khác
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // Helper to convert level pairs into memory card items
 const getMemoryCardsForLevel = (lvl) => {
@@ -155,7 +322,7 @@ const RIDDLE_QUESTIONS = [
   }
 ];
 
-export const EntertainmentView = () => {
+export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const { user } = useAuth();
 
   // Active game: null (Catalog view) | 'match' | 'tone' | 'speed-match' | 'hanzi-riddle'
@@ -168,6 +335,7 @@ export const EntertainmentView = () => {
   const [matchCards, setMatchCards] = useState([]);
   const [toneQuestions, setToneQuestions] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [rewardResult, setRewardResult] = useState(null);
 
   useEffect(() => {
     Promise.all([fetchMatchPairs(), fetchToneItems(), fetchLeaderboard()]).then(([pairsResult, tonesResult, lbResult]) => {
@@ -183,6 +351,55 @@ export const EntertainmentView = () => {
       setLeaderboard(lbResult?.data || []);
     });
   }, []);
+
+  // Universal Award Points Handler based on Game & Difficulty
+  const handleAwardPoints = async (earnedXp, gameTitle, level, bonusReason = null) => {
+    if (!earnedXp || earnedXp <= 0 || rewardResult) return;
+    try {
+      if (onRewardXp) {
+        const res = await onRewardXp({
+          gameId: activeGame,
+          gameTitle,
+          level,
+          xpEarned: earnedXp,
+          bonusReason
+        });
+        setRewardResult({
+          xpEarned: earnedXp,
+          totalXp: res?.totalXp || (Number(streakData?.totalXp || 0) + earnedXp),
+          gameTitle,
+          level,
+          bonusReason,
+          isGuest: !user
+        });
+      } else if (user?.id) {
+        const res = await addGameRewardXp(user.id, earnedXp, {
+          gameId: activeGame,
+          gameTitle,
+          level
+        });
+        setRewardResult({
+          xpEarned: earnedXp,
+          totalXp: res?.data?.totalXp || (Number(streakData?.totalXp || 0) + earnedXp),
+          gameTitle,
+          level,
+          bonusReason,
+          isGuest: false
+        });
+      } else {
+        setRewardResult({
+          xpEarned: earnedXp,
+          totalXp: earnedXp,
+          gameTitle,
+          level,
+          bonusReason,
+          isGuest: true
+        });
+      }
+    } catch (err) {
+      console.error('Error awarding game XP:', err);
+    }
+  };
 
   // Filter games list
   const filteredGames = GAMES_CATALOG.filter((g) => {
@@ -217,6 +434,7 @@ export const EntertainmentView = () => {
     setFlipped([]);
     setMatched([]);
     setMoves(0);
+    setRewardResult(null);
   };
 
   const handleCardClick = (index) => {
@@ -234,16 +452,29 @@ export const EntertainmentView = () => {
 
       if (firstCard.pairId === secondCard.pairId) {
         speakWord(firstCard.pinyin || firstCard.content);
-        setMatched((prev) => [...prev, firstCard.pairId]);
+        const nextMatched = [...matched, firstCard.pairId];
+        setMatched(nextMatched);
         setFlipped([]);
 
-        if (matched.length + 1 === cards.length / 2) {
+        if (nextMatched.length === cards.length / 2) {
           confetti({
             particleCount: 120,
             spread: 80,
             origin: { y: 0.6 },
             colors: ['#A11D24', '#D4AF37', '#ffffff']
           });
+
+          // Award Points based on Difficulty & Performance
+          const diffConfig = GAME_DIFFICULTY_REWARDS[currentGameLevel] || GAME_DIFFICULTY_REWARDS['HSK 1'];
+          const totalMoves = moves + 1;
+          const bonusXp = totalMoves <= 12 ? 15 : totalMoves <= 16 ? 10 : 0;
+          const earnedXp = diffConfig.baseXp + bonusXp;
+          handleAwardPoints(
+            earnedXp,
+            'Lật Thẻ Ghép Đôi',
+            currentGameLevel,
+            bonusXp > 0 ? `Lật chuẩn chỉ ${totalMoves} lượt (+${bonusXp} XP)` : null
+          );
         }
       } else {
         setTimeout(() => {
@@ -259,18 +490,28 @@ export const EntertainmentView = () => {
   const [toneIdx, setToneIdx] = useState(0);
   const [toneScore, setToneScore] = useState(0);
   const [toneStreak, setToneStreak] = useState(0);
+  const [toneMaxStreak, setToneMaxStreak] = useState(0);
+  const [toneCorrectCount, setToneCorrectCount] = useState(0);
   const [toneFeedback, setToneFeedback] = useState(null); // 'correct' | 'wrong'
+  const [isToneFinished, setIsToneFinished] = useState(false);
 
   const currentToneList = TONE_ITEMS_BY_LEVEL[currentGameLevel] || TONE_ITEMS_BY_LEVEL['HSK 1'];
   const currentToneQ = currentToneList[toneIdx] || currentToneList[0];
+  const roundQuestions = Math.min(10, currentToneList.length);
 
   const handleToneAnswer = (selectedTone) => {
-    if (toneFeedback || !currentToneQ) return;
+    if (toneFeedback || isToneFinished || !currentToneQ) return;
+    const isCorrect = selectedTone === currentToneQ.tone;
 
-    if (selectedTone === currentToneQ.tone) {
+    if (isCorrect) {
       setToneFeedback('correct');
       setToneScore((s) => s + 100 + toneStreak * 20);
-      setToneStreak((st) => st + 1);
+      setToneStreak((st) => {
+        const next = st + 1;
+        setToneMaxStreak((m) => Math.max(m, next));
+        return next;
+      });
+      setToneCorrectCount((c) => c + 1);
       speakWord(currentToneQ.char);
 
       confetti({
@@ -286,8 +527,28 @@ export const EntertainmentView = () => {
 
     setTimeout(() => {
       setToneFeedback(null);
-      setToneIdx((prev) => (prev + 1) % currentToneList.length);
-    }, 1000);
+      if (toneIdx + 1 >= roundQuestions) {
+        setIsToneFinished(true);
+        const finalCorrect = toneCorrectCount + (isCorrect ? 1 : 0);
+        const diffConfig = GAME_DIFFICULTY_REWARDS[currentGameLevel] || GAME_DIFFICULTY_REWARDS['HSK 1'];
+        const accuracyRatio = finalCorrect / roundQuestions;
+        const comboBonus = toneMaxStreak >= 4 ? 10 : 0;
+        const earnedXp = Math.max(10, Math.round(accuracyRatio * diffConfig.baseXp)) + comboBonus;
+        handleAwardPoints(
+          earnedXp,
+          'Thử Thách Thanh Điệu',
+          currentGameLevel,
+          toneMaxStreak >= 4 ? `Combo liên hoàn x${toneMaxStreak} (+10 XP)` : `Đúng ${finalCorrect}/${roundQuestions} câu`
+        );
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } else {
+        setToneIdx((prev) => prev + 1);
+      }
+    }, 900);
   };
 
   // ==========================================
@@ -324,6 +585,7 @@ export const EntertainmentView = () => {
     setWrongMatchId(null);
     setSpeedHanziList([...pairs]);
     setSpeedMeaningList(shuffleArray(pairs));
+    setRewardResult(null);
   };
 
   useEffect(() => {
@@ -345,7 +607,8 @@ export const EntertainmentView = () => {
 
     if (selectedHanzi.id === item.id) {
       // Correct match!
-      setSpeedMatchedIds((prev) => [...prev, item.id]);
+      const nextMatched = [...speedMatchedIds, item.id];
+      setSpeedMatchedIds(nextMatched);
       setSpeedScore((s) => s + 250);
       setSelectedHanzi(null);
 
@@ -355,6 +618,11 @@ export const EntertainmentView = () => {
         origin: { y: 0.65 },
         colors: ['#2563eb', '#16a34a', '#D4AF37']
       });
+
+      if (nextMatched.length === currentSpeedPairs.length) {
+        const diffConfig = GAME_DIFFICULTY_REWARDS[currentGameLevel] || GAME_DIFFICULTY_REWARDS['HSK 1'];
+        handleAwardPoints(diffConfig.baseXp, 'Nối Nghĩa Thần Tốc', currentGameLevel);
+      }
     } else {
       // Wrong match: flash error on wrong item then reset
       setWrongMatchId(item.id);
@@ -370,19 +638,22 @@ export const EntertainmentView = () => {
   // ==========================================
   const [riddleIdx, setRiddleIdx] = useState(0);
   const [riddleScore, setRiddleScore] = useState(0);
+  const [riddleCorrectCount, setRiddleCorrectCount] = useState(0);
   const [selectedRiddleOpt, setSelectedRiddleOpt] = useState(null);
   const [isRiddleAnswered, setIsRiddleAnswered] = useState(false);
+  const [isRiddleFinished, setIsRiddleFinished] = useState(false);
 
   const currentRiddles = RIDDLES_BY_LEVEL[currentGameLevel] || RIDDLES_BY_LEVEL['HSK 1'];
   const currentRiddle = currentRiddles[riddleIdx] || currentRiddles[0];
 
   const handleRiddleChoose = (opt) => {
-    if (isRiddleAnswered || !currentRiddle) return;
+    if (isRiddleAnswered || isRiddleFinished || !currentRiddle) return;
     setSelectedRiddleOpt(opt);
     setIsRiddleAnswered(true);
 
     if (opt === currentRiddle.correct) {
       setRiddleScore((s) => s + 100);
+      setRiddleCorrectCount((c) => c + 1);
       speakWord(opt);
       confetti({
         particleCount: 45,
@@ -399,8 +670,21 @@ export const EntertainmentView = () => {
       setSelectedRiddleOpt(null);
       setIsRiddleAnswered(false);
     } else {
-      alert(`🎉 Hoàn thành câu đố chữ Hán ${currentGameLevel}! Điểm số: ${riddleScore + (selectedRiddleOpt === currentRiddle?.correct ? 0 : 0)} / ${currentRiddles.length * 100}`);
-      setActiveGame(null);
+      setIsRiddleFinished(true);
+      const totalQ = currentRiddles.length;
+      const diffConfig = GAME_DIFFICULTY_REWARDS[currentGameLevel] || GAME_DIFFICULTY_REWARDS['HSK 1'];
+      const earnedXp = Math.max(10, Math.round((riddleCorrectCount / totalQ) * diffConfig.baseXp));
+      handleAwardPoints(
+        earnedXp,
+        'Đoán Chữ Hán Theo Nghĩa',
+        currentGameLevel,
+        riddleCorrectCount === totalQ ? 'Chính xác 100% (+10 XP bonus)' : `Đúng ${riddleCorrectCount}/${totalQ} câu`
+      );
+      confetti({
+        particleCount: 90,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
     }
   };
 
@@ -409,6 +693,7 @@ export const EntertainmentView = () => {
     const level = targetLevel || (['HSK 1', 'HSK 2', 'HSK 3'].includes(selectedLevel) ? selectedLevel : currentGameLevel);
     setCurrentGameLevel(level);
     setActiveGame(gameId);
+    setRewardResult(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (gameId === 'match') initMatchGame(level);
@@ -416,33 +701,44 @@ export const EntertainmentView = () => {
       setToneIdx(0);
       setToneScore(0);
       setToneStreak(0);
+      setToneMaxStreak(0);
+      setToneCorrectCount(0);
       setToneFeedback(null);
+      setIsToneFinished(false);
     }
     if (gameId === 'speed-match') initSpeedMatch(level);
     if (gameId === 'hanzi-riddle') {
       setRiddleIdx(0);
       setRiddleScore(0);
+      setRiddleCorrectCount(0);
       setSelectedRiddleOpt(null);
       setIsRiddleAnswered(false);
+      setIsRiddleFinished(false);
     }
   };
 
   // Level switcher handler inside Runner
   const handleLevelChangeInRunner = (newLevel) => {
     setCurrentGameLevel(newLevel);
+    setRewardResult(null);
     if (activeGame === 'match') initMatchGame(newLevel);
     if (activeGame === 'tone') {
       setToneIdx(0);
       setToneScore(0);
       setToneStreak(0);
+      setToneMaxStreak(0);
+      setToneCorrectCount(0);
       setToneFeedback(null);
+      setIsToneFinished(false);
     }
     if (activeGame === 'speed-match') initSpeedMatch(newLevel);
     if (activeGame === 'hanzi-riddle') {
       setRiddleIdx(0);
       setRiddleScore(0);
+      setRiddleCorrectCount(0);
       setSelectedRiddleOpt(null);
       setIsRiddleAnswered(false);
+      setIsRiddleFinished(false);
     }
   };
 
@@ -525,29 +821,47 @@ export const EntertainmentView = () => {
               </div>
             </div>
 
-            {/* Level Switcher in Runner */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {/* Level Switcher in Runner with difficulty points badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
-              {['HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => handleLevelChangeInRunner(lvl)}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '8px',
-                    border: currentGameLevel === lvl ? '1.5px solid #A11D24' : '1px solid #cbd5e1',
-                    background: currentGameLevel === lvl ? '#A11D24' : '#fff',
-                    color: currentGameLevel === lvl ? '#fff' : '#475569',
-                    fontSize: '0.82rem',
-                    fontWeight: currentGameLevel === lvl ? 700 : 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {lvl}
-                </button>
-              ))}
+              {['HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => {
+                const r = GAME_DIFFICULTY_REWARDS[lvl];
+                const isActive = currentGameLevel === lvl;
+                return (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => handleLevelChangeInRunner(lvl)}
+                    title={`Độ khó: ${r.label} - Thưởng ${r.tag}`}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '8px',
+                      border: isActive ? '1.5px solid #A11D24' : '1px solid #cbd5e1',
+                      background: isActive ? '#A11D24' : '#fff',
+                      color: isActive ? '#fff' : '#475569',
+                      fontSize: '0.82rem',
+                      fontWeight: isActive ? 700 : 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{lvl}</span>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      background: isActive ? 'rgba(255,255,255,0.22)' : r.badgeBg,
+                      color: isActive ? '#ffffff' : r.badgeColor,
+                      padding: '1px 6px',
+                      borderRadius: '6px',
+                      fontWeight: 700
+                    }}>
+                      {r.tag}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Quick Reset Button */}
@@ -680,45 +994,13 @@ export const EntertainmentView = () => {
               </div>
 
               {cards.length > 0 && matched.length === cards.length / 2 && (
-                <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '16px', padding: '1.5rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎉</div>
-                  <h3 style={{ margin: 0, color: '#16a34a', fontSize: '1.3rem' }}>Chúc mừng bạn đã hoàn thành xuất sắc!</h3>
-                  <p style={{ color: '#475569', fontSize: '0.9rem', margin: '0.5rem 0 1rem 0' }}>
-                    Bạn đã lật xong toàn bộ cặp từ {currentGameLevel} chỉ trong <strong>{moves} lượt lật</strong>.
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => initMatchGame(currentGameLevel)}
-                      style={{
-                        background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '0.65rem 1.5rem',
-                        borderRadius: '10px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Chơi Lại Ván Mới
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveGame(null)}
-                      style={{
-                        background: '#f1f5f9',
-                        color: '#334155',
-                        border: 'none',
-                        padding: '0.65rem 1.2rem',
-                        borderRadius: '10px',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Chọn Game Khác
-                    </button>
-                  </div>
-                </div>
+                <GameRewardCard
+                  rewardResult={rewardResult}
+                  currentGameLevel={currentGameLevel}
+                  onReplay={() => initMatchGame(currentGameLevel)}
+                  onSelectOther={() => setActiveGame(null)}
+                  onOpenAuth={onOpenAuth}
+                />
               )}
             </div>
           )}
@@ -726,76 +1008,94 @@ export const EntertainmentView = () => {
           {/* ================= RUNNER: GAME 2 TONE BLITZ ================= */}
           {activeGame === 'tone' && (
             <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
-              {/* Score & Streak Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Tổng điểm ({currentGameLevel}):</div>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#A11D24' }}>
-                    {toneScore} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>điểm</span>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Chuỗi thắng liên tiếp:</div>
-                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: toneStreak > 2 ? '#d97706' : '#0f172a' }}>
-                    🔥 Combo x{toneStreak}
-                  </div>
-                </div>
-              </div>
-
-              {/* Central Character Card */}
-              <div style={{
-                textAlign: 'center',
-                padding: '2.5rem 1rem',
-                background: toneFeedback === 'correct' ? '#f0fdf4' : toneFeedback === 'wrong' ? '#fef2f2' : '#f8fafc',
-                border: toneFeedback === 'correct' ? '2px solid #22c55e' : toneFeedback === 'wrong' ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                borderRadius: '20px',
-                marginBottom: '2rem',
-                transition: 'all 0.25s ease'
-              }}>
-                <div style={{ fontSize: '4.5rem', fontFamily: 'Noto Serif SC, serif', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
-                  {currentToneQ?.char}
-                </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#A11D24', marginTop: '0.75rem' }}>
-                  {currentToneQ?.pinyin}
-                </div>
-                <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.35rem' }}>
-                  Nghĩa: {currentToneQ?.mean}
-                </div>
-              </div>
-
-              {/* 4 Tone Buttons */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
-                {[
-                  { tone: 1, label: 'Thanh 1 (ˉ)', desc: 'Cao & Bằng' },
-                  { tone: 2, label: 'Thanh 2 (ˊ)', desc: 'Đi Lên' },
-                  { tone: 3, label: 'Thanh 3 (ˇ)', desc: 'Xuống Rồi Lên' },
-                  { tone: 4, label: 'Thanh 4 (ˋ)', desc: 'Dứt Khoát' }
-                ].map((item) => (
-                  <button
-                    key={item.tone}
-                    type="button"
-                    onClick={() => handleToneAnswer(item.tone)}
-                    style={{
-                      padding: '1.1rem 0.5rem',
-                      borderRadius: '16px',
-                      border: '1.5px solid #cbd5e1',
-                      background: '#ffffff',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#A11D24' }}>
-                      {item.label}
+              {isToneFinished ? (
+                <GameRewardCard
+                  rewardResult={rewardResult}
+                  currentGameLevel={currentGameLevel}
+                  onReplay={() => handleSelectGame('tone', currentGameLevel)}
+                  onSelectOther={() => setActiveGame(null)}
+                  onOpenAuth={onOpenAuth}
+                />
+              ) : (
+                <>
+                  {/* Score & Streak Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Tổng điểm ({currentGameLevel}):</div>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#A11D24' }}>
+                        {toneScore} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>điểm</span>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                      {item.desc}
+
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ background: '#fef2f2', color: '#A11D24', padding: '0.35rem 0.85rem', borderRadius: '12px', fontSize: '0.82rem', fontWeight: 700 }}>
+                        Tiến độ: Câu {toneIdx + 1} / {roundQuestions}
+                      </span>
                     </div>
-                  </button>
-                ))}
-              </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Chuỗi thắng liên tiếp:</div>
+                      <div style={{ fontSize: '1.3rem', fontWeight: 800, color: toneStreak > 2 ? '#d97706' : '#0f172a' }}>
+                        🔥 Combo x{toneStreak}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Central Character Card */}
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '2.5rem 1rem',
+                    background: toneFeedback === 'correct' ? '#f0fdf4' : toneFeedback === 'wrong' ? '#fef2f2' : '#f8fafc',
+                    border: toneFeedback === 'correct' ? '2px solid #22c55e' : toneFeedback === 'wrong' ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                    borderRadius: '20px',
+                    marginBottom: '2rem',
+                    transition: 'all 0.25s ease'
+                  }}>
+                    <div style={{ fontSize: '4.5rem', fontFamily: 'Noto Serif SC, serif', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+                      {currentToneQ?.char}
+                    </div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#A11D24', marginTop: '0.75rem' }}>
+                      {currentToneQ?.pinyin}
+                    </div>
+                    <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.35rem' }}>
+                      Nghĩa: {currentToneQ?.mean}
+                    </div>
+                  </div>
+
+                  {/* 4 Tone Buttons */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
+                    {[
+                      { tone: 1, label: 'Thanh 1 (ˉ)', desc: 'Cao & Bằng' },
+                      { tone: 2, label: 'Thanh 2 (ˊ)', desc: 'Đi Lên' },
+                      { tone: 3, label: 'Thanh 3 (ˇ)', desc: 'Xuống Rồi Lên' },
+                      { tone: 4, label: 'Thanh 4 (ˋ)', desc: 'Dứt Khoát' }
+                    ].map((item) => (
+                      <button
+                        key={item.tone}
+                        type="button"
+                        onClick={() => handleToneAnswer(item.tone)}
+                        style={{
+                          padding: '1.1rem 0.5rem',
+                          borderRadius: '16px',
+                          border: '1.5px solid #cbd5e1',
+                          background: '#ffffff',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#A11D24' }}>
+                          {item.label}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                          {item.desc}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -981,25 +1281,13 @@ export const EntertainmentView = () => {
               </div>
 
               {speedMatchedIds.length === currentSpeedPairs.length && (
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
-                  <h3 style={{ color: '#16a34a', margin: 0 }}>🎉 Hoàn thành nối từ {currentGameLevel} xuất sắc!</h3>
-                  <button
-                    type="button"
-                    onClick={() => initSpeedMatch(currentGameLevel)}
-                    style={{
-                      marginTop: '0.75rem',
-                      background: '#2563eb',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '0.6rem 1.4rem',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Chơi Lại Ván Mới
-                  </button>
-                </div>
+                <GameRewardCard
+                  rewardResult={rewardResult}
+                  currentGameLevel={currentGameLevel}
+                  onReplay={() => initSpeedMatch(currentGameLevel)}
+                  onSelectOther={() => setActiveGame(null)}
+                  onOpenAuth={onOpenAuth}
+                />
               )}
             </div>
           )}
@@ -1007,82 +1295,94 @@ export const EntertainmentView = () => {
           {/* ================= RUNNER: GAME 4 HANZI RIDDLE ================= */}
           {activeGame === 'hanzi-riddle' && (
             <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-                <span style={{ background: '#fef2f2', color: '#16a34a', padding: '0.3rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
-                  Câu {riddleIdx + 1} / {currentRiddles.length} ({currentGameLevel})
-                </span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
-                  {riddleScore} điểm
-                </span>
-              </div>
+              {isRiddleFinished ? (
+                <GameRewardCard
+                  rewardResult={rewardResult}
+                  currentGameLevel={currentGameLevel}
+                  onReplay={() => handleSelectGame('hanzi-riddle', currentGameLevel)}
+                  onSelectOther={() => setActiveGame(null)}
+                  onOpenAuth={onOpenAuth}
+                />
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+                    <span style={{ background: '#fef2f2', color: '#16a34a', padding: '0.3rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
+                      Câu {riddleIdx + 1} / {currentRiddles.length} ({currentGameLevel})
+                    </span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
+                      {riddleScore} điểm
+                    </span>
+                  </div>
 
-              <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>Gợi ý chữ Hán:</div>
-                <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 700, lineHeight: 1.5 }}>
-                  {currentRiddle?.prompt}
-                </div>
-              </div>
+                  <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>Gợi ý chữ Hán:</div>
+                    <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 700, lineHeight: 1.5 }}>
+                      {currentRiddle?.prompt}
+                    </div>
+                  </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
-                {currentRiddle?.options.map((opt) => {
-                  let btnBg = '#ffffff';
-                  let btnBorder = '1.5px solid #cbd5e1';
-                  let btnColor = '#0f172a';
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
+                    {currentRiddle?.options.map((opt) => {
+                      let btnBg = '#ffffff';
+                      let btnBorder = '1.5px solid #cbd5e1';
+                      let btnColor = '#0f172a';
 
-                  if (isRiddleAnswered) {
-                    if (opt === currentRiddle.correct) {
-                      btnBg = '#f0fdf4';
-                      btnBorder = '2px solid #22c55e';
-                      btnColor = '#16a34a';
-                    } else if (opt === selectedRiddleOpt) {
-                      btnBg = '#fef2f2';
-                      btnBorder = '2px solid #ef4444';
-                      btnColor = '#dc2626';
-                    }
-                  }
+                      if (isRiddleAnswered) {
+                        if (opt === currentRiddle.correct) {
+                          btnBg = '#f0fdf4';
+                          btnBorder = '2px solid #22c55e';
+                          btnColor = '#16a34a';
+                        } else if (opt === selectedRiddleOpt) {
+                          btnBg = '#fef2f2';
+                          btnBorder = '2px solid #ef4444';
+                          btnColor = '#dc2626';
+                        }
+                      }
 
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => handleRiddleChoose(opt)}
-                      style={{
-                        padding: '1.25rem',
-                        borderRadius: '16px',
-                        background: btnBg,
-                        border: btnBorder,
-                        color: btnColor,
-                        fontSize: '1.8rem',
-                        fontFamily: 'Noto Serif SC, serif',
-                        fontWeight: 800,
-                        cursor: isRiddleAnswered ? 'default' : 'pointer',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleRiddleChoose(opt)}
+                          style={{
+                            padding: '1.25rem',
+                            borderRadius: '16px',
+                            background: btnBg,
+                            border: btnBorder,
+                            color: btnColor,
+                            fontSize: '1.8rem',
+                            fontFamily: 'Noto Serif SC, serif',
+                            fontWeight: 800,
+                            cursor: isRiddleAnswered ? 'default' : 'pointer',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              {isRiddleAnswered && (
-                <div style={{ textAlign: 'right' }}>
-                  <button
-                    type="button"
-                    onClick={handleNextRiddle}
-                    style={{
-                      background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '0.75rem 2rem',
-                      borderRadius: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {riddleIdx < currentRiddles.length - 1 ? 'Câu tiếp theo ➔' : 'Hoàn thành câu đố ➔'}
-                  </button>
-                </div>
+                  {isRiddleAnswered && (
+                    <div style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        onClick={handleNextRiddle}
+                        style={{
+                          background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '0.75rem 2rem',
+                          borderRadius: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {riddleIdx < currentRiddles.length - 1 ? 'Câu tiếp theo ➔' : 'Hoàn thành câu đố ➔'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -1196,6 +1496,29 @@ export const EntertainmentView = () => {
                       <i className="fa-solid fa-layer-group" style={{ color: '#d97706', marginRight: '0.35rem' }}></i>
                       {game.level}
                     </span>
+                  </div>
+
+                  {/* Difficulty XP Badges */}
+                  <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+                    {['HSK 1', 'HSK 2', 'HSK 3'].map((lvl) => {
+                      const r = GAME_DIFFICULTY_REWARDS[lvl];
+                      return (
+                        <span
+                          key={lvl}
+                          style={{
+                            fontSize: '0.72rem',
+                            background: r.badgeBg,
+                            color: r.badgeColor,
+                            border: `1px solid ${r.border}`,
+                            padding: '2px 7px',
+                            borderRadius: '6px',
+                            fontWeight: 700
+                          }}
+                        >
+                          {lvl}: {r.tag}
+                        </span>
+                      );
+                    })}
                   </div>
 
                   <button

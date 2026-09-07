@@ -37,7 +37,8 @@ import {
   syncExamToSupabase,
   deleteExamFromSupabase,
   fetchUserStreak,
-  checkInUser
+  checkInUser,
+  addGameRewardXp
 } from './services/supabaseService';
 import { isCourseAssignedToStudent, isLessonUnlockedForStudent } from './utils/classEnrollment';
 
@@ -239,6 +240,23 @@ export function AppContent() {
     setTimeout(() => {
       setRoleToast(null);
     }, 4500);
+  };
+
+  // Handle rewarding XP from mini-games based on difficulty
+  const handleGameXpReward = async ({ gameId, gameTitle, level, xpEarned, bonusReason }) => {
+    if (!user) return null;
+    const userId = user?.id || user?.username || 'student';
+    const result = await addGameRewardXp(userId, xpEarned, { gameId, gameTitle, level });
+    if (result.success && result.data) {
+      setStreakData(result.data);
+      const bonusText = bonusReason ? ` (${bonusReason})` : '';
+      setRoleToast(`🎮 +${xpEarned} XP! Hoàn thành "${gameTitle}" - Cấp độ ${level}${bonusText}`);
+      setTimeout(() => {
+        setRoleToast(null);
+      }, 4500);
+      return result.data;
+    }
+    return null;
   };
 
   // Handlers for Exams CRUD — chỉ cập nhật UI sau khi Supabase thành công
@@ -834,7 +852,11 @@ export function AppContent() {
               Chế độ chơi thử: bạn có thể chơi đầy đủ, nhưng điểm, XP và thành tích sẽ không được lưu.
             </GuestPreviewNotice>
           )}
-          <EntertainmentView />
+          <EntertainmentView
+            streakData={streakData}
+            onRewardXp={handleGameXpReward}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
         </>
       )}
 
