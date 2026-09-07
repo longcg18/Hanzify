@@ -15,6 +15,8 @@ import { AdminUsersView } from './views/AdminUsersView';
 import { LeaderboardView } from './views/LeaderboardView';
 import { ForumView } from './views/ForumView';
 import { StreakModal } from './components/StreakModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { generateCurrentWeekDays, formatStreakMilestones } from './utils/streakUtils';
 import { CreateClassModal } from './components/CreateClassModal';
 import { JoinClassModal } from './components/JoinClassModal';
 import { ClassLessonManagerModal } from './components/ClassLessonManagerModal';
@@ -208,7 +210,14 @@ export function AppContent() {
   const [roleToast, setRoleToast] = useState(null);
 
   // Streak state with persistence
-  const [streakData, setStreakData] = useState({ currentStreak: 0, longestStreak: 0, totalXp: 0, checkedInToday: false, weekDays: [] });
+  const [streakData, setStreakData] = useState(() => ({
+    currentStreak: 0,
+    longestStreak: 0,
+    totalXp: 0,
+    checkedInToday: false,
+    weekDays: generateCurrentWeekDays(0, false),
+    milestones: formatStreakMilestones(0)
+  }));
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
 
   useEffect(() => {
@@ -955,12 +964,14 @@ export function AppContent() {
       )}
 
       {/* Daily Streak Modal */}
-      <StreakModal
-        isOpen={isStreakModalOpen}
-        onClose={() => setIsStreakModalOpen(false)}
-        streakData={streakData}
-        onCheckInToday={handleCheckInToday}
-      />
+      <ErrorBoundary>
+        <StreakModal
+          isOpen={isStreakModalOpen}
+          onClose={() => setIsStreakModalOpen(false)}
+          streakData={streakData}
+          onCheckInToday={handleCheckInToday}
+        />
+      </ErrorBoundary>
 
       {/* Classroom Creation Modal (Cô Hoài / Admin) */}
       <CreateClassModal

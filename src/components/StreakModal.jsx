@@ -1,9 +1,19 @@
 import React from 'react';
+import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streakUtils';
 
 export const StreakModal = ({ isOpen, onClose, streakData, onCheckInToday }) => {
-  if (!isOpen || !streakData) return null;
+  if (!isOpen) return null;
 
-  const { currentStreak, longestStreak, checkedInToday, weekDays, milestones, totalXp } = streakData;
+  const currentStreak = Number(streakData?.currentStreak || 0);
+  const longestStreak = Number(streakData?.longestStreak || currentStreak);
+  const checkedInToday = Boolean(streakData?.checkedInToday);
+  const totalXp = Number(streakData?.totalXp || 0);
+
+  const weekDays = (Array.isArray(streakData?.weekDays) && streakData.weekDays.length === 7)
+    ? streakData.weekDays
+    : generateCurrentWeekDays(currentStreak, checkedInToday);
+
+  const milestones = formatStreakMilestones(currentStreak, streakData?.milestones);
 
   return (
     <div 

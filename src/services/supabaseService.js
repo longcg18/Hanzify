@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streakUtils';
 
 // ==========================================
 // 1. AUTHENTICATION & USERS (Supabase Direct)
@@ -883,12 +884,16 @@ export async function fetchUserStreak(userId) {
   if (error) return { data: null, error: error.message };
   if (!data) return { data: null, error: null };
   const today = new Date().toISOString().slice(0, 10);
+  const checkedInToday = data.last_check_in === today;
+  const currentStreak = data.current_streak || 0;
+  const longestStreak = data.longest_streak || 0;
   return { data: {
-    currentStreak: data.current_streak || 0,
-    longestStreak: data.longest_streak || 0,
+    currentStreak,
+    longestStreak,
     totalXp: data.total_xp || 0,
-    checkedInToday: data.last_check_in === today,
-    weekDays: []
+    checkedInToday,
+    weekDays: generateCurrentWeekDays(currentStreak, checkedInToday),
+    milestones: formatStreakMilestones(currentStreak)
   }, error: null };
 }
 
@@ -898,16 +903,29 @@ export async function checkInUser(userId) {
   if (current.error) return { success: false, error: current.error };
   if (current.data?.checkedInToday) return { success: true, data: current.data };
   const nextStreak = (current.data?.currentStreak || 0) + 1;
+  const longestStreak = Math.max(nextStreak, current.data?.longestStreak || 0);
+  const totalXp = (current.data?.totalXp || 0) + 50;
   const payload = {
     user_id: userId,
     current_streak: nextStreak,
-    longest_streak: Math.max(nextStreak, current.data?.longestStreak || 0),
+    longest_streak: longestStreak,
     last_check_in: new Date().toISOString().slice(0, 10),
-    total_xp: (current.data?.totalXp || 0) + 50,
+    total_xp: totalXp,
     updated_at: new Date().toISOString()
   };
   const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
-  return error ? { success: false, error: error.message } : { success: true, data: { ...current.data, currentStreak: nextStreak, longestStreak: payload.longest_streak, totalXp: payload.total_xp, checkedInToday: true } };
+  if (error) return { success: false, error: error.message };
+
+  const updatedData = {
+    ...current.data,
+    currentStreak: nextStreak,
+    longestStreak,
+    totalXp,
+    checkedInToday: true,
+    weekDays: generateCurrentWeekDays(nextStreak, true),
+    milestones: formatStreakMilestones(nextStreak)
+  };
+  return { success: true, data: updatedData };
 }
 
 const formatForumPost = (post) => ({
