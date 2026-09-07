@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { fetchLessonQuestions, submitHomeworkToSupabase, uploadMediaToSupabase } from '../services/supabaseService';
+import {
+  fetchLessonQuestions,
+  submitHomeworkToSupabase,
+  uploadMediaToSupabase,
+  fetchStudentLessonSubmission,
+  saveHomeworkDraft
+} from '../services/supabaseService';
 import { useAuth } from '../context/AuthContext';
 
 export const HomeworkView = ({ lesson, onBack }) => {
@@ -16,6 +22,14 @@ export const HomeworkView = ({ lesson, onBack }) => {
       });
     }
   }, [lesson?.id]);
+
+  // Q3 Word chips pool
+  const allWordChips = [
+    { id: 'w1', word: '这件衣服', ruby: <><ruby>这<rt>zhè</rt></ruby><ruby>件<rt>jiàn</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby></> },
+    { id: 'w2', word: '有点儿', ruby: <><ruby>有<rt>yǒu</rt></ruby><ruby>点<rt>diǎn</rt></ruby><ruby>儿<rt>er</rt></ruby></> },
+    { id: 'w3', word: '贵', ruby: <><ruby>贵<rt>guì</rt></ruby></> },
+    { id: 'w4', word: '。', ruby: <ruby>。<rt style={{ visibility: 'hidden' }}>&nbsp;</rt></ruby> }
+  ];
 
   // Homework Answers State
   const [q1Answer, setQ1Answer] = useState(null);
@@ -43,6 +57,63 @@ export const HomeworkView = ({ lesson, onBack }) => {
   // Q7 Writing 7B: Essay Textarea with Character Counter
   const [q7EssayText, setQ7EssayText] = useState('');
   const minEssayChars = 50;
+
+  // Submission & Draft State Management
+  const [submissionState, setSubmissionState] = useState('initial'); // 'initial' | 'draft' | 'submitted' | 'redo_requested' | 'graded'
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [existingSubmission, setExistingSubmission] = useState(null);
+  const [isDraftSaving, setIsDraftSaving] = useState(false);
+  const [draftToast, setDraftToast] = useState(null);
+
+  // Load existing submission or draft
+  useEffect(() => {
+    if (lesson?.id && user?.id) {
+      fetchStudentLessonSubmission(user.id, lesson.id).then(({ success, submission }) => {
+        if (success && submission) {
+          setExistingSubmission(submission);
+          const state = submission.submissionState || (submission.status === 'graded' ? 'graded' : 'submitted');
+          setSubmissionState(state);
+
+          const ans = submission.answers || {};
+          if (ans.q1Answer) setQ1Answer(ans.q1Answer);
+          if (ans.q2Answer) setQ2Answer(ans.q2Answer);
+          if (Array.isArray(ans.q3Words) && ans.q3Words.length > 0) {
+            const restoredChips = ans.q3Words.map((wordStr, idx) => {
+              const matched = allWordChips.find((c) => c.word === wordStr || c.id === wordStr);
+              return matched || { id: `w-restored-${idx}`, word: wordStr, ruby: wordStr };
+            });
+            setQ3Words(restoredChips);
+          }
+          if (ans.q4Answers && typeof ans.q4Answers === 'object') {
+            setQ4Answers(ans.q4Answers);
+          }
+          if (ans.q5AudioUrl) {
+            setAudioPreviewUrl(ans.q5AudioUrl);
+            setQ5Recorded(true);
+          }
+          if (ans.q6HandwritingUrl || ans.q6HandwritingImage) {
+            setQ6Photo({
+              name: ans.q6Handwriting || 'Vở viết chữ Hán',
+              url: ans.q6HandwritingUrl || ans.q6HandwritingImage,
+              size: 'Cloud'
+            });
+          }
+          if (ans.q7EssayText || ans.q7Essay) {
+            setQ7EssayText(ans.q7EssayText || ans.q7Essay);
+          }
+          if (submission.totalScore !== null && submission.totalScore !== undefined) {
+            setFinalScore(submission.totalScore);
+          }
+
+          if (state === 'submitted' || state === 'graded') {
+            setIsReadOnly(true);
+          } else if (state === 'redo_requested') {
+            setIsReadOnly(false);
+          }
+        }
+      });
+    }
+  }, [lesson?.id, user?.id]);
 
   // Audio Player State (Q1)
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -106,26 +177,21 @@ export const HomeworkView = ({ lesson, onBack }) => {
     }
   };
 
-  // Q3 Word chips pool
-  const allWordChips = [
-    { id: 'w1', word: '这件衣服', ruby: <><ruby>这<rt>zhè</rt></ruby><ruby>件<rt>jiàn</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby></> },
-    { id: 'w2', word: '有点儿', ruby: <><ruby>有<rt>yǒu</rt></ruby><ruby>点<rt>diǎn</rt></ruby><ruby>儿<rt>er</rt></ruby></> },
-    { id: 'w3', word: '贵', ruby: <><ruby>贵<rt>guì</rt></ruby></> },
-    { id: 'w4', word: '。', ruby: <ruby>。<rt style={{ visibility: 'hidden' }}>&nbsp;</rt></ruby> }
-  ];
-
   const handleChipClick = (chip) => {
+    if (isReadOnly) return;
     if (!q3Words.find((w) => w.id === chip.id)) {
       setQ3Words([...q3Words, chip]);
     }
   };
 
   const handleRemoveChip = (chipId) => {
+    if (isReadOnly) return;
     setQ3Words(q3Words.filter((w) => w.id !== chipId));
   };
 
   // Q5 Real Voice Recorder (MediaRecorder API)
   const startRecording = async () => {
+    if (isReadOnly) return;
     setMicError('');
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -197,6 +263,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
   };
 
   const resetRecording = () => {
+    if (isReadOnly) return;
     stopRecording();
     if (audioPreviewUrl) {
       URL.revokeObjectURL(audioPreviewUrl);
@@ -210,6 +277,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
 
   // Q6 Photo Upload Handler
   const handlePhotoChange = (e) => {
+    if (isReadOnly) return;
     const file = e.target.files[0];
     if (file) {
       if (q6Photo?.url) {
@@ -222,6 +290,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
   };
 
   const handleRemovePhoto = () => {
+    if (isReadOnly) return;
     if (q6Photo?.url) {
       URL.revokeObjectURL(q6Photo.url);
     }
@@ -242,12 +311,89 @@ export const HomeworkView = ({ lesson, onBack }) => {
   const totalParts = 7;
   const progressPercent = Math.round((answeredCount / totalParts) * 100);
 
+  // Save Homework Draft Handler
+  const handleSaveDraft = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (isReadOnly) return;
+    setIsDraftSaving(true);
+    setUploadStatusMsg('Đang lưu bài tạm thời...');
+
+    try {
+      let uploadedAudioUrl = audioPreviewUrl;
+      let uploadedPhotoUrl = q6Photo?.url;
+
+      if (audioBlob && (!uploadedAudioUrl || !uploadedAudioUrl.startsWith('http'))) {
+        try {
+          uploadedAudioUrl = await uploadMediaToSupabase(
+            audioBlob,
+            'homework-audio',
+            `draft_voice_${user.id || 'student'}_${Date.now()}.webm`
+          );
+        } catch (err) {
+          console.warn('Draft voice upload fallback');
+        }
+      }
+
+      if (q6File && (!uploadedPhotoUrl || !uploadedPhotoUrl.startsWith('http'))) {
+        try {
+          uploadedPhotoUrl = await uploadMediaToSupabase(
+            q6File,
+            'homework-photos',
+            `draft_photo_${user.id || 'student'}_${Date.now()}_${q6File.name}`
+          );
+        } catch (err) {
+          console.warn('Draft photo upload fallback');
+        }
+      }
+
+      const answers = {
+        q1Answer,
+        q2Answer,
+        q3Words: q3Words.map((w) => w.word),
+        q3Sentence: q3Words.map((w) => w.word).join(''),
+        q4Answers,
+        q5Recorded: !!uploadedAudioUrl || q5Recorded,
+        q5AudioUrl: uploadedAudioUrl,
+        q5AudioText: '老板，这件红色的衣服太贵了，便宜一点儿吧！',
+        q6Handwriting: q6Photo?.name,
+        q6HandwritingUrl: uploadedPhotoUrl,
+        q6HandwritingImage: uploadedPhotoUrl,
+        q7Essay: q7EssayText,
+        q7EssayText: q7EssayText,
+        q7CharCount: q7EssayText.trim().length,
+        autoGradedScore: finalScore
+      };
+
+      await saveHomeworkDraft({
+        lessonId: lesson?.id || 'lesson-4',
+        studentId: user?.id || 'user-student-1',
+        studentName: user?.name || user?.full_name || 'Học viên',
+        answers
+      });
+
+      setSubmissionState('draft');
+      setDraftToast('💾 Đã lưu bài làm tạm thời! Mọi câu trả lời đã được giữ lại an toàn để bạn làm tiếp.');
+      setTimeout(() => setDraftToast(null), 4500);
+    } catch (e) {
+      console.error('Lỗi khi lưu bài tạm:', e);
+      setDraftToast('Đã lưu bài làm vào bộ nhớ tạm của trình duyệt.');
+      setTimeout(() => setDraftToast(null), 4000);
+    } finally {
+      setIsDraftSaving(false);
+      setUploadStatusMsg('');
+    }
+  };
+
   // Submit Homework with Real Supabase Storage Upload
   const handleSubmit = async () => {
     if (!user) {
       setIsAuthModalOpen(true);
       return;
     }
+    if (isReadOnly) return;
     setIsSubmitting(true);
 
     let score = 0;
@@ -260,12 +406,12 @@ export const HomeworkView = ({ lesson, onBack }) => {
 
     setFinalScore(score);
 
-    let uploadedAudioUrl = null;
-    let uploadedPhotoUrl = null;
+    let uploadedAudioUrl = audioPreviewUrl;
+    let uploadedPhotoUrl = q6Photo?.url;
 
     try {
       // 1. Upload audio recording to Supabase Storage if recorded
-      if (audioBlob) {
+      if (audioBlob && (!uploadedAudioUrl || !uploadedAudioUrl.startsWith('http'))) {
         setUploadStatusMsg('Đang tải file ghi âm lên Supabase Storage...');
         uploadedAudioUrl = await uploadMediaToSupabase(
           audioBlob,
@@ -275,7 +421,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
       }
 
       // 2. Upload photo to Supabase Storage if attached
-      if (q6File) {
+      if (q6File && (!uploadedPhotoUrl || !uploadedPhotoUrl.startsWith('http'))) {
         setUploadStatusMsg('Đang tải ảnh bài viết lên Supabase Storage...');
         uploadedPhotoUrl = await uploadMediaToSupabase(
           q6File,
@@ -313,6 +459,16 @@ export const HomeworkView = ({ lesson, onBack }) => {
       if (!result.success) {
         console.warn('Lưu bài tập Supabase trả về lỗi, chuyển trạng thái offline.');
       }
+
+      // Lock homework into read-only
+      setIsReadOnly(true);
+      setSubmissionState('submitted');
+      setExistingSubmission({
+        ...submissionData,
+        submittedAt: 'Vừa xong',
+        status: 'pending',
+        totalScore: score
+      });
     } catch (e) {
       console.error('Lỗi khi tải file hoặc nộp bài tập:', e);
     } finally {
@@ -385,6 +541,133 @@ export const HomeworkView = ({ lesson, onBack }) => {
         </div>
       </section>
 
+      {/* Dynamic Status Notification Banner */}
+      {draftToast && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          zIndex: 9999,
+          background: '#0f172a',
+          color: '#ffffff',
+          padding: '0.9rem 1.4rem',
+          borderRadius: '14px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontWeight: 600,
+          fontSize: '0.92rem'
+        }}>
+          <span>{draftToast}</span>
+        </div>
+      )}
+
+      {/* Notice Banner based on Submission State */}
+      {isReadOnly && existingSubmission?.status === 'graded' && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+          border: '1.5px solid #86efac',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+              <i className="fa-solid fa-circle-check"></i>
+              <span>Bài Làm Đã Được Cô Giáo Chấm Điểm: {existingSubmission.totalScore} / 10 Điểm</span>
+            </div>
+            <div style={{ color: '#166534', fontSize: '0.9rem' }}>
+              <strong>Lời phê của cô:</strong> {existingSubmission.teacherComment || 'Em hoàn thành bài rất tốt! Cố gắng phát huy nhé.'}
+            </div>
+          </div>
+          <span style={{ background: '#16a34a', color: '#fff', padding: '0.4rem 1rem', borderRadius: '12px', fontWeight: 700, fontSize: '0.88rem' }}>
+            ✓ Đã Có Điểm
+          </span>
+        </div>
+      )}
+
+      {isReadOnly && existingSubmission?.status !== 'graded' && (
+        <div style={{
+          background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+          border: '1.5px solid #fca5a5',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#A11D24', fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.25rem' }}>
+              <i className="fa-solid fa-lock"></i>
+              <span>Bài Tập Đã Được Nộp Cho Cô Giáo (Đang Chờ Chấm)</span>
+            </div>
+            <div style={{ color: '#7f1d1d', fontSize: '0.88rem' }}>
+              Thời gian nộp: <strong>{existingSubmission?.submittedAt || 'Hôm nay'}</strong>. Bài đang trong chế độ chỉ xem, bạn không thể chỉnh sửa đáp án nữa.
+            </div>
+          </div>
+          <span style={{ background: '#A11D24', color: '#fff', padding: '0.4rem 1rem', borderRadius: '12px', fontWeight: 700, fontSize: '0.85rem' }}>
+            Đang Chờ Cô Chấm
+          </span>
+        </div>
+      )}
+
+      {!isReadOnly && submissionState === 'redo_requested' && (
+        <div style={{
+          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+          border: '1.5px solid #fcd34d',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.25rem' }}>
+              <i className="fa-solid fa-rotate-left"></i>
+              <span>Cô Giáo Yêu Cầu Làm Lại Bài Này</span>
+            </div>
+            <div style={{ color: '#92400e', fontSize: '0.9rem' }}>
+              <strong>Lời dặn của Cô Hoài:</strong> "{existingSubmission?.redoNote || 'Em kiểm tra lại câu trả lời và làm lại bài nhé'}"
+            </div>
+          </div>
+          <span style={{ background: '#d97706', color: '#fff', padding: '0.4rem 1rem', borderRadius: '12px', fontWeight: 700, fontSize: '0.85rem' }}>
+            Đã Mở Khóa Làm Lại
+          </span>
+        </div>
+      )}
+
+      {!isReadOnly && submissionState === 'draft' && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+          border: '1.5px solid #7dd3fc',
+          borderRadius: '16px',
+          padding: '1rem 1.25rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          color: '#0369a1',
+          fontSize: '0.9rem'
+        }}>
+          <i className="fa-regular fa-floppy-disk" style={{ fontSize: '1.1rem' }}></i>
+          <span>
+            <strong>Đang tiếp tục bài làm dở:</strong> Hệ thống đã tự động khôi phục các câu trả lời bạn đã lưu trước đó. Hãy tiếp tục làm bài và bấm <strong>"Nộp Bài Cho Cô"</strong> khi sẵn sàng!
+          </span>
+        </div>
+      )}
+
       {/* Questions */}
       <main className="hw-stream">
 
@@ -428,8 +711,15 @@ export const HomeworkView = ({ lesson, onBack }) => {
             </div>
 
             <div className="hw-options-grid">
-              <label className={`hw-option-card ${q1Answer === 'A' ? 'selected' : ''}`}>
-                <input type="radio" name="q1" value="A" onChange={() => setQ1Answer('A')} />
+              <label className={`hw-option-card ${q1Answer === 'A' ? 'selected' : ''}`} style={{ cursor: isReadOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="radio"
+                  name="q1"
+                  value="A"
+                  checked={q1Answer === 'A'}
+                  disabled={isReadOnly}
+                  onChange={() => !isReadOnly && setQ1Answer('A')}
+                />
                 <div className="hw-option-indicator">A</div>
                 <div className="hw-option-body">
                   <div className="hw-hanzi-big">
@@ -439,8 +729,15 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 </div>
               </label>
 
-              <label className={`hw-option-card ${q1Answer === 'B' ? 'selected' : ''}`}>
-                <input type="radio" name="q1" value="B" onChange={() => setQ1Answer('B')} />
+              <label className={`hw-option-card ${q1Answer === 'B' ? 'selected' : ''}`} style={{ cursor: isReadOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="radio"
+                  name="q1"
+                  value="B"
+                  checked={q1Answer === 'B'}
+                  disabled={isReadOnly}
+                  onChange={() => !isReadOnly && setQ1Answer('B')}
+                />
                 <div className="hw-option-indicator">B</div>
                 <div className="hw-option-body">
                   <div className="hw-hanzi-big">
@@ -469,8 +766,15 @@ export const HomeworkView = ({ lesson, onBack }) => {
             </div>
 
             <div className="hw-options-grid">
-              <label className={`hw-option-card ${q2Answer === 'A' ? 'selected' : ''}`}>
-                <input type="radio" name="q2" value="A" onChange={() => setQ2Answer('A')} />
+              <label className={`hw-option-card ${q2Answer === 'A' ? 'selected' : ''}`} style={{ cursor: isReadOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="radio"
+                  name="q2"
+                  value="A"
+                  checked={q2Answer === 'A'}
+                  disabled={isReadOnly}
+                  onChange={() => !isReadOnly && setQ2Answer('A')}
+                />
                 <div className="hw-option-indicator">A</div>
                 <div className="hw-option-body">
                   <div className="hw-pinyin-big">yī fu</div>
@@ -478,8 +782,15 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 </div>
               </label>
 
-              <label className={`hw-option-card ${q2Answer === 'B' ? 'selected' : ''}`}>
-                <input type="radio" name="q2" value="B" onChange={() => setQ2Answer('B')} />
+              <label className={`hw-option-card ${q2Answer === 'B' ? 'selected' : ''}`} style={{ cursor: isReadOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="radio"
+                  name="q2"
+                  value="B"
+                  checked={q2Answer === 'B'}
+                  disabled={isReadOnly}
+                  onChange={() => !isReadOnly && setQ2Answer('B')}
+                />
                 <div className="hw-option-indicator">B</div>
                 <div className="hw-option-body">
                   <div className="hw-pinyin-big">yí fù</div>
@@ -505,9 +816,16 @@ export const HomeworkView = ({ lesson, onBack }) => {
               {q3Words.length === 0
                 ? <div className="hw-dropzone-placeholder">Bấm các thẻ từ bên dưới để ghép vào đây...</div>
                 : q3Words.map((chip) => (
-                  <button key={chip.id} type="button" className="hw-word-chip active" onClick={() => handleRemoveChip(chip.id)}>
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className="hw-word-chip active"
+                    onClick={() => !isReadOnly && handleRemoveChip(chip.id)}
+                    disabled={isReadOnly}
+                    style={{ cursor: isReadOnly ? 'default' : 'pointer' }}
+                  >
                     <span>{chip.ruby}</span>
-                    <i className="fa-solid fa-xmark" style={{ fontSize: '0.75rem', opacity: 0.7 }}></i>
+                    {!isReadOnly && <i className="fa-solid fa-xmark" style={{ fontSize: '0.75rem', opacity: 0.7 }}></i>}
                   </button>
                 ))
               }
@@ -521,8 +839,9 @@ export const HomeworkView = ({ lesson, onBack }) => {
                     key={chip.id}
                     type="button"
                     className={`hw-word-chip ${isUsed ? 'used' : ''}`}
-                    onClick={() => handleChipClick(chip)}
-                    disabled={isUsed}
+                    onClick={() => !isReadOnly && handleChipClick(chip)}
+                    disabled={isUsed || isReadOnly}
+                    style={{ cursor: isReadOnly ? 'default' : undefined }}
                   >
                     <span>{chip.ruby}</span>
                   </button>
@@ -560,14 +879,18 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 <button
                   type="button"
                   className={`hw-mc-btn ${q4Answers.sq1 === 'T' ? 'selected' : ''}`}
-                  onClick={() => setQ4Answers({ ...q4Answers, sq1: 'T' })}
+                  disabled={isReadOnly}
+                  style={{ cursor: isReadOnly ? 'default' : 'pointer', opacity: isReadOnly && q4Answers.sq1 !== 'T' ? 0.6 : 1 }}
+                  onClick={() => !isReadOnly && setQ4Answers({ ...q4Answers, sq1: 'T' })}
                 >
                   对 (Đúng)
                 </button>
                 <button
                   type="button"
                   className={`hw-mc-btn ${q4Answers.sq1 === 'F' ? 'selected' : ''}`}
-                  onClick={() => setQ4Answers({ ...q4Answers, sq1: 'F' })}
+                  disabled={isReadOnly}
+                  style={{ cursor: isReadOnly ? 'default' : 'pointer', opacity: isReadOnly && q4Answers.sq1 !== 'F' ? 0.6 : 1 }}
+                  onClick={() => !isReadOnly && setQ4Answers({ ...q4Answers, sq1: 'F' })}
                 >
                   错 (Sai — Có bán dưa hấu)
                 </button>
@@ -586,7 +909,9 @@ export const HomeworkView = ({ lesson, onBack }) => {
                     key={opt.id}
                     type="button"
                     className={`hw-mc-btn ${q4Answers.sq2 === opt.id ? 'selected' : ''}`}
-                    onClick={() => setQ4Answers({ ...q4Answers, sq2: opt.id })}
+                    disabled={isReadOnly}
+                    style={{ cursor: isReadOnly ? 'default' : 'pointer', opacity: isReadOnly && q4Answers.sq2 !== opt.id ? 0.6 : 1 }}
+                    onClick={() => !isReadOnly && setQ4Answers({ ...q4Answers, sq2: opt.id })}
                   >
                     {opt.id}. {opt.text}
                   </button>
@@ -606,7 +931,9 @@ export const HomeworkView = ({ lesson, onBack }) => {
                     key={opt.id}
                     type="button"
                     className={`hw-mc-btn ${q4Answers.sq3 === opt.id ? 'selected' : ''}`}
-                    onClick={() => setQ4Answers({ ...q4Answers, sq3: opt.id })}
+                    disabled={isReadOnly}
+                    style={{ cursor: isReadOnly ? 'default' : 'pointer', opacity: isReadOnly && q4Answers.sq3 !== opt.id ? 0.6 : 1 }}
+                    onClick={() => !isReadOnly && setQ4Answers({ ...q4Answers, sq3: opt.id })}
                   >
                     {opt.id}. {opt.text}
                   </button>
@@ -635,9 +962,15 @@ export const HomeworkView = ({ lesson, onBack }) => {
             <div className="hw-recorder-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.85rem' }}>
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 {!recording ? (
-                  <button type="button" className="hw-rec-btn start" onClick={startRecording}>
+                  <button
+                    type="button"
+                    className="hw-rec-btn start"
+                    onClick={startRecording}
+                    disabled={isReadOnly}
+                    style={{ cursor: isReadOnly ? 'default' : 'pointer', opacity: isReadOnly ? 0.6 : 1 }}
+                  >
                     <i className="fa-solid fa-microphone"></i>
-                    {q5Recorded ? 'Thu âm lại' : 'Bắt đầu ghi âm'}
+                    {isReadOnly ? 'Đã khóa thu âm (Chế độ xem)' : q5Recorded ? 'Thu âm lại' : 'Bắt đầu ghi âm'}
                   </button>
                 ) : (
                   <button type="button" className="hw-rec-btn stop" onClick={stopRecording}>
@@ -646,7 +979,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
                     Dừng thu âm ({recordingTime})
                   </button>
                 )}
-                {q5Recorded && !recording && (
+                {q5Recorded && !recording && !isReadOnly && (
                   <button
                     type="button"
                     onClick={resetRecording}
@@ -678,7 +1011,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
               {q5Recorded && !recording && audioPreviewUrl && (
                 <div style={{ width: '100%', maxWidth: '440px', background: '#f8fafc', padding: '0.85rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <i className="fa-solid fa-circle-check"></i> Đã thu âm ({recordingTime}). Bạn có thể nghe lại trước khi nộp:
+                    <i className="fa-solid fa-circle-check"></i> {isReadOnly ? 'File ghi âm bạn đã nộp cho cô giáo:' : `Đã thu âm (${recordingTime}). Bạn có thể nghe lại trước khi nộp:`}
                   </div>
                   <audio controls src={audioPreviewUrl} style={{ width: '100%', height: '36px' }} />
                 </div>
@@ -713,40 +1046,55 @@ export const HomeworkView = ({ lesson, onBack }) => {
               ))}
             </div>
 
-            <div className="hw-upload-zone">
-              <input type="file" accept="image/*" id="photo-upload" style={{ display: 'none' }} onChange={handlePhotoChange} />
-              <label htmlFor="photo-upload">
+            <div className="hw-upload-zone" style={{ opacity: isReadOnly ? 0.8 : 1 }}>
+              <input
+                type="file"
+                accept="image/*"
+                id="photo-upload"
+                style={{ display: 'none' }}
+                disabled={isReadOnly}
+                onChange={handlePhotoChange}
+              />
+              <label htmlFor={isReadOnly ? undefined : "photo-upload"} style={{ cursor: isReadOnly ? 'default' : 'pointer' }}>
                 <i className="hw-upload-icon fa-solid fa-camera"></i>
                 <span className="hw-upload-text">
-                  {q6Photo ? `Đã chọn: ${q6Photo.name} (${q6Photo.size} MB)` : 'Bấm để chụp ảnh hoặc tải ảnh bài viết từ máy'}
+                  {q6Photo
+                    ? `Đã chọn: ${q6Photo.name}`
+                    : isReadOnly
+                      ? 'Chưa đính kèm ảnh bài viết'
+                      : 'Bấm để chụp ảnh hoặc tải ảnh bài viết từ máy'}
                 </span>
-                <span className="hw-upload-sub">Hỗ trợ JPG, PNG, HEIC chụp từ điện thoại</span>
+                <span className="hw-upload-sub">
+                  {isReadOnly ? 'Chế độ xem lại bài tập' : 'Hỗ trợ JPG, PNG, HEIC chụp từ điện thoại'}
+                </span>
               </label>
               {q6Photo && (
                 <div style={{ marginTop: '0.75rem', position: 'relative', display: 'inline-block' }}>
                   <img src={q6Photo.url} alt="Xem trước bài viết" className="hw-preview-img" style={{ maxHeight: '240px', borderRadius: '10px' }} />
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'rgba(0,0,0,0.65)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '28px',
-                      height: '28px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Xóa ảnh này"
-                  >
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(0,0,0,0.65)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '28px',
+                        height: '28px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Xóa ảnh này"
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -771,9 +1119,11 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 <div className="hw-essay-textarea-wrap">
                   <textarea
                     className="hw-essay-textarea"
-                    placeholder="Ví dụ: 昨天下午，我和朋友一起去超市买东西。超市里人很多，水果也很新鲜……"
+                    placeholder={isReadOnly ? 'Học viên chưa nhập đoạn văn.' : 'Ví dụ: 昨天下午，我和朋友一起去超市买东西。超市里人很多，水果也很新鲜……'}
                     value={q7EssayText}
-                    onChange={(e) => setQ7EssayText(e.target.value)}
+                    readOnly={isReadOnly}
+                    style={{ background: isReadOnly ? '#f8fafc' : '#ffffff', cursor: isReadOnly ? 'default' : 'text' }}
+                    onChange={(e) => !isReadOnly && setQ7EssayText(e.target.value)}
                   />
                   <div className="hw-essay-counter">
                     <span className="hw-counter-num">{q7EssayText.trim().length}</span>
@@ -817,21 +1167,88 @@ export const HomeworkView = ({ lesson, onBack }) => {
                   <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '6px' }}></i>
                   {uploadStatusMsg}
                 </span>
+              ) : isReadOnly ? (
+                existingSubmission?.status === 'graded'
+                  ? 'Bài tập đã có kết quả chấm điểm từ Cô Hoài.'
+                  : 'Bài tập đã được gửi cho cô giáo. Đang chờ kết quả chấm điểm khẩu ngữ & chữ viết.'
               ) : (
-                'Câu trắc nghiệm & ngữ pháp sẽ được máy chấm ngay. File thu âm và ảnh viết tay sẽ được tải lên Supabase Storage gửi cho cô giáo.'
+                'Bấm "Lưu Bài Tạm" để làm tiếp bất cứ khi nào, hoặc bấm "Nộp Bài Cho Cô" khi bạn đã hoàn thành.'
               )}
             </div>
           </div>
 
-          <button
-            type="button"
-            className="hw-submit-btn"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            <i className="fa-solid fa-paper-plane"></i>
-            {isSubmitting ? 'Đang gửi bài...' : 'Nộp Bài Cho Cô'}
-          </button>
+          {isReadOnly ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{
+                background: existingSubmission?.status === 'graded' ? '#f0fdf4' : '#fef2f2',
+                color: existingSubmission?.status === 'graded' ? '#16a34a' : '#A11D24',
+                border: `1.5px solid ${existingSubmission?.status === 'graded' ? '#86efac' : '#fca5a5'}`,
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <i className={`fa-solid ${existingSubmission?.status === 'graded' ? 'fa-circle-check' : 'fa-lock'}`}></i>
+                {existingSubmission?.status === 'graded'
+                  ? `Đã Chấm: ${existingSubmission.totalScore} / 10 Điểm`
+                  : 'Đã Nộp Bài (Đang Chờ Chấm)'}
+              </span>
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  background: '#0f172a',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Quay Về Lộ Trình
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={isDraftSaving || isSubmitting}
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                }}
+              >
+                <i className="fa-regular fa-floppy-disk" style={{ color: '#0284c7' }}></i>
+                <span>{isDraftSaving ? 'Đang lưu...' : 'Lưu Bài Tạm'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="hw-submit-btn"
+                onClick={handleSubmit}
+                disabled={isSubmitting || isDraftSaving}
+              >
+                <i className="fa-solid fa-paper-plane"></i>
+                {isSubmitting ? 'Đang gửi bài...' : 'Nộp Bài Cho Cô'}
+              </button>
+            </div>
+          )}
         </div>
       </main>
 

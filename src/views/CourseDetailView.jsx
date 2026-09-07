@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { isStudentInClassroom } from '../utils/classEnrollment';
+import { fetchStudentSubmissions, getLocalDraft } from '../services/supabaseService';
 
 export const CourseDetailView = ({ 
   course, 
@@ -23,6 +24,18 @@ export const CourseDetailView = ({
     (c) => isStudentInClassroom(c, user) && (c.courseIds || c.course_ids || []).includes(course?.id)
   );
   const isCourseEnrolled = isTeacherOrAdmin ? true : Boolean(studentClass);
+
+  const [studentSubmissions, setStudentSubmissions] = useState([]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchStudentSubmissions(user.id).then(({ data }) => {
+        setStudentSubmissions(data || []);
+      });
+    } else {
+      setStudentSubmissions([]);
+    }
+  }, [user?.id, course?.id]);
 
   // Modal State for Adding Lesson
   const [isAddLessonModalOpen, setIsAddLessonModalOpen] = useState(false);
@@ -354,7 +367,17 @@ export const CourseDetailView = ({
               ? (studentClass.unlockedLessons || []).includes(lesson.id)
               : false;
 
-            const isCompleted = lesson.status === 'completed';
+            const sub = studentSubmissions.find(
+              (s) => String(s.lessonId) === String(lesson.id)
+            );
+            const localDraft = user ? getLocalDraft(user.id, lesson.id) : null;
+
+            const isGraded = sub?.status === 'graded' || lesson.status === 'completed';
+            const isRedoRequested = sub?.submissionState === 'redo_requested';
+            const isSubmitted = sub?.status === 'pending' && sub?.submissionState === 'submitted';
+            const isDraft = !isSubmitted && !isGraded && !isRedoRequested && (sub?.submissionState === 'draft' || !!localDraft);
+
+            const isCompleted = isGraded;
             const isActive = isTeacherOrAdmin ? true : isLessonOpenForClass;
             const isLocked = !isTeacherOrAdmin && !isLessonOpenForClass;
             const lessonNumInt = parseInt(lesson.number, 10) || (index + 1);
@@ -376,17 +399,46 @@ export const CourseDetailView = ({
                   </div>
 
                   <div className="lesson-info">
-                    <div className="lesson-meta-row">
+                    <div className="lesson-meta-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span className="lesson-tag">Bài {lesson.number}</span>
                       <span className={`deadline-tag ${lesson.status}`}>
                         <i className="fa-regular fa-clock"></i> {lesson.deadline}
                       </span>
+                      {!isTeacherOrAdmin && (
+                        <>
+                          {isRedoRequested && (
+                            <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <i className="fa-solid fa-rotate-left"></i> Yêu cầu làm lại
+                            </span>
+                          )}
+                          {isSubmitted && (
+                            <span style={{ background: '#ffedd5', color: '#c2410c', fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <i className="fa-regular fa-clock"></i> Chờ cô chấm
+                            </span>
+                          )}
+                          {isDraft && (
+                            <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <i className="fa-regular fa-floppy-disk"></i> Đang lưu nháp
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
                     <h3 className="lesson-title">{lesson.title}</h3>
                     <div className="lesson-sub-meta">
                       <span><i className="fa-solid fa-circle-question"></i> {lesson.questionsCount || 5} phần câu hỏi</span>
                       <span>•</span>
-                      <span>{lesson.type || (isActive ? 'Cần nộp bài' : isCompleted ? 'Đã chấm điểm' : 'Chưa mở')}</span>
+                      <span>
+                        {!isTeacherOrAdmin && isRedoRequested
+                          ? (sub?.redoNote ? `Cô nhắn: "${sub.redoNote}"` : 'Cô giáo yêu cầu sửa & làm lại bài')
+                          : !isTeacherOrAdmin && isGraded
+                            ? (sub?.totalScore !== undefined && sub?.totalScore !== null ? `Đã có điểm: ${sub.totalScore}đ` : 'Đã chấm điểm')
+                            : !isTeacherOrAdmin && isSubmitted
+                              ? 'Đã nộp bài cho cô'
+                              : !isTeacherOrAdmin && isDraft
+                                ? 'Đang lưu bản nháp dở dang'
+                                : (lesson.type || (isActive ? 'Cần nộp bài' : isCompleted ? 'Đã chấm điểm' : 'Chưa mở'))}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -483,9 +535,9 @@ export const CourseDetailView = ({
                     </div>
                   ) : (
                     <>
-                      {isCompleted && (
+                      {isGraded ? (
                         <div className="completed-score-box">
-                          <span className="score-val">{lesson.score?.toFixed(1) || '9.5'}</span>
+                          <span className="score-val">{(sub?.totalScore !== undefined && sub?.totalScore !== null ? sub.totalScore : (lesson.score || 9.5)).toFixed(1)}</span>
                           <span className="score-max">/ 10 đ</span>
                           <button 
                             type="button" 
@@ -498,12 +550,60 @@ export const CourseDetailView = ({
                               onOpenLesson(lesson);
                             }}
                           >
-                            <i className="fa-regular fa-eye"></i> Xem lại
+                            <i className="fa-regular fa-eye"></i> Xem Lại Điểm
                           </button>
                         </div>
-                      )}
-
-                      {isActive && (
+                      ) : isRedoRequested ? (
+                        <button 
+                          type="button" 
+                          className="btn-do-homework-main"
+                          style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)' }}
+                          onClick={() => {
+                            if (!user) {
+                              setIsAuthModalOpen(true);
+                              return;
+                            }
+                            onOpenLesson(lesson);
+                          }}
+                        >
+                          <i className="fa-solid fa-rotate-left"></i>
+                          <span>Sửa &amp; Nộp Lại Bài</span>
+                          <i className="fa-solid fa-arrow-right"></i>
+                        </button>
+                      ) : isSubmitted ? (
+                        <button 
+                          type="button" 
+                          className="btn-do-homework-main"
+                          style={{ background: '#f8fafc', color: '#334155', border: '1.5px solid #cbd5e1', boxShadow: 'none' }}
+                          onClick={() => {
+                            if (!user) {
+                              setIsAuthModalOpen(true);
+                              return;
+                            }
+                            onOpenLesson(lesson);
+                          }}
+                        >
+                          <i className="fa-regular fa-eye"></i>
+                          <span>Xem Bài Đã Nộp</span>
+                        </button>
+                      ) : isDraft ? (
+                        <button 
+                          type="button" 
+                          className="btn-do-homework-main"
+                          style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)' }}
+                          onClick={() => {
+                            if (!user) {
+                              setIsAuthModalOpen(true);
+                              return;
+                            }
+                            onOpenLesson(lesson);
+                          }}
+                        >
+                          <i className="fa-regular fa-pen-to-square"></i>
+                          <span>Làm Tiếp (Bản Nháp)</span>
+                          <i className="fa-solid fa-arrow-right"></i>
+                        </button>
+                      ) : isActive ? (
                         <button 
                           type="button" 
                           className="btn-do-homework-main"
@@ -519,9 +619,7 @@ export const CourseDetailView = ({
                           <span>{user ? 'Làm Bài Ngay' : 'Đăng Nhập Để Làm Bài'}</span>
                           <i className="fa-solid fa-arrow-right"></i>
                         </button>
-                      )}
-
-                      {isLocked && (
+                      ) : (
                         <div className="locked-badge">
                           <i className="fa-solid fa-lock"></i>
                           <span>Chưa mở</span>

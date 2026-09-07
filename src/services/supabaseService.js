@@ -1084,18 +1084,245 @@ export async function uploadMediaToSupabase(fileOrBlob, folder = 'homework', ori
   }
 }
 
+// ==========================================
+// 6. HOMEWORK SUBMISSIONS & GRADING
+// ==========================================
+const getLocalDraftKey = (studentId, lessonId) => `hanzify_draft_${studentId || 'guest'}_${lessonId || 'default'}`;
+
+export function getLocalDraft(studentId, lessonId) {
+  try {
+    const raw = localStorage.getItem(getLocalDraftKey(studentId, lessonId));
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Error reading local draft:', e);
+  }
+  return null;
+}
+
+export function setLocalDraft(studentId, lessonId, draftData) {
+  try {
+    localStorage.setItem(getLocalDraftKey(studentId, lessonId), JSON.stringify(draftData));
+  } catch (e) {
+    console.error('Error saving local draft:', e);
+  }
+}
+
+export function clearLocalDraft(studentId, lessonId) {
+  try {
+    localStorage.removeItem(getLocalDraftKey(studentId, lessonId));
+  } catch (e) {
+    console.error('Error clearing local draft:', e);
+  }
+}
+
+export async function fetchStudentLessonSubmission(studentId, lessonId) {
+  try {
+    if (studentId && lessonId) {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('student_id', studentId)
+        .eq('lesson_id', lessonId)
+        .order('submitted_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        const item = data[0];
+        const answers = item.answers_json || {};
+        const submissionState = answers.submission_state || (item.status === 'graded' ? 'graded' : 'submitted');
+        return {
+          success: true,
+          submission: {
+            id: item.id,
+            lessonId: item.lesson_id,
+            studentId: item.student_id,
+            studentName: item.student_name,
+            submittedAt: item.submitted_at ? new Date(item.submitted_at).toLocaleString('vi-VN') : '',
+            status: item.status, // 'pending' | 'graded'
+            submissionState, // 'draft' | 'submitted' | 'redo_requested' | 'graded'
+            totalScore: item.total_score,
+            teacherComment: item.teacher_comment,
+            teacherAudioFeedback: item.teacher_audio_feedback,
+            answers,
+            redoNote: answers.redo_note || null,
+            isDirectGraded: !!answers.direct_graded
+          }
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('fetchStudentLessonSubmission error:', e);
+  }
+
+  // Fallback to local draft if exists
+  const localDraft = getLocalDraft(studentId, lessonId);
+  if (localDraft) {
+    return {
+      success: true,
+      submission: {
+        id: localDraft.id || `draft-local-${Date.now()}`,
+        lessonId,
+        studentId,
+        studentName: localDraft.studentName || 'Học viên',
+        submittedAt: localDraft.savedAt ? new Date(localDraft.savedAt).toLocaleString('vi-VN') : '',
+        status: 'pending',
+        submissionState: 'draft',
+        totalScore: null,
+        teacherComment: null,
+        answers: localDraft.answers || {},
+        redoNote: null
+      }
+    };
+  }
+
+  return { success: false, submission: null };
+}
+
+export async function fetchStudentSubmissions(studentId) {
+  if (!studentId) return { data: [] };
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('student_id', studentId);
+    if (!error && data) {
+      return {
+        data: data.map((item) => {
+          const answers = item.answers_json || {};
+          const submissionState = answers.submission_state || (item.status === 'graded' ? 'graded' : 'submitted');
+          return {
+            id: item.id,
+            lessonId: item.lesson_id,
+            studentId: item.student_id,
+            status: item.status,
+            submissionState,
+            totalScore: item.total_score,
+            teacherComment: item.teacher_comment,
+            redoNote: answers.redo_note || null,
+            submittedAt: item.submitted_at
+          };
+        })
+      };
+    }
+  } catch (e) {
+    console.warn('fetchStudentSubmissions error:', e);
+  }
+  return { data: [] };
+}
+
+export async function saveHomeworkDraft(submission) {
+  const studentId = submission.studentId;
+  const lessonId = submission.lessonId;
+  const answers = {
+    ...(submission.answers || {}),
+    submission_state: 'draft',
+    saved_at: new Date().toISOString()
+  };
+
+  // 1. Save local draft immediately
+  setLocalDraft(studentId, lessonId, {
+    id: submission.id,
+    studentId,
+    lessonId,
+    studentName: submission.studentName,
+    answers,
+    savedAt: new Date().toISOString()
+  });
+
+  // 2. Sync to Supabase if possible
+  try {
+    const { data: existing } = await supabase
+      .from('submissions')
+      .select('id, status, answers_json')
+      .eq('student_id', studentId)
+      .eq('lesson_id', lessonId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const existingId = existing[0].id;
+      const currentSubState = existing[0].answers_json?.submission_state;
+      // Do not overwrite if already submitted or graded unless it was draft/redo
+      if (currentSubState === 'submitted' || (existing[0].status === 'graded' && currentSubState !== 'redo_requested')) {
+        return { success: true, isReadOnly: true };
+      }
+
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          answers_json: answers,
+          student_name: submission.studentName || 'Học viên'
+        })
+        .eq('id', existingId)
+        .select();
+
+      return { success: !error, data: data?.[0] };
+    } else {
+      const payload = {
+        id: submission.id || `sub-${Date.now()}`,
+        lesson_id: lessonId,
+        student_id: studentId,
+        student_name: submission.studentName || 'Học viên',
+        status: 'pending',
+        answers_json: answers
+      };
+      const { data, error } = await supabase.from('submissions').insert([payload]).select();
+      return { success: !error, data: data?.[0] };
+    }
+  } catch (e) {
+    console.error('saveHomeworkDraft Supabase error:', e);
+  }
+  return { success: true, localOnly: true };
+}
+
 export async function submitHomeworkToSupabase(submission) {
   try {
-    const payload = {
-      id: submission.id || `sub-${Date.now()}`,
-      lesson_id: submission.lessonId,
-      student_id: submission.studentId,
-      student_name: submission.studentName,
-      status: 'pending',
-      answers_json: submission.answers || {}
+    const studentId = submission.studentId;
+    const lessonId = submission.lessonId;
+    const answers = {
+      ...(submission.answers || {}),
+      submission_state: 'submitted',
+      submitted_at: new Date().toISOString()
     };
-    const { data, error } = await supabase.from('submissions').insert([payload]).select();
-    if (!error) return { success: true, data };
+
+    // Remove local draft so next time it relies on submitted server state
+    clearLocalDraft(studentId, lessonId);
+
+    const { data: existing } = await supabase
+      .from('submissions')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('lesson_id', lessonId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const existingId = existing[0].id;
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          student_name: submission.studentName,
+          status: 'pending',
+          submitted_at: new Date().toISOString(),
+          answers_json: answers,
+          total_score: null,
+          teacher_comment: null
+        })
+        .eq('id', existingId)
+        .select();
+
+      if (!error) return { success: true, data: data?.[0] };
+    } else {
+      const payload = {
+        id: submission.id || `sub-${Date.now()}`,
+        lesson_id: lessonId,
+        student_id: studentId,
+        student_name: submission.studentName,
+        status: 'pending',
+        submitted_at: new Date().toISOString(),
+        answers_json: answers
+      };
+      const { data, error } = await supabase.from('submissions').insert([payload]).select();
+      if (!error) return { success: true, data: data?.[0] };
+    }
   } catch (e) {
     console.error('Supabase submission error:', e);
   }
@@ -1103,19 +1330,150 @@ export async function submitHomeworkToSupabase(submission) {
 }
 
 export async function fetchSubmissions() {
-  const { data, error } = await supabase.from('submissions').select('*, lessons(title)').order('submitted_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*, lessons(title)')
+    .order('submitted_at', { ascending: false });
+
   if (error) return { data: [], error: error.message };
-  return { data: (data || []).map((item) => ({
-    id: item.id, lessonTitle: item.lessons?.title || 'Bài học', studentId: item.student_id,
-    studentName: item.student_name, studentAvatar: item.student_name?.slice(0, 1) || '学',
-    submittedAt: new Date(item.submitted_at).toLocaleString('vi-VN'), status: item.status,
-    totalScore: item.total_score, answers: item.answers_json || {}, teacherComment: item.teacher_comment || ''
-  })), error: null };
+  return {
+    data: (data || []).map((item) => {
+      const answers = item.answers_json || {};
+      const submissionState = answers.submission_state || (item.status === 'graded' ? 'graded' : 'submitted');
+      return {
+        id: item.id,
+        lessonId: item.lesson_id,
+        lessonTitle: item.lessons?.title || answers.lessonTitle || 'Bài học',
+        studentId: item.student_id,
+        studentName: item.student_name,
+        studentAvatar: item.student_name?.slice(0, 1) || '学',
+        submittedAt: item.submitted_at ? new Date(item.submitted_at).toLocaleString('vi-VN') : '',
+        status: item.status,
+        submissionState,
+        totalScore: item.total_score,
+        answers,
+        teacherComment: item.teacher_comment || '',
+        redoNote: answers.redo_note || '',
+        isDirectGraded: !!answers.direct_graded
+      };
+    }),
+    error: null
+  };
 }
 
 export async function gradeSubmission(submissionId, totalScore, teacherComment) {
-  const { error } = await supabase.from('submissions').update({ total_score: totalScore, teacher_comment: teacherComment, status: 'graded' }).eq('id', submissionId);
-  return error ? { success: false, error: error.message } : { success: true };
+  try {
+    const { data: existing } = await supabase
+      .from('submissions')
+      .select('answers_json')
+      .eq('id', submissionId)
+      .single();
+
+    const updatedAnswers = {
+      ...(existing?.answers_json || {}),
+      submission_state: 'graded',
+      graded_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('submissions')
+      .update({
+        total_score: totalScore,
+        teacher_comment: teacherComment,
+        status: 'graded',
+        answers_json: updatedAnswers
+      })
+      .eq('id', submissionId);
+
+    return error ? { success: false, error: error.message } : { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function requestRedoSubmission(submissionId, redoNote) {
+  try {
+    const { data: existing } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .single();
+
+    if (!existing) return { success: false, error: 'Không tìm thấy bài nộp' };
+
+    const updatedAnswers = {
+      ...(existing.answers_json || {}),
+      submission_state: 'redo_requested',
+      redo_note: redoNote || 'Cô giáo yêu cầu em làm lại bài tập này nhé.',
+      redo_requested_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({
+        answers_json: updatedAnswers,
+        status: 'pending',
+        teacher_comment: redoNote ? `[Yêu cầu làm lại]: ${redoNote}` : existing.teacher_comment
+      })
+      .eq('id', submissionId)
+      .select();
+
+    return error ? { success: false, error: error.message } : { success: true, data: data?.[0] };
+  } catch (e) {
+    console.error('requestRedoSubmission error:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+export async function directGradeUnsubmittedLesson({ studentId, studentName, lessonId, lessonTitle, totalScore, teacherComment }) {
+  try {
+    const { data: existing } = await supabase
+      .from('submissions')
+      .select('id, answers_json')
+      .eq('student_id', studentId)
+      .eq('lesson_id', lessonId)
+      .limit(1);
+
+    const answers = {
+      ...(existing?.[0]?.answers_json || {}),
+      submission_state: 'graded',
+      direct_graded: true,
+      graded_at: new Date().toISOString(),
+      lessonTitle: lessonTitle || 'Bài học'
+    };
+
+    if (existing && existing.length > 0) {
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          status: 'graded',
+          total_score: parseFloat(totalScore),
+          teacher_comment: teacherComment || '',
+          answers_json: answers
+        })
+        .eq('id', existing[0].id)
+        .select();
+
+      return error ? { success: false, error: error.message } : { success: true, data: data?.[0] };
+    } else {
+      const payload = {
+        id: `sub-direct-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        lesson_id: lessonId,
+        student_id: studentId,
+        student_name: studentName,
+        status: 'graded',
+        total_score: parseFloat(totalScore),
+        teacher_comment: teacherComment || '',
+        answers_json: answers
+      };
+
+      const { data, error } = await supabase.from('submissions').insert([payload]).select();
+      return error ? { success: false, error: error.message } : { success: true, data: data?.[0] };
+    }
+  } catch (e) {
+    console.error('directGradeUnsubmittedLesson error:', e);
+    return { success: false, error: e.message };
+  }
 }
 
 // ==========================================
