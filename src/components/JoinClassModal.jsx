@@ -334,37 +334,6 @@ export const JoinClassModal = ({
               )}
             </div>
 
-            {/* Quick Demo Chips for Instant Testing */}
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                💡 Thử nghiệm nhanh các mã lớp hiện có:
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {classrooms.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      setClassCodeInput(c.code);
-                      handleVerifyCode(c.code);
-                    }}
-                    style={{
-                      padding: '0.45rem 0.8rem',
-                      borderRadius: '8px',
-                      border: '1px solid #cbd5e1',
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {c.code} ({c.level})
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <button
               type="button"
