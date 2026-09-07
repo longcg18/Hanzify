@@ -2832,45 +2832,91 @@ rt {
 .hw-chips-pool {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.6rem;
 }
 
 .hw-word-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  box-sizing: border-box;
   background: #fff;
   border: 1.5px solid var(--ink-300);
-  border-radius: 10px;
-  padding: 0.45rem 0.85rem;
+  border-radius: 12px;
+  padding: 0 1rem;
   font-family: var(--font-hanzi-sans);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   color: var(--ink-800);
+  vertical-align: middle;
+  line-height: 1;
 }
 
-.hw-word-chip:hover:not(:disabled) {
+.hw-word-chip > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.hw-word-chip:hover:not(:disabled):not(.active) {
   border-color: var(--primary-500);
   background: var(--primary-50);
   color: var(--primary-800);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(161, 29, 36, 0.08);
 }
 
 .hw-word-chip.used {
   opacity: 0.35;
   cursor: not-allowed;
+  background: #f8fafc;
+  border-color: var(--ink-200);
+  transform: none;
 }
 
 .hw-word-chip.active {
   background: var(--primary-700);
   border-color: var(--primary-700);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(161, 29, 36, 0.2);
+}
+
+.hw-word-chip.active:hover {
+  background: var(--primary-800);
+  border-color: var(--primary-800);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .hw-word-chip ruby rt {
   font-size: 0.6em;
-  opacity: 0.8;
+  opacity: 0.85;
   font-family: var(--font-ui);
+  line-height: 1.1;
+}
+
+.hw-word-chip.active ruby rt {
+  color: #ffffff !important;
+  opacity: 0.95;
+}
+
+.hw-word-chip .fa-xmark {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-left: 2px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.hw-word-chip.active:hover .fa-xmark {
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 /* Reading Passage Box */

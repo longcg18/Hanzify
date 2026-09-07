@@ -1181,28 +1181,32 @@ export const LessonHomeworkEditorView = ({ lesson, course, onBack }) => {
                                     setPreviewWords({ ...previewWords, [q.id]: next });
                                   }}
                                   style={{
-                                    padding: '4px 10px',
-                                    borderRadius: '6px',
+                                    padding: '0 12px',
+                                    height: '40px',
+                                    minHeight: '40px',
+                                    boxSizing: 'border-box',
+                                    borderRadius: '8px',
                                     background: '#b91c1c',
                                     color: '#ffffff',
                                     border: 'none',
                                     fontWeight: 700,
                                     fontSize: '0.95rem',
                                     cursor: 'pointer',
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '4px'
+                                    justifyContent: 'center',
+                                    gap: '6px'
                                   }}
                                 >
                                   <span>{w}</span>
-                                  <i className="fa-solid fa-xmark" style={{ fontSize: '0.7rem' }}></i>
+                                  <i className="fa-solid fa-xmark" style={{ fontSize: '0.75rem' }}></i>
                                 </button>
                               ))
                             )}
                           </div>
 
                           {/* Chips Pool */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
                             {(q.data?.chips || []).map((chip, cIdx) => (
                               <button
                                 key={chip.id || cIdx}
@@ -1212,7 +1216,10 @@ export const LessonHomeworkEditorView = ({ lesson, course, onBack }) => {
                                   setPreviewWords({ ...previewWords, [q.id]: [...current, chip.word] });
                                 }}
                                 style={{
-                                  padding: '6px 12px',
+                                  padding: '0 14px',
+                                  height: '40px',
+                                  minHeight: '40px',
+                                  boxSizing: 'border-box',
                                   borderRadius: '8px',
                                   border: '1px solid #cbd5e1',
                                   background: '#ffffff',
@@ -1220,7 +1227,10 @@ export const LessonHomeworkEditorView = ({ lesson, course, onBack }) => {
                                   fontSize: '0.95rem',
                                   color: '#0f172a',
                                   cursor: 'pointer',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
                                 }}
                               >
                                 {chip.word}

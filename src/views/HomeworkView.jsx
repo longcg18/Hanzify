@@ -111,7 +111,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
     { id: 'w1', word: '这件衣服', ruby: <><ruby>这<rt>zhè</rt></ruby><ruby>件<rt>jiàn</rt></ruby><ruby>衣<rt>yī</rt></ruby><ruby>服<rt>fu</rt></ruby></> },
     { id: 'w2', word: '有点儿', ruby: <><ruby>有<rt>yǒu</rt></ruby><ruby>点<rt>diǎn</rt></ruby><ruby>儿<rt>er</rt></ruby></> },
     { id: 'w3', word: '贵', ruby: <><ruby>贵<rt>guì</rt></ruby></> },
-    { id: 'w4', word: '。', ruby: '。' }
+    { id: 'w4', word: '。', ruby: <ruby>。<rt style={{ visibility: 'hidden' }}>&nbsp;</rt></ruby> }
   ];
 
   const handleChipClick = (chip) => {
