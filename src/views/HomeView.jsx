@@ -27,8 +27,18 @@ export const HomeView = ({
   const [examsCount, setExamsCount] = useState(0);
 
   useEffect(() => {
+    fetchLeaderboard().then((leaderboardResult) => {
+      setLeaderboard((leaderboardResult.data || []).map((item, index) => ({
+        ...item,
+        id: item.id,
+        rank: index + 1,
+        name: item.user_name,
+        xp: item.score || 0,
+        points: item.score || 0
+      })));
+    });
+
     if (!user) {
-      setLeaderboard([]);
       setForumPosts([]);
       setSubmissions([]);
       setExamsCount(0);
@@ -36,12 +46,10 @@ export const HomeView = ({
     }
 
     Promise.all([
-      fetchLeaderboard(),
       fetchForumPosts(),
       fetchSubmissions(),
       fetchExams()
-    ]).then(([leaderboardResult, forumResult, subResult, examResult]) => {
-      setLeaderboard((leaderboardResult.data || []).map((item, index) => ({ ...item, id: item.id, rank: index + 1, name: item.user_name, xp: item.score || 0, points: item.score || 0 })));
+    ]).then(([forumResult, subResult, examResult]) => {
       setForumPosts(forumResult.data || []);
       setSubmissions(subResult?.data || []);
       if (examResult?.data) setExamsCount(examResult.data.length);
@@ -250,6 +258,63 @@ export const HomeView = ({
           </div>
         </div>
       </section>
+
+      {!user && (
+        <>
+          <section style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>
+                🏫 Các Lớp Đang Mở
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
+                Xem lịch học và giáo viên phụ trách. Đăng nhập hoặc nhập mã lớp để xem thông tin của bạn.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+              {classrooms.map((cls) => (
+                <article key={cls.id} style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.8rem' }}>
+                    <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 800 }}>{cls.name}</h3>
+                    <span style={{ flexShrink: 0, background: '#fef2f2', color: '#991b1b', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>{cls.level}</span>
+                  </div>
+                  <div style={{ color: '#475569', fontSize: '0.83rem', lineHeight: 1.8 }}>
+                    <div><i className="fa-solid fa-chalkboard-user" style={{ width: 20, color: '#A11D24' }}></i> {cls.teacher || cls.teacherName || 'Cô Hoài'}</div>
+                    <div><i className="fa-regular fa-calendar" style={{ width: 20, color: '#A11D24' }}></i> {(cls.schedule?.days || []).join(', ') || 'Lịch đang cập nhật'}{cls.schedule?.timeNote ? ` • ${cls.schedule.timeNote}` : ''}</div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section style={{ background: '#ffffff', borderRadius: '22px', border: '1px solid #fee2e2', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 4px 20px rgba(185, 28, 28, 0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>🏆 Bảng Xếp Hạng Học Tập</h2>
+                <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>Thành tích nổi bật trên toàn hệ thống</p>
+              </div>
+              <button type="button" onClick={() => setIsAuthModalOpen(true)} style={{ padding: '0.55rem 1rem', borderRadius: '10px', border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', fontWeight: 700, cursor: 'pointer' }}>
+                Đăng nhập để xem thêm
+              </button>
+            </div>
+
+            {leaderboard.slice(0, 3).map((item, index) => (
+              <div key={item.id || index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.8rem 0', borderTop: index === 0 ? 'none' : '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', background: index === 0 ? '#fef3c7' : '#f1f5f9', color: index === 0 ? '#b45309' : '#475569', fontWeight: 900 }}>{index + 1}</span>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#1e293b' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{item.game || 'Học tập'}</div>
+                  </div>
+                </div>
+                <strong style={{ color: '#A11D24' }}>{item.points || 0} điểm</strong>
+              </div>
+            ))}
+
+            {leaderboard.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', margin: '1rem 0 0' }}>Chưa có thành tích được ghi nhận.</p>}
+          </section>
+        </>
+      )}
 
       {user && (
         <>
