@@ -424,6 +424,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
   useEffect(() => {
     Promise.all([fetchMatchPairs(), fetchToneItems(), fetchLeaderboard()]).then(([pairsResult, tonesResult, lbResult]) => {
+      let remoteTones = [];
       if (pairsResult.data && pairsResult.data.length > 0) {
         setRawMatchPairs(pairsResult.data);
         setMatchCards(pairsResult.data.flatMap((pair) => [
@@ -432,9 +433,13 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
         ]));
       }
       if (tonesResult.data && tonesResult.data.length > 0) {
-        setToneQuestions(tonesResult.data);
+        remoteTones = tonesResult.data;
+        setToneQuestions(remoteTones);
       }
       setLeaderboard(lbResult?.data || []);
+      if (remoteTones.length > 0) {
+        setToneQuestionsList(getToneQuestionsForLevel(currentGameLevel, remoteTones));
+      }
     });
   }, []);
 
@@ -573,6 +578,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   // ==========================================
   // GAME 2: TONE BLITZ STATE & LOGIC
   // ==========================================
+  const [toneQuestionsList, setToneQuestionsList] = useState(() => getToneQuestionsForLevel('HSK 1'));
   const [toneIdx, setToneIdx] = useState(0);
   const [toneScore, setToneScore] = useState(0);
   const [toneStreak, setToneStreak] = useState(0);
@@ -581,9 +587,21 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const [toneFeedback, setToneFeedback] = useState(null); // 'correct' | 'wrong'
   const [isToneFinished, setIsToneFinished] = useState(false);
 
-  const currentToneList = getToneQuestionsForLevel(currentGameLevel, toneQuestions);
-  const currentToneQ = currentToneList[toneIdx] || currentToneList[0];
-  const roundQuestions = Math.min(10, currentToneList.length || 10);
+  const initToneGame = (level = currentGameLevel, remoteTones = toneQuestions) => {
+    const list = getToneQuestionsForLevel(level, remoteTones);
+    setToneQuestionsList(list);
+    setToneIdx(0);
+    setToneScore(0);
+    setToneStreak(0);
+    setToneMaxStreak(0);
+    setToneCorrectCount(0);
+    setToneFeedback(null);
+    setIsToneFinished(false);
+    setRewardResult(null);
+  };
+
+  const currentToneQ = toneQuestionsList[toneIdx] || toneQuestionsList[0];
+  const roundQuestions = Math.min(10, toneQuestionsList.length || 10);
 
   const handleToneAnswer = (selectedTone) => {
     if (toneFeedback || isToneFinished || !currentToneQ) return;
@@ -617,7 +635,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
         setIsToneFinished(true);
         const finalCorrect = toneCorrectCount + (isCorrect ? 1 : 0);
         const diffConfig = GAME_DIFFICULTY_REWARDS[currentGameLevel] || GAME_DIFFICULTY_REWARDS['HSK 1'];
-        const accuracyRatio = finalCorrect / roundQuestions;
+        const accuracyRatio = roundQuestions > 0 ? finalCorrect / roundQuestions : 1;
         const comboBonus = toneMaxStreak >= 4 ? 10 : 0;
         const earnedXp = Math.max(10, Math.round(accuracyRatio * diffConfig.baseXp)) + comboBonus;
         handleAwardPoints(
@@ -722,6 +740,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   // ==========================================
   // GAME 4: HANZI RIDDLE STATE & LOGIC
   // ==========================================
+  const [riddleQuestionsList, setRiddleQuestionsList] = useState(() => getRiddlesForLevel('HSK 1'));
   const [riddleIdx, setRiddleIdx] = useState(0);
   const [riddleScore, setRiddleScore] = useState(0);
   const [riddleCorrectCount, setRiddleCorrectCount] = useState(0);
@@ -729,8 +748,19 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const [isRiddleAnswered, setIsRiddleAnswered] = useState(false);
   const [isRiddleFinished, setIsRiddleFinished] = useState(false);
 
-  const currentRiddles = getRiddlesForLevel(currentGameLevel);
-  const currentRiddle = currentRiddles[riddleIdx] || currentRiddles[0];
+  const initRiddleGame = (level = currentGameLevel) => {
+    const list = getRiddlesForLevel(level);
+    setRiddleQuestionsList(list);
+    setRiddleIdx(0);
+    setRiddleScore(0);
+    setRiddleCorrectCount(0);
+    setSelectedRiddleOpt(null);
+    setIsRiddleAnswered(false);
+    setIsRiddleFinished(false);
+    setRewardResult(null);
+  };
+
+  const currentRiddle = riddleQuestionsList[riddleIdx] || riddleQuestionsList[0];
 
   const handleRiddleChoose = (opt) => {
     if (isRiddleAnswered || isRiddleFinished || !currentRiddle) return;
@@ -751,13 +781,13 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   };
 
   const handleNextRiddle = () => {
-    if (riddleIdx < currentRiddles.length - 1) {
+    if (riddleIdx < riddleQuestionsList.length - 1) {
       setRiddleIdx((prev) => prev + 1);
       setSelectedRiddleOpt(null);
       setIsRiddleAnswered(false);
     } else {
       setIsRiddleFinished(true);
-      const totalQ = currentRiddles.length;
+      const totalQ = riddleQuestionsList.length;
       const diffConfig = GAME_DIFFICULTY_REWARDS[currentGameLevel] || GAME_DIFFICULTY_REWARDS['HSK 1'];
       const earnedXp = Math.max(10, Math.round((riddleCorrectCount / totalQ) * diffConfig.baseXp));
       handleAwardPoints(
@@ -776,31 +806,16 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
   // Launch game handler
   const handleSelectGame = (gameId, targetLevel) => {
-    const level = targetLevel || (['HSK 1', 'HSK 2', 'HSK 3'].includes(selectedLevel) ? selectedLevel : currentGameLevel);
+    const level = targetLevel || (['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'].includes(selectedLevel) ? selectedLevel : currentGameLevel);
     setCurrentGameLevel(level);
     setActiveGame(gameId);
     setRewardResult(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (gameId === 'match') initMatchGame(level);
-    if (gameId === 'tone') {
-      setToneIdx(0);
-      setToneScore(0);
-      setToneStreak(0);
-      setToneMaxStreak(0);
-      setToneCorrectCount(0);
-      setToneFeedback(null);
-      setIsToneFinished(false);
-    }
+    if (gameId === 'tone') initToneGame(level);
     if (gameId === 'speed-match') initSpeedMatch(level);
-    if (gameId === 'hanzi-riddle') {
-      setRiddleIdx(0);
-      setRiddleScore(0);
-      setRiddleCorrectCount(0);
-      setSelectedRiddleOpt(null);
-      setIsRiddleAnswered(false);
-      setIsRiddleFinished(false);
-    }
+    if (gameId === 'hanzi-riddle') initRiddleGame(level);
   };
 
   // Level switcher handler inside Runner
@@ -808,24 +823,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
     setCurrentGameLevel(newLevel);
     setRewardResult(null);
     if (activeGame === 'match') initMatchGame(newLevel);
-    if (activeGame === 'tone') {
-      setToneIdx(0);
-      setToneScore(0);
-      setToneStreak(0);
-      setToneMaxStreak(0);
-      setToneCorrectCount(0);
-      setToneFeedback(null);
-      setIsToneFinished(false);
-    }
+    if (activeGame === 'tone') initToneGame(newLevel);
     if (activeGame === 'speed-match') initSpeedMatch(newLevel);
-    if (activeGame === 'hanzi-riddle') {
-      setRiddleIdx(0);
-      setRiddleScore(0);
-      setRiddleCorrectCount(0);
-      setSelectedRiddleOpt(null);
-      setIsRiddleAnswered(false);
-      setIsRiddleFinished(false);
-    }
+    if (activeGame === 'hanzi-riddle') initRiddleGame(newLevel);
   };
 
   return (
@@ -1167,7 +1167,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                 <GameRewardCard
                   rewardResult={rewardResult}
                   currentGameLevel={currentGameLevel}
-                  onReplay={() => handleSelectGame('tone', currentGameLevel)}
+                  onReplay={() => initToneGame(currentGameLevel)}
                   onSelectOther={() => setActiveGame(null)}
                   onOpenAuth={onOpenAuth}
                 />
@@ -1454,7 +1454,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                 <GameRewardCard
                   rewardResult={rewardResult}
                   currentGameLevel={currentGameLevel}
-                  onReplay={() => handleSelectGame('hanzi-riddle', currentGameLevel)}
+                  onReplay={() => initRiddleGame(currentGameLevel)}
                   onSelectOther={() => setActiveGame(null)}
                   onOpenAuth={onOpenAuth}
                 />
@@ -1462,7 +1462,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                     <span style={{ background: '#fef2f2', color: '#16a34a', padding: '0.3rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
-                      Câu {riddleIdx + 1} / {currentRiddles.length} ({currentGameLevel})
+                      Câu {riddleIdx + 1} / {riddleQuestionsList.length} ({currentGameLevel})
                     </span>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
                       {riddleScore} điểm
