@@ -745,25 +745,94 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   return (
     <main className="main-content">
       {/* Header Banner */}
-      <section className="courses-header feature-page-header" style={{ marginBottom: '2rem' }}>
-        <div className="header-meta" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-          <span className="meta-badge" style={{ background: 'rgba(161, 29, 36, 0.1)', color: '#A11D24', whiteSpace: 'nowrap' }}>
-            🎮 Khu Vui Học & Edutainment Lab
-          </span>
-          <span className="meta-class" style={{ whiteSpace: 'nowrap' }}>
-            Vừa Học Vừa Chơi · Củng Cố Phản Xạ Tự Nhiên
-          </span>
+      {/* Compact Modern Header Banner (chỉ hiển thị ở danh mục game) */}
+      {!activeGame && (
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
+          border: '1px solid #fee2e2',
+          borderRadius: '16px',
+          padding: '1.1rem 1.4rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.85rem',
+          boxShadow: '0 4px 16px rgba(161, 29, 36, 0.04)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span style={{
+                background: '#fef2f2',
+                color: '#A11D24',
+                padding: '2px 8px',
+                borderRadius: '8px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                border: '1px solid #fecaca'
+              }}>
+                🎮 Mini-Games
+              </span>
+              <span style={{ fontSize: '0.85rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif', fontWeight: 600 }}>
+                趣味学汉语
+              </span>
+            </div>
+            <h1 style={{ margin: '0 0 0.2rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+              Góc Giải Trí & Ôn Bài
+            </h1>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Vừa học vừa chơi, củng cố phản xạ chữ Hán, thanh điệu và nhận điểm XP đua top.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              color: '#475569',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <i className="fa-solid fa-gamepad" style={{ color: '#A11D24' }}></i>
+              4 Thể loại
+            </span>
+            <span style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              color: '#475569',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <i className="fa-solid fa-layer-group" style={{ color: '#d97706' }}></i>
+              HSK 1 - 3
+            </span>
+            <span style={{
+              background: '#fffbeb',
+              border: '1px solid #fde68a',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              color: '#b45309',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              ⭐ Tới +135 XP
+            </span>
+          </div>
         </div>
-
-        <h1 className="header-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span>Góc Giải Trí & Mini-Games Ôn Bài</span>
-          <span style={{ fontSize: '1.25rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>趣味学汉语</span>
-        </h1>
-
-        <p className="header-desc">
-          Xua tan căng thẳng sau giờ học với các mini-games tương tác thông minh. Rèn luyện trí nhớ từ vựng, phản xạ ngữ điệu và nhận diện mặt chữ Hán một cách hào hứng nhất!
-        </p>
-      </section>
+      )}
 
       {/* ======================================================== */}
       {/* VIEW 1: GAME RUNNER ROOM (Khi đã chọn 1 game để chơi)     */}
