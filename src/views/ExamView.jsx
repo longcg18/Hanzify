@@ -337,113 +337,180 @@ export const ExamView = ({
 
   return (
     <main className="main-content">
-      {/* Header Banner */}
-      <section className={`courses-header${isTeacherOrAdmin ? '' : ' feature-page-header'}`} style={{
-        marginBottom: '2.5rem',
-        background: isTeacherOrAdmin ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : undefined,
-        padding: isTeacherOrAdmin ? '1.75rem 2rem' : undefined,
-        borderRadius: isTeacherOrAdmin ? '20px' : undefined,
+      {/* Header Banner - Sleek & Compact */}
+      <div style={{
+        background: isTeacherOrAdmin
+          ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
+        border: isTeacherOrAdmin ? '1px solid #334155' : '1px solid #fee2e2',
+        borderRadius: '16px',
+        padding: '1.1rem 1.4rem',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '0.85rem',
+        boxShadow: isTeacherOrAdmin ? '0 4px 20px rgba(0, 0, 0, 0.2)' : '0 4px 16px rgba(161, 29, 36, 0.04)',
         color: isTeacherOrAdmin ? '#f8fafc' : undefined
       }}>
-        <div className="header-meta" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-          <span className="meta-badge" style={{
-            background: isTeacherOrAdmin ? 'rgba(254, 202, 202, 0.15)' : 'rgba(161, 29, 36, 0.1)',
-            color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24'
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <span style={{
+              background: isTeacherOrAdmin ? 'rgba(254, 202, 202, 0.15)' : '#fef2f2',
+              color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24',
+              padding: '2px 8px',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              border: isTeacherOrAdmin ? '1px solid rgba(254, 202, 202, 0.25)' : '1px solid #fecaca'
+            }}>
+              {user?.role === 'admin' 
+                ? '👑 Quản Trị Khảo Thí' 
+                : isTeacherOrAdmin 
+                ? '👩‍🏫 Quản Lý Đề Thi' 
+                : '🎯 Luyện Thi HSK'}
+            </span>
+            <span style={{
+              fontSize: '0.85rem',
+              color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24',
+              fontFamily: 'Noto Serif SC, serif',
+              fontWeight: 600
+            }}>
+              全真模拟考试
+            </span>
+          </div>
+          <h1 style={{
+            margin: '0 0 0.2rem 0',
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            color: isTeacherOrAdmin ? '#f8fafc' : '#0f172a'
           }}>
-            {user?.role === 'admin' 
-              ? '👑 Quản Trị Khảo Thí HSK (Admin)' 
-              : isTeacherOrAdmin 
-              ? '👩‍🏫 Quản Lý Đề Thi Của Cô Hoài (Teacher)'
-              : '🎯 Phòng Luyện Thi Chuẩn Quốc Tế'}
-          </span>
-          <span className="meta-class" style={{ color: isTeacherOrAdmin ? '#94a3b8' : undefined }}>
-            Cấu trúc 4 tầng: Đề Thi ➔ Kỹ Năng ➔ Phần ➔ Câu Hỏi
-          </span>
+            {isTeacherOrAdmin ? 'Quản Lý Ngân Hàng Đề Thi HSK' : 'Luyện Thi & Thi Thử HSK'}
+          </h1>
+          <p style={{
+            margin: 0,
+            fontSize: '0.82rem',
+            color: isTeacherOrAdmin ? '#94a3b8' : '#64748b'
+          }}>
+            {isTeacherOrAdmin
+              ? 'Tạo mới, quản lý cấu trúc đề thi 4 tầng (Đề ➔ Kỹ năng ➔ Phần ➔ Câu hỏi) và nhập đề Excel.'
+              : 'Trải nghiệm thi thử chuẩn quốc tế với đồng hồ bấm giờ, ma trận câu hỏi và bảng điểm chuẩn HSK.'}
+          </p>
         </div>
 
-        <h1 className="header-title" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          color: isTeacherOrAdmin ? '#f8fafc' : undefined
-        }}>
-          <span>{isTeacherOrAdmin ? 'Quản Lý Ngân Hàng Đề Thi HSK' : 'Luyện Thi & Thi Thử HSK'}</span>
-          <span style={{ fontSize: '1.25rem', color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>
-            全真模拟考试
-          </span>
-        </h1>
-
-        <p className="header-desc" style={{ color: isTeacherOrAdmin ? '#94a3b8' : undefined }}>
-          {isTeacherOrAdmin
-            ? 'Cô giáo và Admin có toàn quyền tạo mới đề thi, quản lý các kỹ năng (Nghe, Đọc, Viết), các phần thi và câu hỏi (đơn vị nhỏ nhất).'
-            : 'Làm quen với áp lực phòng thi thật cùng đồng hồ đếm ngược thời gian, ma trận câu hỏi thông minh và hệ thống tính điểm chuẩn HSK.'}
-        </p>
-
-        {isTeacherOrAdmin && (
-          <div style={{ display: 'flex', gap: '10px', marginTop: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        {isTeacherOrAdmin ? (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
               onClick={handleOpenCreateExam}
               style={{
-                padding: '0.65rem 1.25rem',
-                borderRadius: '12px',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '10px',
                 background: '#A11D24',
                 border: 'none',
                 color: '#ffffff',
                 fontWeight: 700,
-                fontSize: '0.88rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 14px rgba(161, 29, 36, 0.35)',
-                transition: 'all 0.2s ease'
+                gap: '0.4rem',
+                boxShadow: '0 2px 8px rgba(161, 29, 36, 0.3)',
+                transition: 'all 0.15s ease'
               }}
             >
-              <i className="fa-solid fa-plus-circle"></i> Tạo Đề Thi HSK Mới
+              <i className="fa-solid fa-plus-circle"></i> Tạo Đề Mới
             </button>
 
-            {/* Excel Batch Import Button */}
             <button
               type="button"
               onClick={handleOpenExcelCreate}
               style={{
-                padding: '0.65rem 1.35rem',
-                borderRadius: '12px',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, #166534 0%, #15803d 100%)',
                 border: 'none',
                 color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '0.88rem',
+                fontWeight: 700,
+                fontSize: '0.82rem',
                 cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 14px rgba(22, 101, 52, 0.35)',
-                transition: 'all 0.2s ease'
+                gap: '0.4rem',
+                boxShadow: '0 2px 8px rgba(22, 101, 52, 0.3)',
+                transition: 'all 0.15s ease'
               }}
             >
-              <i className="fa-solid fa-file-excel"></i> Nhập Đề Theo Bảng Excel
+              <i className="fa-solid fa-file-excel"></i> Nhập Excel
             </button>
-            {/* Supabase Live Badge */}
+
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
+              gap: '0.35rem',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.74rem',
               fontWeight: 700,
               background: isDbLive ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
               color: isDbLive ? '#86efac' : '#94a3b8',
               border: isDbLive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(148, 163, 184, 0.2)'
             }}>
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isDbLive ? '#22c55e' : '#64748b', display: 'inline-block', animation: isDbLive ? 'pulse 2s infinite' : 'none' }}></span>
-              {isDbLive ? '✅ Supabase Exams: Đã Kết Nối' : '⚠️ Chưa kết nối được Supabase'}
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isDbLive ? '#22c55e' : '#64748b', display: 'inline-block' }}></span>
+              {isDbLive ? 'Supabase Live' : 'Offline'}
+            </span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              color: '#475569',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <i className="fa-solid fa-file-pen" style={{ color: '#A11D24' }}></i>
+              HSK 1 - 3
+            </span>
+            <span style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              color: '#475569',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <i className="fa-solid fa-stopwatch" style={{ color: '#d97706' }}></i>
+              Bấm giờ thi thật
+            </span>
+            <span style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '10px',
+              fontSize: '0.78rem',
+              color: '#15803d',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <i className="fa-solid fa-square-poll-vertical" style={{ color: '#16a34a' }}></i>
+              Chấm điểm tự động
             </span>
           </div>
         )}
-      </section>
+      </div>
 
       {/* Exam Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>

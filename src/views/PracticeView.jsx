@@ -81,84 +81,158 @@ export const PracticeView = () => {
 
   return (
     <main className="main-content">
-      {/* Header Banner */}
-      <section className="courses-header feature-page-header" style={{
-        marginBottom: '2rem',
-        background: user?.role === 'admin' ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : undefined,
-        padding: user?.role === 'admin' ? '1.75rem 2rem' : undefined,
-        borderRadius: user?.role === 'admin' ? '20px' : undefined,
-        color: user?.role === 'admin' ? '#f8fafc' : undefined
-      }}>
-        <div className="header-meta" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-          <span className="meta-badge" style={{
-            background: user?.role === 'admin' ? 'rgba(254, 202, 202, 0.15)' : 'rgba(161, 29, 36, 0.1)',
-            color: user?.role === 'admin' ? '#fca5a5' : '#A11D24'
-          }}>
-            {user?.role === 'admin' ? '👑 Trung Tâm Quản Trị Ngân Hàng Kỹ Năng' : '🎯 Phòng Luyện Tập Kỹ Năng Tự Do'}
-          </span>
-          <span className="meta-class" style={{ color: user?.role === 'admin' ? '#94a3b8' : undefined }}>
-            Phân Loại Theo Kỹ Năng & Trình Độ HSK
-          </span>
-        </div>
-        <h1 className="header-title" style={{
+      {/* Header Banner - Sleek & Compact */}
+      {!activeTopic && (
+        <div style={{
+          background: user?.role === 'admin'
+            ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+            : 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
+          border: user?.role === 'admin' ? '1px solid #334155' : '1px solid #fee2e2',
+          borderRadius: '16px',
+          padding: '1.1rem 1.4rem',
+          marginBottom: '1.5rem',
           display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          gap: '0.75rem',
+          flexWrap: 'wrap',
+          gap: '0.85rem',
+          boxShadow: user?.role === 'admin' ? '0 4px 20px rgba(0, 0, 0, 0.2)' : '0 4px 16px rgba(161, 29, 36, 0.04)',
           color: user?.role === 'admin' ? '#f8fafc' : undefined
         }}>
-          <span>{user?.role === 'admin' ? 'Quản Trị Ngân Hàng Câu Hỏi Kỹ Năng' : 'Luyện Tập Kỹ Năng Tiếng Trung'}</span>
-          <span style={{ fontSize: '1.25rem', color: user?.role === 'admin' ? '#fca5a5' : '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>技能专项练习</span>
-        </h1>
-        <p className="header-desc" style={{ color: user?.role === 'admin' ? '#94a3b8' : undefined }}>
-          {user?.role === 'admin'
-            ? 'Quản lý ngân hàng câu hỏi phân theo 5 kỹ năng (Nghe, Đọc, Ngữ Pháp, Pinyin, Chữ Hán). Xem trước trải nghiệm luyện tập và chỉnh sửa giải thích đáp án.'
-            : 'Tùy chọn luyện sâu từng kỹ năng bạn còn yếu (Nghe, Đọc, Ngữ pháp, Pinyin, Chữ Hán) theo từng cấp độ HSK 1 - HSK 3 với phản hồi và giải thích tức thì.'}
-        </p>
-
-        {user?.role === 'admin' && (
-          <div style={{ display: 'flex', gap: '10px', marginTop: '1.25rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => alert('Mở form tạo Chuyên đề luyện kỹ năng mới.')}
-              style={{
-                padding: '0.6rem 1.15rem',
-                borderRadius: '12px',
-                background: '#A11D24',
-                border: 'none',
-                color: '#ffffff',
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span style={{
+                background: user?.role === 'admin' ? 'rgba(254, 202, 202, 0.15)' : '#fef2f2',
+                color: user?.role === 'admin' ? '#fca5a5' : '#A11D24',
+                padding: '2px 8px',
+                borderRadius: '8px',
+                fontSize: '0.74rem',
                 fontWeight: 700,
+                border: user?.role === 'admin' ? '1px solid rgba(254, 202, 202, 0.25)' : '1px solid #fecaca'
+              }}>
+                {user?.role === 'admin' ? '👑 Quản Trị Kỹ Năng' : '🎯 Luyện Kỹ Năng'}
+              </span>
+              <span style={{
                 fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 12px rgba(161, 29, 36, 0.3)'
-              }}
-            >
-              <i className="fa-solid fa-plus"></i> Thêm Chuyên Đề Mới
-            </button>
-            <button
-              type="button"
-              onClick={() => alert('Nhập danh sách câu hỏi trắc nghiệm từ file Excel/CSV.')}
-              style={{
-                padding: '0.6rem 1.15rem',
-                borderRadius: '12px',
-                background: '#334155',
-                border: '1px solid #475569',
-                color: '#f8fafc',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <i className="fa-solid fa-file-arrow-up"></i> Nhập Câu Hỏi Excel
-            </button>
+                color: user?.role === 'admin' ? '#fca5a5' : '#A11D24',
+                fontFamily: 'Noto Serif SC, serif',
+                fontWeight: 600
+              }}>
+                技能专项练习
+              </span>
+            </div>
+            <h1 style={{
+              margin: '0 0 0.2rem 0',
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              color: user?.role === 'admin' ? '#f8fafc' : '#0f172a'
+            }}>
+              {user?.role === 'admin' ? 'Quản Trị Ngân Hàng Kỹ Năng' : 'Luyện Tập Kỹ Năng Tiếng Trung'}
+            </h1>
+            <p style={{
+              margin: 0,
+              fontSize: '0.82rem',
+              color: user?.role === 'admin' ? '#94a3b8' : '#64748b'
+            }}>
+              {user?.role === 'admin'
+                ? 'Quản lý ngân hàng câu hỏi phân theo 5 kỹ năng (Nghe, Đọc, Ngữ Pháp, Pinyin, Chữ Hán).'
+                : 'Luyện sâu từng kỹ năng còn yếu theo cấp độ HSK 1 - 3 với phản hồi và giải thích tức thì.'}
+            </p>
           </div>
-        )}
-      </section>
+
+          {user?.role === 'admin' ? (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => alert('Mở form tạo Chuyên đề luyện kỹ năng mới.')}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '10px',
+                  background: '#A11D24',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 2px 8px rgba(161, 29, 36, 0.3)'
+                }}
+              >
+                <i className="fa-solid fa-plus"></i> Thêm Chuyên Đề
+              </button>
+              <button
+                type="button"
+                onClick={() => alert('Nhập danh sách câu hỏi trắc nghiệm từ file Excel/CSV.')}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '10px',
+                  background: '#334155',
+                  border: '1px solid #475569',
+                  color: '#f8fafc',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <i className="fa-solid fa-file-arrow-up"></i> Nhập Excel
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                color: '#475569',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <i className="fa-solid fa-book-open" style={{ color: '#A11D24' }}></i>
+                5 Kỹ năng
+              </span>
+              <span style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                color: '#475569',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <i className="fa-solid fa-layer-group" style={{ color: '#d97706' }}></i>
+                HSK 1 - 3
+              </span>
+              <span style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                color: '#15803d',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <i className="fa-solid fa-circle-check" style={{ color: '#16a34a' }}></i>
+                Giải thích chi tiết
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* If Running Practice Question */}
       {activeTopic ? (
