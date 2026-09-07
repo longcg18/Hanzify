@@ -159,34 +159,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           <span className="primary-nav-label">Giải Trí</span>
         </button>
 
-        {/* 6. Bảng Xếp Hạng */}
-        <button
-          type="button"
-          className="primary-nav-button"
-          aria-label="Xếp Hạng"
-          title="Bảng Xếp Hạng Học Tập"
-          onClick={() => onNavigate('leaderboard')}
-          style={{
-            padding: '0.5rem 0.95rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: currentView === 'leaderboard' ? '#A11D24' : 'transparent',
-            color: currentView === 'leaderboard' ? '#ffffff' : '#64748b',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <i className="fa-solid fa-trophy"></i>
-          <span className="primary-nav-label">Xếp Hạng</span>
-        </button>
-
-        {/* 7. Teacher Only Grading Tab (Chỉ dành riêng cho Cô Giáo) */}
+        {/* 6. Teacher Only Grading Tab (Chỉ dành riêng cho Cô Giáo) */}
         {user?.role === 'teacher' && (
           <button
             type="button"
