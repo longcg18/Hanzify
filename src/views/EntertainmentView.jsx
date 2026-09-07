@@ -967,14 +967,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                   <span style={{ fontSize: '1.25rem' }}>
                     {GAMES_CATALOG.find((g) => g.id === activeGame)?.icon}
                   </span>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>
-                      {GAMES_CATALOG.find((g) => g.id === activeGame)?.title}
-                    </h3>
-                    <div style={{ fontSize: '0.72rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>
-                      {GAMES_CATALOG.find((g) => g.id === activeGame)?.chineseTitle}
-                    </div>
-                  </div>
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a', fontWeight: 800 }}>
+                    {GAMES_CATALOG.find((g) => g.id === activeGame)?.title}
+                  </h3>
                 </div>
               </div>
 
@@ -1646,11 +1641,8 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.18rem', color: '#0f172a', margin: '0 0 0.35rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>{game.title}</span>
-                    <span style={{ fontSize: '1rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif' }}>
-                      {game.chineseTitle}
-                    </span>
+                  <h3 style={{ fontSize: '1.18rem', color: '#0f172a', margin: '0 0 0.35rem 0' }}>
+                    {game.title}
                   </h3>
 
                   <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5, marginBottom: '1.25rem' }}>
