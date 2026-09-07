@@ -19,7 +19,7 @@ const PRESET_AVATARS = [
 
 const RECENT_SUBMISSIONS = [];
 
-export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRoleSwitched }) => {
+export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRoleSwitched, streakData, classrooms = [] }) => {
   const {
     user,
     logout,
@@ -32,9 +32,25 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'history' | 'notifications'
   const dropdownRef = useRef(null);
 
-  const handleRoleClick = () => {
-    window.alert('Vai trò được quản lý bởi tài khoản đăng nhập và không thể chuyển ở phía trình duyệt.');
-  };
+  // Get live streak and XP with local fallback
+  const localStreak = (() => {
+    try {
+      const raw = localStorage.getItem(`hanzify_streak_${user?.id || 'student'}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  const currentStreak = streakData?.currentStreak ?? localStreak?.currentStreak ?? 0;
+  const currentTotalXp = streakData?.totalXp ?? localStreak?.totalXp ?? user?.xp ?? 0;
+
+  // Resolve user's classroom code
+  const userClass = classrooms.find((c) =>
+    c.id === user?.classId ||
+    (Array.isArray(user?.classIds) && user.classIds.includes(c.id)) ||
+    (Array.isArray(c.students) && c.students.some((st) => st.id === user?.id || st.username === user?.username))
+  );
+  const classCodeDisplay = userClass?.code || user?.classCode || user?.class_code || (user?.role === 'admin' ? 'TOÀN HỆ THỐNG' : user?.role === 'teacher' ? 'GIÁO VIÊN' : 'Chưa vào lớp');
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -142,10 +158,20 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               {user.role === 'admin' ? '👑 Admin' : user.role === 'teacher' ? '👩‍🏫 Giáo Viên' : '🎓 Học Viên'}
             </span>
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <i className="fa-solid fa-phone" style={{ fontSize: '0.68rem', color: '#94a3b8' }}></i>
-            <span>{user.phone || '0901 234 567'}</span>
-            <span title="Số điện thoại cố định" style={{ color: '#94a3b8', fontSize: '0.68rem' }}>🔒</span>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <i className="fa-solid fa-graduation-cap" style={{ fontSize: '0.72rem', color: '#A11D24' }}></i>
+            <span>Mã lớp:</span>
+            <strong style={{
+              color: '#A11D24',
+              background: '#fef2f2',
+              padding: '1px 6px',
+              borderRadius: '6px',
+              border: '1px solid #fecaca',
+              letterSpacing: '0.5px',
+              fontSize: '0.75rem'
+            }}>
+              {classCodeDisplay}
+            </strong>
           </div>
         </div>
 
@@ -331,7 +357,7 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               display: 'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
               gap: '6px',
-              marginBottom: '1rem',
+              marginBottom: '0.75rem',
               background: '#f8fafc',
               padding: '0.65rem',
               borderRadius: '12px',
@@ -340,84 +366,19 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '1.1rem' }}>🔥</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#A11D24' }}>12 Ngày</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#A11D24' }}>
+                    {currentStreak} Ngày
+                  </div>
                   <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Chuỗi học tập</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '1.1rem' }}>📖</span>
+                <span style={{ fontSize: '1.1rem' }}>⭐</span>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#0f172a' }}>185 Từ</div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Từ vựng HSK</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Role Switcher Section (As shown in user's image 2) */}
-            <div>
-              <div style={{
-                fontSize: '0.72rem',
-                textTransform: 'uppercase',
-                color: '#94a3b8',
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-                marginBottom: '0.4rem',
-                paddingLeft: '2px'
-              }}>
-                CHUYỂN VAI TRÒ THỬ NGHIỆM:
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {/* 1. Admin */}
-                <div
-                  onClick={() => handleRoleClick('admin')}
-                  style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    background: user.role === 'admin' ? '#fef2f2' : '#ffffff',
-                    border: user.role === 'admin' ? '1.5px solid #fecaca' : '1px solid #f1f5f9',
-                    color: user.role === 'admin' ? '#A11D24' : '#0f172a',
-                    fontWeight: user.role === 'admin' ? 700 : 500,
-                    fontSize: '0.86rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <span style={{ fontSize: '1.1rem' }}>👑</span>
-                  <div style={{ flex: 1 }}>
-                    <div>Admin (Nguyễn Phúc Long)</div>
-                    <div style={{ fontSize: '0.7rem', color: user.role === 'admin' ? '#A11D24' : '#94a3b8', fontWeight: 400 }}>Toàn quyền quản trị & giáo viên</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#c2410c' }}>
+                    {currentTotalXp} XP
                   </div>
-                  {user.role === 'admin' && <i className="fa-solid fa-check" style={{ color: '#A11D24', fontSize: '0.85rem' }}></i>}
-                </div>
-
-                {/* 2. Giáo Viên (Cô Hoài) */}
-                <div
-                  onClick={() => handleRoleClick('teacher')}
-                  style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    background: user.role === 'teacher' ? '#f0fdf4' : '#ffffff',
-                    border: user.role === 'teacher' ? '1.5px solid #bbf7d0' : '1px solid #f1f5f9',
-                    color: user.role === 'teacher' ? '#16a34a' : '#0f172a',
-                    fontWeight: user.role === 'teacher' ? 700 : 500,
-                    fontSize: '0.86rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <span style={{ fontSize: '1.1rem' }}>👩‍🏫</span>
-                  <div style={{ flex: 1 }}>
-                    <div>Giáo Viên (giaovien01)</div>
-                    <div style={{ fontSize: '0.7rem', color: user.role === 'teacher' ? '#16a34a' : '#94a3b8', fontWeight: 400 }}>Bàn chấm bài & quản lý lớp</div>
-                  </div>
-                  {user.role === 'teacher' && <i className="fa-solid fa-check" style={{ color: '#16a34a', fontSize: '0.85rem' }}></i>}
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Điểm tích lũy</div>
                 </div>
               </div>
             </div>

@@ -77,6 +77,18 @@ export const ProfilePanel = () => {
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Live streak and XP
+  const localStreak = (() => {
+    try {
+      const raw = localStorage.getItem(`hanzify_streak_${user?.id || 'student'}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  const currentStreak = localStreak?.currentStreak ?? 0;
+  const currentTotalXp = localStreak?.totalXp ?? user?.xp ?? 0;
+
   if (!isProfilePanelOpen || !user) return null;
 
   const handleSave = (e) => {
@@ -538,14 +550,18 @@ export const ProfilePanel = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: '#f8fafc', border: '1px solid #fee2e2', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
                   <div style={{ fontSize: '2rem' }}>🔥</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#A11D24', marginTop: '0.2rem' }}>12 Ngày</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#A11D24', marginTop: '0.2rem' }}>
+                    {currentStreak} Ngày
+                  </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Chuỗi học liên tục</div>
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #fee2e2', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem' }}>📖</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#A11D24', marginTop: '0.2rem' }}>185 Từ</div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Từ vựng HSK đã thuộc</div>
+                  <div style={{ fontSize: '2rem' }}>⭐</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#c2410c', marginTop: '0.2rem' }}>
+                    {currentTotalXp} XP
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Điểm tích lũy</div>
                 </div>
 
                 <div style={{ background: '#f8fafc', border: '1px solid #fee2e2', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>

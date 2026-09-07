@@ -661,6 +661,7 @@ export function AppContent() {
         onRoleSwitched={handleRoleSwitched}
         streakData={streakData}
         onOpenStreakModal={handleOpenStreakModal}
+        classrooms={classrooms}
       />
 
       {/* Main View Switcher */}

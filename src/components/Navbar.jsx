@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProfileDropdown } from './ProfileDropdown';
 
-export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSwitched, streakData, onOpenStreakModal }) => {
+export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSwitched, streakData, onOpenStreakModal, classrooms = [] }) => {
   const { user, setIsAuthModalOpen, unreadNotifsCount } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [profileDropdownTab, setProfileDropdownTab] = useState('profile');
@@ -343,6 +343,8 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
               onClose={() => setIsProfileDropdownOpen(false)}
               initialTab={profileDropdownTab}
               onRoleSwitched={onRoleSwitched}
+              streakData={streakData}
+              classrooms={classrooms}
             />
           </div>
         ) : (
