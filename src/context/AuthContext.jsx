@@ -3,6 +3,33 @@ import { loginWithSupabase, logoutFromSupabase, registerStudentInSupabase } from
 
 const AuthContext = createContext();
 
+// Helper to check if welcome notification should be omitted
+const isWelcomeNotifDismissed = (currentUser) => {
+  try {
+    if (localStorage.getItem('hanzify_welcome_dismissed') === 'true') {
+      return true;
+    }
+    const userId = currentUser?.id || currentUser?.username || 'student';
+    const keysToCheck = [
+      `hanzify_streak_${userId}`,
+      'hanzify_streak_guest',
+      'hanzify_streak_student'
+    ];
+    for (const key of keysToCheck) {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s?.checkedInToday || s?.lastCheckIn || (s?.currentStreak && s.currentStreak > 0)) {
+          return true;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error checking welcome notification status:', e);
+  }
+  return false;
+};
+
 export const AuthProvider = ({ children }) => {
   // Persistent registered users list
   const [registeredUsers] = useState([]);
@@ -17,17 +44,64 @@ export const AuthProvider = ({ children }) => {
   const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
   const [isJoinClassModalOpen, setIsJoinClassModalOpen] = useState(false);
 
-  // Sample Notifications
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'notif-1',
-      title: 'Chào mừng bạn đến với Hanzify!',
-      desc: 'Hệ thống đã sẵn sàng cho giáo viên quản lý lớp học và bài tập.',
-      time: 'Vừa xong',
-      type: 'reminder',
-      isRead: false
+  // Notifications with persistence and check-in / read awareness
+  const [notifications, setNotifications] = useState(() => {
+    const savedUser = localStorage.getItem('hanzify_user');
+    let initialUser = null;
+    try {
+      initialUser = savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {}
+
+    const alreadyDismissed = isWelcomeNotifDismissed(initialUser);
+
+    try {
+      const savedNotifs = localStorage.getItem('hanzify_notifications');
+      if (savedNotifs) {
+        const parsed = JSON.parse(savedNotifs);
+        if (Array.isArray(parsed)) {
+          return alreadyDismissed ? parsed.filter((n) => n.id !== 'notif-1') : parsed;
+        }
+      }
+    } catch (e) {}
+
+    if (alreadyDismissed) {
+      return [];
     }
-  ]);
+
+    return [
+      {
+        id: 'notif-1',
+        title: 'Chào mừng bạn đến với Hanzify!',
+        desc: 'Hệ thống đã sẵn sàng cho giáo viên quản lý lớp học và bài tập.',
+        time: 'Vừa xong',
+        type: 'reminder',
+        isRead: false
+      }
+    ];
+  });
+
+  // Auto-remove welcome notification if user has checked in
+  useEffect(() => {
+    if (isWelcomeNotifDismissed(user)) {
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === 'notif-1')) {
+          const filtered = prev.filter((n) => n.id !== 'notif-1');
+          try {
+            localStorage.setItem('hanzify_notifications', JSON.stringify(filtered));
+          } catch (e) {}
+          return filtered;
+        }
+        return prev;
+      });
+    }
+  }, [user]);
+
+  // Persist notifications list
+  useEffect(() => {
+    try {
+      localStorage.setItem('hanzify_notifications', JSON.stringify(notifications));
+    } catch (e) {}
+  }, [notifications]);
 
   useEffect(() => {
     if (user) {
@@ -74,8 +148,44 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  // Dismiss welcome notification permanently
+  const dismissWelcomeNotification = () => {
+    localStorage.setItem('hanzify_welcome_dismissed', 'true');
+    setNotifications((prev) => {
+      const filtered = prev.filter((n) => n.id !== 'notif-1');
+      try {
+        localStorage.setItem('hanzify_notifications', JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+  };
+
+  // Dismiss a specific notification by ID
+  const dismissNotification = (id) => {
+    if (id === 'notif-1') {
+      localStorage.setItem('hanzify_welcome_dismissed', 'true');
+    }
+    setNotifications((prev) => {
+      const filtered = prev.filter((n) => n.id !== id);
+      try {
+        localStorage.setItem('hanzify_notifications', JSON.stringify(filtered));
+      } catch (e) {}
+      return filtered;
+    });
+  };
+
   const markAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    // When marking all read, welcome notification is dismissed permanently
+    localStorage.setItem('hanzify_welcome_dismissed', 'true');
+    setNotifications((prev) => {
+      const updated = prev
+        .filter((n) => n.id !== 'notif-1')
+        .map((n) => ({ ...n, isRead: true }));
+      try {
+        localStorage.setItem('hanzify_notifications', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
@@ -100,7 +210,9 @@ export const AuthProvider = ({ children }) => {
         setIsJoinClassModalOpen,
         notifications,
         unreadNotifsCount,
-        markAllNotificationsRead
+        markAllNotificationsRead,
+        dismissNotification,
+        dismissWelcomeNotification
       }}
     >
       {children}

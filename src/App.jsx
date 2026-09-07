@@ -142,7 +142,8 @@ export function AppContent() {
     isCreateClassModalOpen,
     setIsCreateClassModalOpen,
     isJoinClassModalOpen,
-    setIsJoinClassModalOpen
+    setIsJoinClassModalOpen,
+    dismissWelcomeNotification
   } = useAuth();
 
   const getInitialView = () => {
@@ -223,7 +224,16 @@ export function AppContent() {
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
 
   useEffect(() => {
-    if (user?.id) fetchUserStreak(user.id).then(({ data }) => data && setStreakData(data));
+    if (user?.id) {
+      fetchUserStreak(user.id).then(({ data }) => {
+        if (data) {
+          setStreakData(data);
+          if (data.checkedInToday || data.lastCheckIn || (data.currentStreak && data.currentStreak > 0)) {
+            dismissWelcomeNotification?.();
+          }
+        }
+      });
+    }
   }, [user?.id]);
 
   // Handle daily streak check-in
@@ -237,6 +247,7 @@ export function AppContent() {
     }
     const updated = result.data;
     setStreakData(updated);
+    dismissWelcomeNotification?.();
     setRoleToast(`🔥 Điểm danh thành công! Chuỗi học tăng lên ${updated.currentStreak} ngày liên tiếp (+50 XP)`);
     setTimeout(() => {
       setRoleToast(null);

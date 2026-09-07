@@ -26,7 +26,8 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
     updateProfile,
     notifications,
     unreadNotifsCount,
-    markAllNotificationsRead
+    markAllNotificationsRead,
+    dismissNotification
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'history' | 'notifications'
@@ -485,48 +486,72 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {notifications.map((notif) => (
-                <div
-                  key={notif.id}
-                  style={{
-                    padding: '0.65rem 0.75rem',
-                    borderRadius: '12px',
-                    background: notif.isRead ? '#ffffff' : '#fff5f5',
-                    border: notif.isRead ? '1px solid #f1f5f9' : '1px solid #fecaca',
-                    display: 'flex',
-                    gap: '8px',
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <div style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: notif.type === 'grade' ? '#dcfce7' : '#fee2e2',
-                    color: notif.type === 'grade' ? '#16a34a' : '#A11D24',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.75rem',
-                    flexShrink: 0
-                  }}>
-                    <i className={notif.type === 'grade' ? 'fa-solid fa-check' : 'fa-regular fa-bell'}></i>
+            {notifications.length === 0 ? (
+              <div style={{ padding: '1.25rem 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
+                <i className="fa-regular fa-bell-slash" style={{ fontSize: '1.4rem', marginBottom: '0.35rem', display: 'block', color: '#cbd5e1' }}></i>
+                Hiện không có thông báo mới
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    style={{
+                      padding: '0.65rem 0.75rem',
+                      borderRadius: '12px',
+                      background: notif.isRead ? '#ffffff' : '#fff5f5',
+                      border: notif.isRead ? '1px solid #f1f5f9' : '1px solid #fecaca',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'flex-start'
+                    }}
+                  >
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: notif.type === 'grade' ? '#dcfce7' : '#fee2e2',
+                      color: notif.type === 'grade' ? '#16a34a' : '#A11D24',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      flexShrink: 0
+                    }}>
+                      <i className={notif.type === 'grade' ? 'fa-solid fa-check' : 'fa-regular fa-bell'}></i>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a', marginBottom: '2px' }}>
+                          {notif.title}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => dismissNotification(notif.id)}
+                          title="Bỏ thông báo này"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            padding: '0 2px'
+                          }}
+                        >
+                          <i className="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.3, marginBottom: '2px' }}>
+                        {notif.desc}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                        {notif.time}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a', marginBottom: '2px' }}>
-                      {notif.title}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.3, marginBottom: '2px' }}>
-                      {notif.desc}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                      {notif.time}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -64,7 +64,8 @@ export const ProfilePanel = () => {
     setIsProfilePanelOpen,
     notifications,
     unreadNotifsCount,
-    markAllNotificationsRead
+    markAllNotificationsRead,
+    dismissNotification
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'history' | 'notifications' | 'stats'
@@ -503,44 +504,68 @@ export const ProfilePanel = () => {
                 )}
               </div>
 
-              {notifications.map((n) => (
-                <div
-                  key={n.id}
-                  style={{
-                    background: n.isRead ? '#ffffff' : '#fef2f2',
-                    border: n.isRead ? '1px solid #f1f5f9' : '1.5px solid #fecaca',
-                    borderRadius: '14px',
-                    padding: '1rem 1.25rem',
-                    display: 'flex',
-                    gap: '1rem',
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <div style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '50%',
-                    background: n.type === 'grade' ? '#f0fdf4' : n.type === 'award' ? '#fef3c7' : '#fee2e2',
-                    color: n.type === 'grade' ? '#16a34a' : n.type === 'award' ? '#d97706' : '#A11D24',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1rem',
-                    flexShrink: 0
-                  }}>
-                    <i className={`fa-solid ${n.type === 'grade' ? 'fa-stamp' : n.type === 'award' ? 'fa-award' : 'fa-bell'}`}></i>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{n.title}</strong>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{n.time}</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.84rem', color: '#475569', lineHeight: 1.5 }}>
-                      {n.desc}
-                    </p>
-                  </div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '2.5rem 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                  <i className="fa-regular fa-bell-slash" style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'block', color: '#cbd5e1' }}></i>
+                  Hiện bạn không có thông báo nào.
                 </div>
-              ))}
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    style={{
+                      background: n.isRead ? '#ffffff' : '#fef2f2',
+                      border: n.isRead ? '1px solid #f1f5f9' : '1.5px solid #fecaca',
+                      borderRadius: '14px',
+                      padding: '1rem 1.25rem',
+                      display: 'flex',
+                      gap: '1rem',
+                      alignItems: 'flex-start'
+                    }}
+                  >
+                    <div style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      background: n.type === 'grade' ? '#f0fdf4' : n.type === 'award' ? '#fef3c7' : '#fee2e2',
+                      color: n.type === 'grade' ? '#16a34a' : n.type === 'award' ? '#d97706' : '#A11D24',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1rem',
+                      flexShrink: 0
+                    }}>
+                      <i className={`fa-solid ${n.type === 'grade' ? 'fa-stamp' : n.type === 'award' ? 'fa-award' : 'fa-bell'}`}></i>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                        <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{n.title}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{n.time}</span>
+                          <button
+                            type="button"
+                            onClick={() => dismissNotification(n.id)}
+                            title="Bỏ thông báo này"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              padding: '2px 4px'
+                            }}
+                          >
+                            <i className="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.84rem', color: '#475569', lineHeight: 1.5 }}>
+                        {n.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
