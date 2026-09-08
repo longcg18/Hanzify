@@ -1,7 +1,7 @@
 // src/data/vocabPracticeBuilder.js
 // Xây dựng ngân hàng chuyên đề luyện tập theo 5 kỹ năng từ kho từ vựng HSK 1 - 6
 
-import { HSK_LEVELS, HSK_VOCABULARY_LIST } from './hskVocabularyData';
+import { HSK_LEVELS, HSK_VOCABULARY_LIST } from './hskVocabularyData.js';
 
 const TONE_NAMES = [
   'Thanh 1 (ˉ) Cao bằng',
