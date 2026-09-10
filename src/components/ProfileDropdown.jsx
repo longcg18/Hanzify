@@ -44,6 +44,7 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   })();
   const currentStreak = streakData?.currentStreak ?? localStreak?.currentStreak ?? 0;
   const currentTotalXp = streakData?.totalXp ?? localStreak?.totalXp ?? user?.xp ?? 0;
+  const isStaff = user?.role === 'teacher' || user?.role === 'admin';
 
   // Resolve user's classroom code
   const userClass = classrooms.find((c) =>
@@ -118,8 +119,12 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
         <div style={{
           width: '52px',
           height: '52px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+          borderRadius: user.role === 'admin' ? '14px' : user.role === 'teacher' ? '18px' : '50%',
+          background: user.role === 'admin'
+            ? 'linear-gradient(135deg, #1e293b 0%, #7f1d1d 100%)'
+            : user.role === 'teacher'
+              ? 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)'
+              : 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
           color: '#ffffff',
           display: 'flex',
           alignItems: 'center',
@@ -127,7 +132,21 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
           fontSize: '1.45rem',
           fontFamily: 'Noto Serif SC, serif',
           fontWeight: 700,
-          boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)',
+          border: user.role === 'admin'
+            ? '2px solid #fbbf24'
+            : user.role === 'teacher'
+              ? '2px solid #86efac'
+              : 'none',
+          outline: user.role === 'admin'
+            ? '3px solid #fef3c7'
+            : user.role === 'teacher'
+              ? '3px solid #dcfce7'
+              : 'none',
+          boxShadow: user.role === 'admin'
+            ? '0 6px 16px rgba(180, 83, 9, 0.3)'
+            : user.role === 'teacher'
+              ? '0 6px 16px rgba(22, 163, 74, 0.22)'
+              : '0 4px 12px rgba(161, 29, 36, 0.25)',
           flexShrink: 0
         }}>
           {user.avatar}
@@ -159,21 +178,23 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               {user.role === 'admin' ? '👑 Admin' : user.role === 'teacher' ? '👩‍🏫 Giáo Viên' : '🎓 Học Viên'}
             </span>
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <i className="fa-solid fa-graduation-cap" style={{ fontSize: '0.72rem', color: '#A11D24' }}></i>
-            <span>Mã lớp:</span>
-            <strong style={{
-              color: '#A11D24',
-              background: '#fef2f2',
-              padding: '1px 6px',
-              borderRadius: '6px',
-              border: '1px solid #fecaca',
-              letterSpacing: '0.5px',
-              fontSize: '0.75rem'
-            }}>
-              {classCodeDisplay}
-            </strong>
-          </div>
+          {!isStaff && (
+            <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <i className="fa-solid fa-graduation-cap" style={{ fontSize: '0.72rem', color: '#A11D24' }}></i>
+              <span>Mã lớp:</span>
+              <strong style={{
+                color: '#A11D24',
+                background: '#fef2f2',
+                padding: '1px 6px',
+                borderRadius: '6px',
+                border: '1px solid #fecaca',
+                letterSpacing: '0.5px',
+                fontSize: '0.75rem'
+              }}>
+                {classCodeDisplay}
+              </strong>
+            </div>
+          )}
         </div>
 
         {/* Close Button */}
@@ -370,7 +391,6 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                   <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#A11D24' }}>
                     {currentStreak} Ngày
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Chuỗi học tập</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -379,7 +399,6 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                   <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#c2410c' }}>
                     {currentTotalXp} XP
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Điểm tích lũy</div>
                 </div>
               </div>
             </div>

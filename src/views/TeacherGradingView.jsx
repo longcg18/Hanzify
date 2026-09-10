@@ -13,6 +13,9 @@ import { QUESTION_SCORE_LIMITS, calculateTotalScore, isSubmissionGradingLocked, 
 export const TeacherGradingView = () => {
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'unsubmitted'
   const [submissions, setSubmissions] = useState([]);
+  const pendingGradingCount = submissions.filter(
+    (submission) => submission.status === 'pending' && submission.submissionState !== 'redo_requested'
+  ).length;
   const [selectedSub, setSelectedSub] = useState(null);
   const [scoreInput, setScoreInput] = useState(9.0);
   const [questionScores, setQuestionScores] = useState({});
@@ -260,7 +263,7 @@ export const TeacherGradingView = () => {
             borderRadius: '10px',
             fontWeight: 800
           }}>
-            {submissions.filter((s) => s.status === 'pending' && s.submissionState !== 'draft').length}
+            {pendingGradingCount}
           </span>
         </button>
 
@@ -315,7 +318,7 @@ export const TeacherGradingView = () => {
               <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Danh Sách Nộp Bài</span>
                 <span style={{ background: '#fef2f2', color: '#A11D24', fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
-                  {submissions.filter((s) => s.status === 'pending' && s.submissionState !== 'redo_requested').length} chờ chấm
+                  {pendingGradingCount} chờ chấm
                 </span>
               </h3>
 

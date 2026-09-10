@@ -274,8 +274,12 @@ export function AppContent() {
     const result = await addGameRewardXp(userId, xpEarned, { gameId, gameTitle, level });
     if (result.success && result.data) {
       setStreakData(result.data);
-      const bonusText = bonusReason ? ` (${bonusReason})` : '';
-      setRoleToast(`🎮 +${xpEarned} XP! Hoàn thành "${gameTitle}" - Cấp độ ${level}${bonusText}`);
+      const bonusText = bonusReason ? ` · ${bonusReason}` : '';
+      setRoleToast({
+        type: 'xp',
+        amount: xpEarned,
+        message: `${gameTitle} · ${level}${bonusText}`
+      });
       setTimeout(() => {
         setRoleToast(null);
       }, 4500);
@@ -1026,20 +1030,48 @@ export function AppContent() {
           zIndex: 9999,
           background: '#0f172a',
           color: '#ffffff',
-          padding: '0.85rem 1.35rem',
-          borderRadius: '16px',
+          padding: '0.7rem 0.8rem',
+          borderRadius: '14px',
           boxShadow: '0 12px 35px rgba(0, 0, 0, 0.28)',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
+          gap: '0.65rem',
           border: '1px solid rgba(255, 255, 255, 0.12)',
           fontSize: '0.88rem',
           fontWeight: 600,
-          maxWidth: '520px',
+          maxWidth: 'calc(100vw - 32px)',
           lineHeight: 1.4
         }}>
-          <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>🔄</span>
-          <span style={{ flex: 1 }}>{roleToast}</span>
+          {roleToast?.type === 'xp' ? (
+            <>
+              <span style={{
+                flexShrink: 0,
+                padding: '0.38rem 0.65rem',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 100%)',
+                color: '#431407',
+                fontSize: '0.85rem',
+                fontWeight: 900,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 3px 10px rgba(249, 115, 22, 0.28)'
+              }}>
+                +{roleToast.amount} XP
+              </span>
+              <span style={{
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                Hoàn thành: {roleToast.message}
+              </span>
+            </>
+          ) : (
+            <>
+              <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>🔄</span>
+              <span style={{ flex: 1 }}>{roleToast}</span>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setRoleToast(null)}
