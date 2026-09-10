@@ -406,12 +406,63 @@ ON CONFLICT (id) DO NOTHING;
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.user_streaks (
   user_id TEXT PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  current_streak INTEGER DEFAULT 1,
-  longest_streak INTEGER DEFAULT 1,
-  last_check_in DATE DEFAULT CURRENT_DATE,
+  current_streak INTEGER NOT NULL DEFAULT 0,
+  longest_streak INTEGER NOT NULL DEFAULT 0,
+  last_check_in DATE DEFAULT NULL,
   total_xp INTEGER DEFAULT 0,
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.user_streaks ALTER COLUMN current_streak SET DEFAULT 0;
+ALTER TABLE public.user_streaks ALTER COLUMN longest_streak SET DEFAULT 0;
+ALTER TABLE public.user_streaks ALTER COLUMN last_check_in DROP DEFAULT;
+
+CREATE OR REPLACE FUNCTION public.check_in_user()
+RETURNS public.user_streaks
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_today DATE := (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')::DATE;
+  v_row public.user_streaks;
+  v_user_id TEXT;
+BEGIN
+  SELECT id INTO v_user_id FROM public.users WHERE auth_user_id = auth.uid() AND status = 'active';
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501'; END IF;
+  INSERT INTO public.user_streaks (user_id, current_streak, longest_streak, last_check_in, total_xp)
+  VALUES (v_user_id, 0, 0, NULL, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  SELECT * INTO v_row FROM public.user_streaks WHERE user_id = v_user_id FOR UPDATE;
+
+  IF v_row.last_check_in = v_today THEN
+    RETURN v_row;
+  END IF;
+
+  v_row.current_streak := CASE
+    WHEN v_row.last_check_in = v_today - 1 THEN v_row.current_streak + 1
+    ELSE 1
+  END;
+  v_row.longest_streak := GREATEST(v_row.longest_streak, v_row.current_streak);
+  v_row.last_check_in := v_today;
+  v_row.total_xp := v_row.total_xp + 50;
+
+  UPDATE public.user_streaks SET
+    current_streak = v_row.current_streak,
+    longest_streak = v_row.longest_streak,
+    last_check_in = v_row.last_check_in,
+    total_xp = v_row.total_xp,
+    updated_at = timezone('utc'::text, now())
+  WHERE user_id = v_user_id
+  RETURNING * INTO v_row;
+
+  RETURN v_row;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.check_in_user() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.check_in_user() TO authenticated;
 
 -- ==============================================================================
 -- 14. DIỄN ĐÀN CỘNG ĐỒNG & BÁO LỖI WEB (FORUM POSTS & COMMENTS)
@@ -450,7 +501,9 @@ ALTER TABLE public.forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_comments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Cho phép đọc dữ liệu Gamification" ON public.user_streaks FOR SELECT USING (true);
-CREATE POLICY "Cho phép học viên điểm danh streak" ON public.user_streaks FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Học viên quản lý streak cá nhân" ON public.user_streaks FOR ALL TO authenticated
+USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()))
+WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Cho phép đọc bài viết diễn đàn" ON public.forum_posts FOR SELECT USING (true);
 CREATE POLICY "Thành viên ghi bài viết diễn đàn" ON public.forum_posts FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Chủ bài hoặc staff cập nhật diễn đàn" ON public.forum_posts FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());

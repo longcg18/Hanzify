@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }) => {
   // Register student joining class
   const registerStudentWithClass = async (payload) => {
     const result = await registerStudentInSupabase(payload);
-    if (result.success) login(result.user);
+    if (result.success && result.user) login(result.user);
     return result;
   };
 

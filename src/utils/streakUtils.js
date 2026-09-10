@@ -9,6 +9,45 @@ export const DEFAULT_MILESTONES = [
   { days: 100, label: 'Huyền thoại Hanzify', xpBonus: 5000 }
 ];
 
+export const STREAK_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
+export function getDateKey(date = new Date(), timeZone = STREAK_TIME_ZONE) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export function getPreviousDateKey(dateKey) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey || '')) return null;
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const previous = new Date(Date.UTC(year, month - 1, day - 1));
+  return previous.toISOString().slice(0, 10);
+}
+
+export function getEffectiveStreak(currentStreak, lastCheckIn, today = getDateKey()) {
+  const streak = Math.max(0, Number(currentStreak) || 0);
+  if (!lastCheckIn || streak === 0) return 0;
+  return lastCheckIn === today || lastCheckIn === getPreviousDateKey(today) ? streak : 0;
+}
+
+export function calculateCheckIn(current = {}, today = getDateKey()) {
+  const previousDate = getPreviousDateKey(today);
+  const oldStreak = Math.max(0, Number(current.currentStreak) || 0);
+  const nextStreak = current.lastCheckIn === previousDate ? oldStreak + 1 : 1;
+  return {
+    currentStreak: nextStreak,
+    longestStreak: Math.max(nextStreak, Number(current.longestStreak) || 0),
+    totalXp: Math.max(0, Number(current.totalXp) || 0) + 50,
+    checkedInToday: true,
+    lastCheckIn: today
+  };
+}
+
 export function generateCurrentWeekDays(currentStreak = 0, checkedInToday = false) {
   const dayNames = [
     { day: 'T2', name: 'Thứ 2' },

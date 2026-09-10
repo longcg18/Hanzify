@@ -233,14 +233,27 @@ export function AppContent() {
           }
         }
       });
+    } else {
+      setStreakData({
+        currentStreak: 0,
+        longestStreak: 0,
+        totalXp: 0,
+        checkedInToday: false,
+        lastCheckIn: null,
+        weekDays: generateCurrentWeekDays(0, false),
+        milestones: formatStreakMilestones(0)
+      });
     }
   }, [user?.id]);
 
   // Handle daily streak check-in
   const handleCheckInToday = async () => {
+    if (!user?.id) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     if (streakData.checkedInToday) return;
-    const userId = user?.id || user?.username || 'student';
-    const result = await checkInUser(userId);
+    const result = await checkInUser(user.id);
     if (!result.success) { 
       setRoleToast(result.error || 'Có lỗi khi điểm danh.'); 
       return; 

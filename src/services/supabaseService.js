@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { generateCurrentWeekDays, formatStreakMilestones } from '../utils/streakUtils';
+import { generateCurrentWeekDays, formatStreakMilestones, getDateKey, getEffectiveStreak } from '../utils/streakUtils';
 import { HSK_VOCABULARY_LIST } from '../data/hskVocabularyData';
 
 // ==========================================
@@ -12,28 +12,24 @@ export async function loginWithSupabase(usernameOrEmail, password) {
   if (!clean) throw new Error('Vui lòng nhập tên đăng nhập hoặc địa chỉ email.');
   if (!cleanPass) throw new Error('Vui lòng nhập mật khẩu.');
 
-  // Lookup user in public.users by email OR username (case-insensitive)
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .or(`email.ilike.${clean},username.ilike.${clean}`)
-    .maybeSingle();
+  const { data: resolvedEmail, error: resolveError } = await supabase
+    .rpc('resolve_login_email', { p_identifier: clean });
+  if (resolveError || !resolvedEmail) throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
 
-  if (error) {
-    console.error('Supabase user login error:', error);
-    throw new Error('Lỗi kết nối máy chủ Supabase. Vui lòng thử lại!');
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email: resolvedEmail,
+    password: cleanPass
+  });
+  if (authError || !authData.user) throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
+
+  const { data, error } = await supabase.from('users').select('*').eq('auth_user_id', authData.user.id).single();
+  if (error || !data) {
+    await supabase.auth.signOut();
+    throw new Error('Không tìm thấy hồ sơ người dùng tương ứng.');
   }
-
-  if (!data) {
-    throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
-  }
-
   if (data.status === 'blocked') {
+    await supabase.auth.signOut();
     throw new Error('Tài khoản này hiện đang bị tạm khóa. Vui lòng liên hệ quản trị viên.');
-  }
-
-  if (data.password !== cleanPass) {
-    throw new Error('Tên đăng nhập hoặc mật khẩu không chính xác!');
   }
 
   const safeUser = {
@@ -105,38 +101,27 @@ export async function registerStudentInSupabase({ classId, studentId, name, user
     return { success: false, message: 'Tên đăng nhập này đã có người sử dụng. Vui lòng chọn tên khác.' };
   }
 
-  const profile = {
-    id: `student-${Date.now()}`,
-    username: cleanUser,
+  const profileId = `student-${Date.now()}`;
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password: cleanPass,
-    full_name: cleanName,
-    role: 'student',
-    avatar: cleanName.slice(0, 1) || '学',
-    status: 'active'
-  };
-
-  const { error: profileError } = await supabase.from('users').insert(profile);
-  if (profileError) return { success: false, message: profileError.message };
-
-  if (classId && studentId) {
-    await supabase.from('classroom_students').update({
-      username: cleanUser,
-      is_activated: true,
-      activated_at: new Date().toISOString()
-    }).eq('id', studentId).eq('classroom_id', classId);
+    options: { data: { profile_id: profileId, username: cleanUser, full_name: cleanName, avatar: cleanName.slice(0, 1) || '学', class_id: classId || '', student_id: studentId || '' } }
+  });
+  if (authError) return { success: false, message: authError.message };
+  if (!authData.session) {
+    return { success: true, requiresEmailConfirmation: true, message: 'Vui lòng xác nhận email trước khi đăng nhập.' };
   }
+
+  const { data: profile, error: profileError } = await supabase.from('users').select('*').eq('auth_user_id', authData.user.id).single();
+  if (profileError || !profile) return { success: false, message: 'Tài khoản đã tạo nhưng chưa tải được hồ sơ. Vui lòng đăng nhập lại.' };
 
   return {
     success: true,
     user: {
-      id: profile.id,
-      username: profile.username,
-      email: profile.email,
-      name: profile.full_name,
-      full_name: profile.full_name,
+      id: profile.id, username: profile.username, email: profile.email,
+      name: profile.full_name, full_name: profile.full_name,
       role: 'student',
-      avatar: profile.avatar,
+      avatar: profile.avatar || '学',
       badge: 'Học viên',
       status: 'active',
       classId: classId || null,
@@ -1566,10 +1551,10 @@ export function saveLocalStreak(userId, streakObj) {
 
 export async function fetchUserStreak(userId) {
   const local = getLocalStreak(userId);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateKey();
 
   if (!userId) {
-    const currentStreak = local?.currentStreak || 0;
+    const currentStreak = getEffectiveStreak(local?.currentStreak, local?.lastCheckIn, today);
     const longestStreak = local?.longestStreak || currentStreak;
     const checkedInToday = local?.lastCheckIn === today;
     return {
@@ -1595,7 +1580,7 @@ export async function fetchUserStreak(userId) {
 
     if (!error && data) {
       const checkedInToday = data.last_check_in === today;
-      const currentStreak = data.current_streak || 0;
+      const currentStreak = getEffectiveStreak(data.current_streak, data.last_check_in, today);
       const longestStreak = data.longest_streak || currentStreak;
       const totalXp = data.total_xp || 0;
       const streakResult = {
@@ -1615,7 +1600,7 @@ export async function fetchUserStreak(userId) {
   }
 
   // Fallback to local cached data
-  const currentStreak = local?.currentStreak || 0;
+  const currentStreak = getEffectiveStreak(local?.currentStreak, local?.lastCheckIn, today);
   const longestStreak = local?.longestStreak || currentStreak;
   const checkedInToday = local?.lastCheckIn === today;
   return {
@@ -1633,52 +1618,37 @@ export async function fetchUserStreak(userId) {
 }
 
 export async function checkInUser(userId) {
+  if (!userId) return { success: false, error: 'Vui lòng đăng nhập để điểm danh.' };
   const currentRes = await fetchUserStreak(userId);
   const current = currentRes.data || { currentStreak: 0, longestStreak: 0, totalXp: 0 };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDateKey();
 
   if (current.checkedInToday) {
     return { success: true, data: current };
   }
 
-  const nextStreak = (current.currentStreak || 0) + 1;
-  const longestStreak = Math.max(nextStreak, current.longestStreak || 0);
-  const totalXp = (current.totalXp || 0) + 50;
-
-  const updatedData = {
-    currentStreak: nextStreak,
-    longestStreak,
-    totalXp,
-    checkedInToday: true,
-    lastCheckIn: today,
-    weekDays: generateCurrentWeekDays(nextStreak, true),
-    milestones: formatStreakMilestones(nextStreak)
-  };
-
-  // Always save locally first so check-in is instantaneous and reliable
-  saveLocalStreak(userId, updatedData);
-
-  // Sync to Supabase in background
-  if (userId) {
-    try {
-      const payload = {
-        user_id: userId,
-        current_streak: nextStreak,
-        longest_streak: longestStreak,
-        last_check_in: today,
-        total_xp: totalXp,
-        updated_at: new Date().toISOString()
-      };
-      const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
-      if (error) {
-        console.warn('Supabase streak sync error (persisted locally):', error.message);
-      }
-    } catch (e) {
-      console.warn('Supabase streak upsert exception (persisted locally):', e);
-    }
+  try {
+    const { data, error } = await supabase.rpc('check_in_user');
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    const persisted = {
+      currentStreak: Number(row.current_streak) || 0,
+      longestStreak: Number(row.longest_streak) || 0,
+      totalXp: Number(row.total_xp) || 0,
+      checkedInToday: row.last_check_in === today,
+      lastCheckIn: row.last_check_in
+    };
+    const updatedData = {
+      ...persisted,
+      weekDays: generateCurrentWeekDays(persisted.currentStreak, persisted.checkedInToday),
+      milestones: formatStreakMilestones(persisted.currentStreak)
+    };
+    saveLocalStreak(userId, updatedData);
+    return { success: true, data: updatedData };
+  } catch (e) {
+    console.error('Supabase check-in error:', e);
+    return { success: false, error: 'Không thể ghi nhận điểm danh. Vui lòng kiểm tra kết nối và thử lại.' };
   }
-
-  return { success: true, data: updatedData };
 }
 
 export async function addGameRewardXp(userId, xpToAdd, { gameId = '', gameTitle = '', level = 'HSK 1' } = {}) {
@@ -1687,41 +1657,27 @@ export async function addGameRewardXp(userId, xpToAdd, { gameId = '', gameTitle 
     return { success: false, error: 'Số điểm thưởng không hợp lệ.' };
   }
 
-  const currentRes = await fetchUserStreak(userId);
-  const current = currentRes.data || { currentStreak: 0, longestStreak: 0, totalXp: 0 };
-  const currentTotal = Number(current.totalXp) || 0;
-  const nextTotalXp = currentTotal + points;
-
-  const today = new Date().toISOString().slice(0, 10);
-  const updatedData = {
-    ...current,
-    totalXp: nextTotalXp
-  };
-
-  // Always persist locally first so UI updates immediately
-  saveLocalStreak(userId, updatedData);
-
-  // Sync to Supabase in background
-  if (userId) {
-    try {
-      const payload = {
-        user_id: userId,
-        current_streak: current.currentStreak || 0,
-        longest_streak: current.longestStreak || (current.currentStreak || 0),
-        last_check_in: current.lastCheckIn || today,
-        total_xp: nextTotalXp,
-        updated_at: new Date().toISOString()
-      };
-      const { error } = await supabase.from('user_streaks').upsert(payload, { onConflict: 'user_id' });
-      if (error) {
-        console.warn('Supabase game reward streak sync warning:', error.message);
-      }
-    } catch (e) {
-      console.warn('Supabase game reward streak sync exception:', e);
-    }
+  try {
+    const { data, error } = await supabase.rpc('add_game_reward_xp', { p_points: points });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    const today = getDateKey();
+    const currentStreak = getEffectiveStreak(row.current_streak, row.last_check_in, today);
+    const updatedData = {
+      currentStreak,
+      longestStreak: Number(row.longest_streak) || 0,
+      totalXp: Number(row.total_xp) || 0,
+      checkedInToday: row.last_check_in === today,
+      lastCheckIn: row.last_check_in,
+      weekDays: generateCurrentWeekDays(currentStreak, row.last_check_in === today),
+      milestones: formatStreakMilestones(currentStreak)
+    };
+    saveLocalStreak(userId, updatedData);
+    return { success: true, data: updatedData, earnedXp: points, gameTitle, level };
+  } catch (e) {
+    console.error('Supabase game reward error:', e);
+    return { success: false, error: 'Không thể ghi nhận XP. Vui lòng thử lại.' };
   }
-
-  return { success: true, data: updatedData, earnedXp: points, gameTitle, level };
 }
 
 const formatForumPost = (post) => ({
