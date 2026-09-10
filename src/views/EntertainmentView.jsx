@@ -510,6 +510,28 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
     }
   };
 
+  const playMatchChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const context = new AudioCtx();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, context.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(1320, context.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.22);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.23);
+      oscillator.onended = () => context.close();
+    } catch (error) {
+      console.warn('Match chime unavailable:', error);
+    }
+  };
+
   // ==========================================
   // GAME 1: MEMORY MATCH STATE & LOGIC
   // ==========================================
@@ -542,7 +564,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
       const secondCard = cards[newFlipped[1]];
 
       if (firstCard.pairId === secondCard.pairId) {
-        speakWord(firstCard.pinyin || firstCard.content);
+        playMatchChime();
         const nextMatched = [...matched, firstCard.pairId];
         setMatched(nextMatched);
         setFlipped([]);
@@ -659,6 +681,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   // GAME 3: SPEED WORD MATCH STATE & LOGIC
   // ==========================================
   const [selectedHanzi, setSelectedHanzi] = useState(null);
+  const [selectedMeaning, setSelectedMeaning] = useState(null);
   const [speedMatchedIds, setSpeedMatchedIds] = useState([]);
   const [speedScore, setSpeedScore] = useState(0);
   const [wrongMatchId, setWrongMatchId] = useState(null);
@@ -684,6 +707,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const initSpeedMatch = (level = currentGameLevel) => {
     const pairs = getSpeedPairsForLevel(level, rawMatchPairs);
     setSelectedHanzi(null);
+    setSelectedMeaning(null);
     setSpeedMatchedIds([]);
     setSpeedScore(0);
     setWrongMatchId(null);
@@ -698,23 +722,34 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
   const handleHanziSelect = (item) => {
     if (speedMatchedIds.includes(item.id)) return;
+    if (selectedMeaning) {
+      resolveSpeedMatch(item, selectedMeaning);
+      return;
+    }
     if (selectedHanzi?.id === item.id) {
       setSelectedHanzi(null);
       return;
     }
     setSelectedHanzi(item);
-    speakWord(item.hanzi);
   };
 
   const handleMeanSelect = (item) => {
-    if (!selectedHanzi || speedMatchedIds.includes(item.id)) return;
+    if (speedMatchedIds.includes(item.id)) return;
+    if (!selectedHanzi) {
+      setSelectedMeaning(selectedMeaning?.id === item.id ? null : item);
+      return;
+    }
+    resolveSpeedMatch(selectedHanzi, item);
+  };
 
-    if (selectedHanzi.id === item.id) {
+  const resolveSpeedMatch = (hanziItem, meaningItem) => {
+    if (hanziItem.id === meaningItem.id) {
       // Correct match!
       const nextMatched = [...speedMatchedIds, item.id];
       setSpeedMatchedIds(nextMatched);
       setSpeedScore((s) => s + 250);
       setSelectedHanzi(null);
+      setSelectedMeaning(null);
 
       confetti({
         particleCount: 50,
@@ -729,10 +764,11 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
       }
     } else {
       // Wrong match: flash error on wrong item then reset
-      setWrongMatchId(item.id);
+      setWrongMatchId(meaningItem.id);
       setTimeout(() => {
         setWrongMatchId(null);
         setSelectedHanzi(null);
+        setSelectedMeaning(null);
       }, 500);
     }
   };
@@ -1104,7 +1140,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           boxShadow: '0 6px 15px rgba(161, 29, 36, 0.25)',
                           border: '2px solid #fff'
                         }}>
-                          <span style={{ fontSize: '2rem', color: '#fff', opacity: 0.85, fontFamily: 'Noto Serif SC, serif' }}>流</span>
+                          <span style={{ fontSize: '2rem', color: '#fff', opacity: 0.85, fontFamily: 'Noto Serif SC, serif' }}>刘</span>
                         </div>
 
                         {/* Card Front */}
@@ -1207,9 +1243,6 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     <div style={{ fontSize: '4.5rem', fontFamily: 'Noto Serif SC, serif', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
                       {currentToneQ?.char}
                     </div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#A11D24', marginTop: '0.75rem' }}>
-                      {currentToneQ?.pinyin}
-                    </div>
                     <div style={{ fontSize: '0.95rem', color: '#64748b', marginTop: '0.35rem' }}>
                       Nghĩa: {currentToneQ?.mean}
                     </div>
@@ -1280,7 +1313,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between'
                   }}>
-                    <span>{selectedHanzi ? 'Cột Chữ Hán:' : '1. Chọn Chữ Hán:'}</span>
+                    <span>Cột Chữ Hán (chọn tự do):</span>
                     {selectedHanzi && (
                       <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>
                         Đang chọn: {selectedHanzi.hanzi}
@@ -1290,7 +1323,6 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                   {speedHanziList.map((item) => {
                     const isMatched = speedMatchedIds.includes(item.id);
                     const isSelected = selectedHanzi?.id === item.id;
-                    const isDimmed = Boolean(selectedHanzi) && !isSelected && !isMatched;
 
                     return (
                       <button
@@ -1303,25 +1335,13 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           borderRadius: '10px',
                           border: isMatched 
                             ? '2px solid #22c55e' 
-                            : isSelected 
-                              ? '2.5px solid #2563eb' 
-                              : isDimmed 
-                                ? '1px solid #e2e8f0' 
-                                : '1.5px solid #cbd5e1',
+                            : isSelected ? '2.5px solid #2563eb' : '1.5px solid #cbd5e1',
                           background: isMatched 
                             ? '#f0fdf4' 
-                            : isSelected 
-                              ? '#eff6ff' 
-                              : isDimmed 
-                                ? '#f8fafc' 
-                                : '#ffffff',
+                            : isSelected ? '#eff6ff' : '#ffffff',
                           color: isMatched 
                             ? '#16a34a' 
-                            : isSelected 
-                              ? '#2563eb' 
-                              : isDimmed 
-                                ? '#94a3b8' 
-                                : '#0f172a',
+                            : isSelected ? '#2563eb' : '#0f172a',
                           fontWeight: 700,
                           fontSize: '1.15rem',
                           fontFamily: 'Noto Serif SC, serif',
@@ -1330,8 +1350,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           boxSizing: 'border-box',
-                          opacity: isDimmed ? 0.38 : 1,
-                          filter: isDimmed ? 'grayscale(50%)' : 'none',
+                          opacity: 1,
                           transform: isSelected ? 'scale(1.015)' : 'none',
                           boxShadow: isSelected 
                             ? '0 0 12px rgba(37, 99, 235, 0.28)' 
@@ -1354,14 +1373,14 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     minHeight: '26px',
                     fontWeight: 800, 
                     fontSize: '0.82rem', 
-                    color: selectedHanzi ? '#1d4ed8' : '#94a3b8', 
+                    color: selectedHanzi || selectedMeaning ? '#1d4ed8' : '#0f172a',
                     textTransform: 'uppercase',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     transition: 'all 0.25s ease'
                   }}>
-                    <span>{selectedHanzi ? '👉 Cột Nghĩa Tiếng Việt:' : '2. Cột Nghĩa Tiếng Việt:'}</span>
+                    <span>Cột Nghĩa Tiếng Việt (chọn tự do):</span>
                     {selectedHanzi ? (
                       <span style={{ 
                         fontSize: '0.72rem', 
@@ -1376,14 +1395,15 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                       </span>
                     ) : (
                       <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                        (chọn Hán tự trước)
+                        (có thể bắt đầu từ cột này)
                       </span>
                     )}
                   </div>
                   {speedMeaningList.map((item) => {
                     const isMatched = speedMatchedIds.includes(item.id);
                     const isWrong = wrongMatchId === item.id;
-                    const isReadyToMatch = Boolean(selectedHanzi) && !isMatched;
+                    const isSelectedMeaning = selectedMeaning?.id === item.id;
+                    const isReadyToMatch = !isMatched;
 
                     return (
                       <button
@@ -1399,40 +1419,40 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                             ? '2px solid #22c55e' 
                             : isWrong 
                               ? '2.5px solid #ef4444' 
-                              : isReadyToMatch 
+                              : isSelectedMeaning
                                 ? '2px solid #3b82f6' 
                                 : '1px dashed #cbd5e1',
                           background: isMatched 
                             ? '#f0fdf4' 
                             : isWrong 
                               ? '#fef2f2' 
-                              : isReadyToMatch 
+                              : isSelectedMeaning
                                 ? '#ffffff' 
                                 : '#fafafa',
                           color: isMatched 
                             ? '#16a34a' 
                             : isWrong 
                               ? '#dc2626' 
-                              : isReadyToMatch 
+                              : isSelectedMeaning
                                 ? '#1e3a8a' 
                                 : '#94a3b8',
                           fontWeight: isReadyToMatch ? 700 : 600,
                           fontSize: '0.9rem',
-                          cursor: isMatched ? 'default' : isReadyToMatch ? 'pointer' : 'not-allowed',
+                          cursor: isMatched ? 'default' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           boxSizing: 'border-box',
-                          opacity: isMatched ? 0.9 : isReadyToMatch ? 1 : 0.45,
+                          opacity: 1,
                           boxShadow: isWrong 
                             ? '0 0 12px rgba(239, 68, 68, 0.35)' 
-                            : isReadyToMatch 
-                              ? '0 2px 10px rgba(59, 130, 246, 0.18)' 
+                              : isSelectedMeaning
+                                ? '0 2px 10px rgba(59, 130, 246, 0.18)'
                               : 'none',
                           transform: isWrong 
                             ? 'translateX(4px)' 
-                            : isReadyToMatch 
-                              ? 'translateY(-1px)' 
+                              : isSelectedMeaning
+                                ? 'translateY(-1px)'
                               : 'none',
                           transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                         }}
@@ -1545,7 +1565,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        {riddleIdx < currentRiddles.length - 1 ? 'Câu tiếp theo ➔' : 'Hoàn thành câu đố ➔'}
+                        {riddleIdx < riddleQuestionsList.length - 1 ? 'Câu tiếp theo ➔' : 'Hoàn thành câu đố ➔'}
                       </button>
                     </div>
                   )}

@@ -12,7 +12,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
       {/* Brand Logo & Title */}
       <div className="brand-group" onClick={() => onNavigate('home')} style={{ cursor: 'pointer' }}>
         <div className="brand-logo">
-          <span className="chinese-char">流</span>
+          <span className="chinese-char">刘</span>
           <span className="logo-dot"></span>
         </div>
         <div className="brand-text">

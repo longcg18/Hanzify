@@ -8,12 +8,14 @@ import {
   fetchClassrooms,
   fetchCoursesWithLessons
 } from '../services/supabaseService';
+import { QUESTION_SCORE_LIMITS, calculateTotalScore, isSubmissionGradingLocked, normalizeQuestionScores } from '../utils/gradingUtils';
 
 export const TeacherGradingView = () => {
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' | 'unsubmitted'
   const [submissions, setSubmissions] = useState([]);
   const [selectedSub, setSelectedSub] = useState(null);
   const [scoreInput, setScoreInput] = useState(9.0);
+  const [questionScores, setQuestionScores] = useState({});
   const [commentInput, setCommentInput] = useState('');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
@@ -64,6 +66,16 @@ export const TeacherGradingView = () => {
     });
   }, []);
 
+  useEffect(() => {
+    if (!selectedSub) return;
+    const saved = selectedSub.answers?.question_scores;
+    const initial = saved || Object.fromEntries(QUESTION_SCORE_LIMITS.map((max, index) => [`q${index + 1}`, index < 4 ? Math.min(max, Number(selectedSub.answers?.autoGradedScore || 0) / 4) : 0]));
+    const normalized = normalizeQuestionScores(initial);
+    setQuestionScores(normalized);
+    setScoreInput(calculateTotalScore(normalized));
+    setCommentInput(selectedSub.teacherComment || '');
+  }, [selectedSub?.id]);
+
   // Play synthetic reading sample for teacher review
   const handleReviewAudio = (text) => {
     if ('speechSynthesis' in window) {
@@ -79,13 +91,15 @@ export const TeacherGradingView = () => {
 
   const handleSaveGrade = async () => {
     if (!selectedSub) return;
-    const result = await gradeSubmission(selectedSub.id, parseFloat(scoreInput), commentInput);
+    if (isSubmissionGradingLocked(selectedSub)) return;
+    const totalScore = calculateTotalScore(questionScores);
+    const result = await gradeSubmission(selectedSub.id, totalScore, commentInput, normalizeQuestionScores(questionScores));
     if (!result.success) { window.alert(result.error); return; }
     const updated = submissions.map((sub) => {
       if (sub.id === selectedSub.id) {
         return {
           ...sub,
-          totalScore: parseFloat(scoreInput),
+          totalScore,
           teacherComment: commentInput,
           status: 'graded',
           submissionState: 'graded'
@@ -97,7 +111,7 @@ export const TeacherGradingView = () => {
     setSubmissions(updated);
     setSelectedSub({
       ...selectedSub,
-      totalScore: parseFloat(scoreInput),
+      totalScore,
       teacherComment: commentInput,
       status: 'graded',
       submissionState: 'graded'
@@ -116,6 +130,7 @@ export const TeacherGradingView = () => {
   // Handle Redo Request
   const handleConfirmRedo = async () => {
     if (!selectedSub) return;
+    if (isSubmissionGradingLocked(selectedSub)) return;
     setIsSubmittingRedo(true);
     const note = redoNote.trim() || 'Cô giáo yêu cầu em làm lại bài tập này nhé.';
     const result = await requestRedoSubmission(selectedSub.id, note);
@@ -192,6 +207,8 @@ export const TeacherGradingView = () => {
 
     alert(`🎉 Đã cho điểm ${directScoreInput}đ cho học viên "${directGradeModalStudent.name}" thành công!`);
   };
+
+  const gradingLocked = isSubmissionGradingLocked(selectedSub);
 
   return (
     <main className="main-content">
@@ -415,26 +432,9 @@ export const TeacherGradingView = () => {
                           <i className="fa-solid fa-cloud"></i> File thu âm từ Cloud Storage
                         </span>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleReviewAudio(selectedSub.answers?.q5AudioText || '老板，这件红色的衣服太贵了，便宜一点儿吧！')}
-                          style={{
-                            background: '#A11D24',
-                            color: '#fff',
-                            border: 'none',
-                            padding: '0.4rem 0.9rem',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.4rem'
-                          }}
-                        >
-                          <i className={`fa-solid ${isPlayingAudio ? 'fa-pause' : 'fa-play'}`}></i>
-                          {isPlayingAudio ? 'Đang nghe...' : 'Bấm Nghe Bản Mẫu (TTS)'}
-                        </button>
+                        <span style={{ fontSize: '0.8rem', background: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.65rem', borderRadius: '8px', fontWeight: 600 }}>
+                          Học viên chưa ghi âm
+                        </span>
                       )}
                     </div>
 
@@ -502,6 +502,31 @@ export const TeacherGradingView = () => {
                     Nhận Xét &amp; Chấm Điểm
                   </h3>
 
+                  {gradingLocked && (
+                    <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '10px', background: '#f1f5f9', color: '#475569', fontWeight: 700 }}>
+                      <i className="fa-solid fa-lock"></i> Lượt chấm này đã khóa và không thể chỉnh sửa.
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                    {QUESTION_SCORE_LIMITS.map((max, index) => {
+                      const key = `q${index + 1}`;
+                      return (
+                        <label key={key} style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
+                          Câu {index + 1} / {max}đ
+                          <input type="number" min="0" max={max} step="0.25" disabled={gradingLocked}
+                            value={questionScores[key] ?? 0}
+                            onChange={(event) => {
+                              const next = normalizeQuestionScores({ ...questionScores, [key]: event.target.value });
+                              setQuestionScores(next);
+                              setScoreInput(calculateTotalScore(next));
+                            }}
+                            style={{ width: '100%', marginTop: '0.3rem', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                        </label>
+                      );
+                    })}
+                  </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '1.5rem', marginBottom: '1.25rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>
@@ -513,7 +538,7 @@ export const TeacherGradingView = () => {
                         min="0"
                         max="10"
                         value={scoreInput}
-                        onChange={(e) => setScoreInput(e.target.value)}
+                        readOnly
                         style={{
                           width: '100%',
                           padding: '0.65rem 1rem',
@@ -532,6 +557,7 @@ export const TeacherGradingView = () => {
                         Lời phê chi tiết của cô giáo:
                       </label>
                       <textarea
+                        disabled={gradingLocked}
                         rows="3"
                         value={commentInput}
                         onChange={(e) => setCommentInput(e.target.value)}
@@ -552,6 +578,7 @@ export const TeacherGradingView = () => {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
                     <button
                       type="button"
+                      disabled={gradingLocked}
                       onClick={() => {
                         setRedoNote(selectedSub.redoNote || 'Em kiểm tra lại câu trả lời và làm lại bài tập nhé.');
                         setIsRedoModalOpen(true);
@@ -564,7 +591,8 @@ export const TeacherGradingView = () => {
                         borderRadius: '12px',
                         fontWeight: 700,
                         fontSize: '0.92rem',
-                        cursor: 'pointer',
+                        cursor: gradingLocked ? 'not-allowed' : 'pointer',
+                        opacity: gradingLocked ? 0.55 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.45rem',
@@ -577,6 +605,7 @@ export const TeacherGradingView = () => {
 
                     <button
                       type="button"
+                      disabled={gradingLocked}
                       onClick={handleSaveGrade}
                       style={{
                         background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
@@ -586,7 +615,8 @@ export const TeacherGradingView = () => {
                         borderRadius: '12px',
                         fontWeight: 700,
                         fontSize: '0.95rem',
-                        cursor: 'pointer',
+                        cursor: gradingLocked ? 'not-allowed' : 'pointer',
+                        opacity: gradingLocked ? 0.55 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',

@@ -1412,21 +1412,27 @@ export async function fetchSubmissions() {
   };
 }
 
-export async function gradeSubmission(submissionId, totalScore, teacherComment) {
+export async function gradeSubmission(submissionId, totalScore, teacherComment, questionScores = {}) {
   try {
     const { data: existing } = await supabase
       .from('submissions')
-      .select('answers_json')
+      .select('status, answers_json')
       .eq('id', submissionId)
       .single();
 
+    const currentState = existing?.answers_json?.submission_state;
+    if (existing?.status === 'graded' || currentState === 'graded' || currentState === 'redo_requested') {
+      return { success: false, error: 'Lượt chấm này đã được khóa.' };
+    }
     const updatedAnswers = {
       ...(existing?.answers_json || {}),
       submission_state: 'graded',
-      graded_at: new Date().toISOString()
+      graded_at: new Date().toISOString(),
+      question_scores: questionScores,
+      grading_locked: true
     };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('submissions')
       .update({
         total_score: totalScore,
@@ -1434,9 +1440,13 @@ export async function gradeSubmission(submissionId, totalScore, teacherComment) 
         status: 'graded',
         answers_json: updatedAnswers
       })
-      .eq('id', submissionId);
+      .eq('id', submissionId)
+      .eq('status', 'pending')
+      .neq('answers_json->>submission_state', 'redo_requested')
+      .select('id');
 
-    return error ? { success: false, error: error.message } : { success: true };
+    if (error) return { success: false, error: error.message };
+    return data?.length ? { success: true } : { success: false, error: 'Lượt chấm này đã được khóa.' };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -1451,12 +1461,17 @@ export async function requestRedoSubmission(submissionId, redoNote) {
       .single();
 
     if (!existing) return { success: false, error: 'Không tìm thấy bài nộp' };
+    const currentState = existing.answers_json?.submission_state;
+    if (existing.status === 'graded' || currentState === 'graded' || currentState === 'redo_requested') {
+      return { success: false, error: 'Lượt chấm này đã được khóa.' };
+    }
 
     const updatedAnswers = {
       ...(existing.answers_json || {}),
       submission_state: 'redo_requested',
       redo_note: redoNote || 'Cô giáo yêu cầu em làm lại bài tập này nhé.',
-      redo_requested_at: new Date().toISOString()
+      redo_requested_at: new Date().toISOString(),
+      grading_locked: true
     };
 
     const { data, error } = await supabase
@@ -1467,9 +1482,12 @@ export async function requestRedoSubmission(submissionId, redoNote) {
         teacher_comment: redoNote ? `[Yêu cầu làm lại]: ${redoNote}` : existing.teacher_comment
       })
       .eq('id', submissionId)
+      .eq('status', 'pending')
+      .neq('answers_json->>submission_state', 'redo_requested')
       .select();
 
-    return error ? { success: false, error: error.message } : { success: true, data: data?.[0] };
+    if (error) return { success: false, error: error.message };
+    return data?.length ? { success: true, data: data[0] } : { success: false, error: 'Lượt chấm này đã được khóa.' };
   } catch (e) {
     console.error('requestRedoSubmission error:', e);
     return { success: false, error: e.message };
