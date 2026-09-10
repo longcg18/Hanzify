@@ -17,7 +17,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         </div>
         <div className="brand-text">
           <div className="brand-title">
-            Hanzify <span className="badge-tag">汉字流</span>
+            Hanzify
           </div>
         </div>
       </div>

@@ -308,7 +308,8 @@ export const EditClassModal = ({
             background: '#f8fafc',
             borderBottom: '1px solid #e2e8f0',
             padding: '0.5rem 1.75rem 0',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            alignItems: 'stretch'
           }}
         >
           <button
@@ -325,7 +326,11 @@ export const EditClassModal = ({
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              justifyContent: 'center',
+              gap: '0.4rem',
+              flex: 1,
+              minHeight: '56px',
+              whiteSpace: 'nowrap'
             }}
           >
             <i className="fa-solid fa-circle-info"></i>
@@ -346,11 +351,15 @@ export const EditClassModal = ({
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              justifyContent: 'center',
+              gap: '0.4rem',
+              flex: 1,
+              minHeight: '56px',
+              whiteSpace: 'nowrap'
             }}
           >
             <i className="fa-solid fa-layer-group"></i>
-            <span>Khóa Học Combo ({selectedCourseIds.length})</span>
+            <span>Khóa Học ({selectedCourseIds.length})</span>
           </button>
 
           <button
@@ -367,11 +376,15 @@ export const EditClassModal = ({
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem'
+              justifyContent: 'center',
+              gap: '0.4rem',
+              flex: 1,
+              minHeight: '56px',
+              whiteSpace: 'nowrap'
             }}
           >
             <i className="fa-solid fa-user-group"></i>
-            <span>Danh Sách Học Viên ({students.length})</span>
+            <span>Học Viên ({students.length})</span>
           </button>
         </div>
 

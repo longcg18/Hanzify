@@ -85,18 +85,37 @@ export const HomeView = ({
     : courses.filter((c) => studentEnrolledCourseIds?.has(c.id));
 
   // Active course and next unlocked lesson for this user
-  const currentCourse = studentCourses?.[0] || (isTeacherOrAdmin ? courses?.[0] : null);
-  const currentClass = visibleClassrooms.find((cls) =>
-    (cls.courseIds || cls.course_ids || []).includes(currentCourse?.id)
-  );
+  const teacherProgressClass = user?.role === 'teacher' ? visibleClassrooms[0] : null;
+  const teacherProgressCourseIds = teacherProgressClass?.courseIds || teacherProgressClass?.course_ids || [];
+  const currentCourse = user?.role === 'teacher'
+    ? (courses.find((course) => teacherProgressCourseIds.includes(course.id)) || courses?.[0])
+    : (studentCourses?.[0] || (isTeacherOrAdmin ? courses?.[0] : null));
+  const currentClass = user?.role === 'teacher'
+    ? teacherProgressClass
+    : visibleClassrooms.find((cls) =>
+      (cls.courseIds || cls.course_ids || []).includes(currentCourse?.id)
+    );
   const unlockedLessonIds = currentClass?.unlockedLessons || [];
   const nextLesson = isTeacherOrAdmin
     ? (currentCourse?.lessons?.find((l) => l.status === 'active') || currentCourse?.lessons?.[0])
     : (currentCourse?.lessons?.find((l) => unlockedLessonIds.includes(l.id)) || currentCourse?.lessons?.[0]);
 
   // Submissions stats
-  const pendingSubmissions = submissions.filter((s) => s.status === 'pending');
+  const pendingSubmissions = submissions.filter(
+    (s) => s.status === 'pending' && s.submissionState !== 'redo_requested'
+  );
   const pendingCount = pendingSubmissions.length;
+  const classCourses = user?.role === 'teacher'
+    ? courses.filter((course) => teacherProgressCourseIds.includes(course.id))
+    : [];
+  const classLessonIds = new Set(classCourses.flatMap((course) => (course.lessons || []).map((lesson) => lesson.id)));
+  const classTotalLessons = classLessonIds.size;
+  const classLearnedLessons = user?.role === 'teacher'
+    ? new Set((teacherProgressClass?.unlockedLessons || []).filter((lessonId) => classLessonIds.has(lessonId))).size
+    : 0;
+  const classProgressPercent = classTotalLessons > 0
+    ? Math.min(100, Math.round((classLearnedLessons / classTotalLessons) * 100))
+    : 0;
   const totalLessons = (courses || []).reduce((acc, c) => acc + (c.lessons?.length || 0), 0);
   const totalEnrolledStudents = (visibleClassrooms || []).reduce((acc, c) => acc + (c.students?.length || 0), 0);
 
@@ -1284,10 +1303,12 @@ export const HomeView = ({
           <div>
             <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
               <i className="fa-solid fa-book-open-reader" style={{ color: '#A11D24', marginRight: '0.5rem' }}></i>
-              Tiến Độ Khóa Học Của Bạn
+              {user?.role === 'teacher' ? 'Tiến Độ Lớp Học' : 'Tiến Độ Khóa Học Của Bạn'}
             </h2>
             <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748b' }}>
-              Tiếp tục bài tập đang làm dở để không bị ngắt quãng dòng học tập.
+              {user?.role === 'teacher'
+                ? `${teacherProgressClass?.name || 'Lớp học'}: ${classLearnedLessons}/${classTotalLessons} bài đã học.`
+                : 'Tiếp tục bài tập đang làm dở để không bị ngắt quãng dòng học tập.'}
             </p>
           </div>
 
@@ -1359,9 +1380,13 @@ export const HomeView = ({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block' }}>Tiến độ khóa</span>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'block' }}>
+                  {user?.role === 'teacher' ? `Đã học ${classLearnedLessons}/${classTotalLessons} bài` : 'Tiến độ khóa'}
+                </span>
                 <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#A11D24' }}>
-                  {Math.min(100, Math.round(((currentCourse.completedLessons || 0) / (currentCourse.lessons?.length || currentCourse.totalLessons || 1)) * 100))}%
+                  {user?.role === 'teacher'
+                    ? classProgressPercent
+                    : Math.min(100, Math.round(((currentCourse.completedLessons || 0) / (currentCourse.lessons?.length || currentCourse.totalLessons || 1)) * 100))}%
                 </span>
               </div>
 

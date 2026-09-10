@@ -1140,7 +1140,11 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           boxShadow: '0 6px 15px rgba(161, 29, 36, 0.25)',
                           border: '2px solid #fff'
                         }}>
-                          <span style={{ fontSize: '2rem', color: '#fff', opacity: 0.85, fontFamily: 'Noto Serif SC, serif' }}>刘</span>
+                          <i
+                            className="fa-solid fa-puzzle-piece"
+                            aria-hidden="true"
+                            style={{ fontSize: '1.75rem', color: '#fff', opacity: 0.85 }}
+                          ></i>
                         </div>
 
                         {/* Card Front */}
