@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { createForumComment, createForumPost, fetchForumPosts, updateForumPost } from '../services/supabaseService';
+import { createForumComment, createForumPost, fetchForumPosts, updateForumPost, fetchUsers } from '../services/supabaseService';
 
 export const ForumView = () => {
   const { user, setIsAuthModalOpen } = useAuth();
@@ -8,10 +8,19 @@ export const ForumView = () => {
 
   const [posts, setPosts] = useState([]);
   const [loadError, setLoadError] = useState('');
+  const [systemUsers, setSystemUsers] = useState([]);
+  const [mentionState, setMentionState] = useState({ postId: null, query: '', cursorPos: 0, matchStart: -1 });
+  const [mentionSuggestions, setMentionSuggestions] = useState([]);
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
+  const commentInputRefs = useRef({});
+
   useEffect(() => {
     fetchForumPosts().then(({ data, error }) => {
       setPosts(data);
       setLoadError(error || '');
+    });
+    fetchUsers().then(({ data }) => {
+      if (data && data.length > 0) setSystemUsers(data);
     });
   }, []);
 
@@ -86,6 +95,8 @@ export const ForumView = () => {
       }));
 
     setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+    setMentionState({ postId: null, query: '', cursorPos: 0, matchStart: -1 });
+    setMentionSuggestions([]);
   };
 
   // Create New Post handler
@@ -169,6 +180,262 @@ export const ForumView = () => {
     } else {
       setLoadError(result.error);
     }
+  };
+
+  // =========================================================================
+  // MENTION SYSTEM HELPERS (@tag)
+  // =========================================================================
+  const getMentionableUsers = (currentPost) => {
+    const map = new Map();
+
+    // 1. Staff & Teachers
+    map.set('Cô Hoài', {
+      id: 'teacher-hoai',
+      name: 'Cô Hoài',
+      avatar: '怀',
+      role: 'teacher',
+      badge: 'Giáo viên phụ trách 🌸'
+    });
+    map.set('Nguyen Phuc Long', {
+      id: 'admin-long',
+      name: 'Nguyen Phuc Long',
+      avatar: '👑',
+      role: 'admin',
+      badge: 'Quản trị viên'
+    });
+
+    // 2. Post Author
+    if (currentPost?.author?.name) {
+      map.set(currentPost.author.name, {
+        id: currentPost.author.id || currentPost.author.name,
+        name: currentPost.author.name,
+        avatar: currentPost.author.avatar || currentPost.author.name.slice(0, 1),
+        role: currentPost.author.role || 'student',
+        badge: currentPost.author.badge || 'Tác giả bài viết'
+      });
+    }
+
+    // 3. Current thread commenters
+    (currentPost?.comments || []).forEach((c) => {
+      if (c.author?.name && !map.has(c.author.name)) {
+        map.set(c.author.name, {
+          id: c.author.id || c.author.name,
+          name: c.author.name,
+          avatar: c.author.avatar || c.author.name.slice(0, 1),
+          role: c.author.role || 'student',
+          badge: c.author.badge || 'Thành viên'
+        });
+      }
+    });
+
+    // 4. Other authors across forum posts
+    (posts || []).forEach((p) => {
+      if (p.author?.name && !map.has(p.author.name)) {
+        map.set(p.author.name, {
+          id: p.author.id || p.author.name,
+          name: p.author.name,
+          avatar: p.author.avatar || p.author.name.slice(0, 1),
+          role: p.author.role || 'student',
+          badge: p.author.badge || 'Thành viên'
+        });
+      }
+    });
+
+    // 5. System registered users
+    (systemUsers || []).forEach((u) => {
+      const name = u.name || u.full_name || u.username;
+      if (name && !map.has(name)) {
+        map.set(name, {
+          id: u.id || name,
+          name,
+          avatar: u.avatar || name.slice(0, 1),
+          role: u.role || 'student',
+          badge: u.role === 'admin' ? 'Quản trị viên' : u.role === 'teacher' ? 'Giáo viên 🌸' : 'Học viên Hanzify'
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  };
+
+  const handleCommentInputChange = (postId, e, currentPost) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart ?? value.length;
+    setCommentInputs((prev) => ({ ...prev, [postId]: value }));
+
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      const isStartOrSpaced = lastAtIndex === 0 || /\s/.test(textBeforeCursor[lastAtIndex - 1]);
+      if (isStartOrSpaced) {
+        const query = textBeforeCursor.slice(lastAtIndex + 1);
+        if (!query.includes('\n') && query.length <= 25) {
+          const list = getMentionableUsers(currentPost);
+          const filtered = list.filter((u) =>
+            u.name.toLowerCase().includes(query.toLowerCase())
+          );
+          setMentionState({
+            postId,
+            query,
+            cursorPos,
+            matchStart: lastAtIndex
+          });
+          setMentionSuggestions(filtered);
+          setMentionActiveIndex(0);
+          return;
+        }
+      }
+    }
+
+    setMentionState({ postId: null, query: '', cursorPos: 0, matchStart: -1 });
+    setMentionSuggestions([]);
+  };
+
+  const handleSelectMention = (postId, userName) => {
+    const currentText = commentInputs[postId] || '';
+    const { matchStart, cursorPos } = mentionState;
+
+    let newText = '';
+    if (matchStart >= 0) {
+      const before = currentText.slice(0, matchStart);
+      const after = currentText.slice(cursorPos);
+      newText = `${before}@${userName} ${after}`;
+    } else {
+      newText = currentText ? `${currentText} @${userName} ` : `@${userName} `;
+    }
+
+    setCommentInputs((prev) => ({ ...prev, [postId]: newText }));
+    setMentionState({ postId: null, query: '', cursorPos: 0, matchStart: -1 });
+    setMentionSuggestions([]);
+
+    setTimeout(() => {
+      const inputEl = commentInputRefs.current[postId];
+      if (inputEl) {
+        inputEl.focus();
+        const newPos = (matchStart >= 0 ? matchStart : currentText.length) + userName.length + 2;
+        inputEl.setSelectionRange(newPos, newPos);
+      }
+    }, 10);
+  };
+
+  const handleCommentKeyDown = (postId, e) => {
+    if (mentionState.postId === postId && mentionSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionActiveIndex((prev) => (prev + 1) % mentionSuggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionActiveIndex((prev) => (prev - 1 + mentionSuggestions.length) % mentionSuggestions.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        const selected = mentionSuggestions[mentionActiveIndex] || mentionSuggestions[0];
+        if (selected) {
+          handleSelectMention(postId, selected.name);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionState({ postId: null, query: '', cursorPos: 0, matchStart: -1 });
+        setMentionSuggestions([]);
+        return;
+      }
+    }
+  };
+
+  const handleTriggerMention = (postId, currentPost) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    const currentText = commentInputs[postId] || '';
+    const newText = currentText.endsWith(' ') || currentText === '' ? `${currentText}@` : `${currentText} @`;
+    setCommentInputs((prev) => ({ ...prev, [postId]: newText }));
+    const list = getMentionableUsers(currentPost);
+    setMentionState({
+      postId,
+      query: '',
+      cursorPos: newText.length,
+      matchStart: newText.length - 1
+    });
+    setMentionSuggestions(list);
+    setMentionActiveIndex(0);
+    setTimeout(() => {
+      const inputEl = commentInputRefs.current[postId];
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.setSelectionRange(newText.length, newText.length);
+      }
+    }, 10);
+  };
+
+  const handleReplyToComment = (postId, authorName) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    const currentText = commentInputs[postId] || '';
+    const tag = `@${authorName} `;
+    const newText = currentText.includes(tag) ? currentText : `${tag}${currentText}`;
+    setCommentInputs((prev) => ({ ...prev, [postId]: newText }));
+    setTimeout(() => {
+      const inputEl = commentInputRefs.current[postId];
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.setSelectionRange(newText.length, newText.length);
+      }
+    }, 10);
+  };
+
+  const renderContentWithMentions = (content, mentionableUsers = []) => {
+    if (!content) return null;
+
+    const names = mentionableUsers.map((u) => u.name).filter(Boolean);
+    names.sort((a, b) => b.length - a.length);
+
+    const escapeRegex = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const userPatterns = names.map(escapeRegex).join('|');
+
+    const regex = userPatterns
+      ? new RegExp(`(@(?:${userPatterns})|@[A-Za-z0-9_\u00C0-\u1EF9]+(?:\\s+[A-Za-z0-9_\u00C0-\u1EF9]+)?)`, 'gu')
+      : /(@[A-Za-z0-9_\u00C0-\u1EF9]+(?:\\s+[A-Za-z0-9_\u00C0-\u1EF9]+)?)/gu;
+
+    const parts = content.split(regex);
+
+    return parts.map((part, index) => {
+      if (part && part.startsWith('@')) {
+        const name = part.slice(1).trim();
+        const isStaff = name === 'Cô Hoài' || name.toLowerCase().includes('admin') || name === 'Nguyen Phuc Long';
+        return (
+          <span
+            key={index}
+            style={{
+              color: isStaff ? '#991b1b' : '#0369a1',
+              background: isStaff ? '#fee2e2' : '#e0f2fe',
+              padding: '1px 7px',
+              borderRadius: '6px',
+              fontWeight: 700,
+              fontSize: '0.84rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '2px',
+              margin: '0 2px',
+              border: isStaff ? '1px solid #fecdd3' : '1px solid #bae6fd'
+            }}
+            title={`Người dùng được nhắc: ${name}`}
+          >
+            <span style={{ opacity: 0.75, marginRight: '1px' }}>@</span>
+            {name}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   // Filter posts
@@ -773,10 +1040,30 @@ export const ForumView = () => {
                                     <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                                       {comment.createdAt}
                                     </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleReplyToComment(post.id, comment.author.name)}
+                                      title={`Trả lời ${comment.author.name}`}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#be123c',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        padding: '0 4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                      }}
+                                    >
+                                      <i className="fa-solid fa-reply" style={{ fontSize: '0.65rem' }}></i>
+                                      <span>Trả lời</span>
+                                    </button>
                                   </div>
                                 </div>
                                 <p style={{ margin: 0, fontSize: '0.88rem', color: '#334155', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
-                                  {comment.content}
+                                  {renderContentWithMentions(comment.content, getMentionableUsers(post))}
                                 </p>
                               </div>
                             ))
@@ -787,43 +1074,188 @@ export const ForumView = () => {
                           )}
                         </div>
 
-                        {/* Comment Input Box */}
-                        <form onSubmit={(e) => handleAddComment(post.id, e)} style={{ display: 'flex', gap: '8px' }}>
-                          <input
-                            type="text"
-                            placeholder={user ? "Viết câu trả lời hoặc góp ý của bạn..." : "Đăng nhập để tham gia thảo luận..."}
-                            value={commentText}
-                            onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
-                            style={{
+                        {/* Comment Input Box with @mention dropdown */}
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          {/* Mention Suggestion Popover */}
+                          {mentionState.postId === post.id && mentionSuggestions.length > 0 && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: 'calc(100% + 6px)',
+                                left: 0,
+                                background: '#ffffff',
+                                border: '1.5px solid #fecdd3',
+                                borderRadius: '16px',
+                                boxShadow: '0 12px 30px -4px rgba(159, 18, 57, 0.18)',
+                                maxHeight: '220px',
+                                width: '320px',
+                                maxWidth: '92vw',
+                                overflowY: 'auto',
+                                zIndex: 100,
+                                padding: '6px'
+                              }}
+                            >
+                              <div style={{
+                                padding: '4px 8px 6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                color: '#9f1239',
+                                borderBottom: '1px solid #ffe4e6',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                              }}>
+                                <span>
+                                  <i className="fa-solid fa-at" style={{ marginRight: '4px' }}></i>
+                                  NHẮC TÊN THÀNH VIÊN
+                                </span>
+                                <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>
+                                  Dùng ↑↓ Enter
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                                {mentionSuggestions.map((u, idx) => {
+                                  const isSelected = idx === mentionActiveIndex;
+                                  const isTeacher = u.role === 'teacher';
+                                  const isAdmin = u.role === 'admin';
+                                  return (
+                                    <div
+                                      key={u.id || u.name}
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleSelectMention(post.id, u.name);
+                                      }}
+                                      onMouseEnter={() => setMentionActiveIndex(idx)}
+                                      style={{
+                                        padding: '6px 8px',
+                                        borderRadius: '10px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        cursor: 'pointer',
+                                        background: isSelected ? '#fff1f2' : 'transparent',
+                                        transition: 'background 0.1s'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{
+                                          width: '28px',
+                                          height: '28px',
+                                          borderRadius: '50%',
+                                          background: isTeacher
+                                            ? 'linear-gradient(135deg, #be123c, #991b1b)'
+                                            : isAdmin
+                                            ? '#0f172a'
+                                            : '#e0f2fe',
+                                          color: isTeacher || isAdmin ? '#ffffff' : '#0369a1',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: '0.85rem',
+                                          fontWeight: 700
+                                        }}>
+                                          {u.avatar || u.name.slice(0, 1)}
+                                        </div>
+                                        <div>
+                                          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                                            {u.name}
+                                          </div>
+                                          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                                            {u.badge}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {isTeacher && (
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#be123c', background: '#ffe4e6', padding: '1px 5px', borderRadius: '4px' }}>
+                                          Giáo Viên
+                                        </span>
+                                      )}
+                                      {isAdmin && (
+                                        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f8fafc', background: '#0f172a', padding: '1px 5px', borderRadius: '4px' }}>
+                                          Admin
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <form onSubmit={(e) => handleAddComment(post.id, e)} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <div style={{
                               flex: 1,
-                              padding: '0.65rem 0.95rem',
-                              borderRadius: '10px',
-                              border: '1.5px solid #cbd5e1',
-                              fontSize: '0.88rem',
-                              outline: 'none'
-                            }}
-                          />
-                          <button
-                            type="submit"
-                            style={{
-                              padding: '0.65rem 1.25rem',
-                              borderRadius: '10px',
-                              background: '#A11D24',
-                              color: '#ffffff',
-                              border: 'none',
-                              fontWeight: 700,
-                              fontSize: '0.85rem',
-                              cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '0.4rem',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            <i className="fa-solid fa-paper-plane"></i>
-                            <span>Gửi</span>
-                          </button>
-                        </form>
+                              background: '#ffffff',
+                              borderRadius: '12px',
+                              border: '1.5px solid #cbd5e1',
+                              padding: '0 8px',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                            }}>
+                              <input
+                                ref={(el) => (commentInputRefs.current[post.id] = el)}
+                                type="text"
+                                placeholder={user ? "Viết câu trả lời... (Gõ @ để nhắc tên bạn bè)" : "Đăng nhập để tham gia thảo luận..."}
+                                value={commentText}
+                                onChange={(e) => handleCommentInputChange(post.id, e, post)}
+                                onKeyDown={(e) => handleCommentKeyDown(post.id, e)}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.65rem 0.5rem',
+                                  border: 'none',
+                                  fontSize: '0.88rem',
+                                  outline: 'none',
+                                  background: 'transparent'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                title="Tag @nhắc tên người dùng"
+                                onClick={() => handleTriggerMention(post.id, post)}
+                                style={{
+                                  background: '#fee2e2',
+                                  border: 'none',
+                                  color: '#991b1b',
+                                  fontWeight: 800,
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer',
+                                  padding: '4px 8px',
+                                  borderRadius: '8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                <i className="fa-solid fa-at" style={{ fontSize: '0.75rem' }}></i>
+                                <span>Tag</span>
+                              </button>
+                            </div>
+
+                            <button
+                              type="submit"
+                              style={{
+                                padding: '0.65rem 1.25rem',
+                                borderRadius: '12px',
+                                background: '#A11D24',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 8px rgba(161, 29, 36, 0.2)'
+                              }}
+                            >
+                              <i className="fa-solid fa-paper-plane"></i>
+                              <span>Gửi</span>
+                            </button>
+                          </form>
+                        </div>
                       </div>
                     )}
                   </article>
