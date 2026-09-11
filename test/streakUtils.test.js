@@ -2,10 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   calculateCheckIn,
+  generateCurrentWeekDays,
+  getCurrentWeekDateKeys,
   getDateKey,
   getEffectiveStreak,
   getPreviousDateKey
 } from '../src/utils/streakUtils.js';
+
+test('builds the Monday-to-Sunday date keys across month boundaries', () => {
+  assert.deepEqual(getCurrentWeekDateKeys('2026-09-02'), [
+    '2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03',
+    '2026-09-04', '2026-09-05', '2026-09-06'
+  ]);
+});
+
+test('renders the weekly calendar from persisted check-in dates', () => {
+  const days = generateCurrentWeekDays(1, true, ['2026-09-07', '2026-09-09'], '2026-09-09');
+  assert.deepEqual(days.map(({ date, completed }) => ({ date, completed })), [
+    { date: '2026-09-07', completed: true },
+    { date: '2026-09-08', completed: false },
+    { date: '2026-09-09', completed: true },
+    { date: '2026-09-10', completed: false },
+    { date: '2026-09-11', completed: false },
+    { date: '2026-09-12', completed: false },
+    { date: '2026-09-13', completed: false }
+  ]);
+});
 
 test('uses Vietnam calendar day instead of UTC day', () => {
   const instant = new Date('2026-09-09T18:30:00.000Z');

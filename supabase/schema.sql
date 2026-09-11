@@ -84,6 +84,21 @@ CREATE TABLE IF NOT EXISTS public.submissions (
   answers_json JSONB DEFAULT '{}'::jsonb
 );
 
+CREATE TABLE IF NOT EXISTS public.exam_attempts (
+  id TEXT PRIMARY KEY,
+  exam_id TEXT,
+  student_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  exam_title TEXT NOT NULL,
+  level TEXT,
+  total_score INTEGER NOT NULL,
+  max_score INTEGER NOT NULL,
+  duration_seconds INTEGER NOT NULL DEFAULT 0,
+  completed_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS exam_attempts_student_completed_idx
+  ON public.exam_attempts(student_id, completed_at DESC);
+
 -- 6. BẢNG TỪ VỰNG GAME LẬT THẺ GHÉP ĐÔI (GAME_MATCH_PAIRS)
 CREATE TABLE IF NOT EXISTS public.game_match_pairs (
   id TEXT PRIMARY KEY,
@@ -179,6 +194,7 @@ ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lessons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homework_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exam_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.game_match_pairs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.game_tone_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.game_leaderboard ENABLE ROW LEVEL SECURITY;
@@ -218,6 +234,16 @@ CREATE POLICY "Public Read Submissions" ON public.submissions FOR SELECT USING (
 CREATE POLICY "Students create submissions" ON public.submissions FOR INSERT TO authenticated WITH CHECK (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Owners and staff read submissions" ON public.submissions FOR SELECT TO authenticated USING (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());
 CREATE POLICY "Staff grade submissions" ON public.submissions FOR UPDATE TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
+
+DROP POLICY IF EXISTS "Students create own exam attempts" ON public.exam_attempts;
+DROP POLICY IF EXISTS "Students read own exam attempts" ON public.exam_attempts;
+DROP POLICY IF EXISTS "Staff read exam attempts" ON public.exam_attempts;
+CREATE POLICY "Students create own exam attempts" ON public.exam_attempts FOR INSERT TO authenticated
+  WITH CHECK (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Students read own exam attempts" ON public.exam_attempts FOR SELECT TO authenticated
+  USING (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Staff read exam attempts" ON public.exam_attempts FOR SELECT TO authenticated
+  USING (public.is_hanzify_staff());
 
 DROP POLICY IF EXISTS "Public Read Match Pairs" ON public.game_match_pairs;
 DROP POLICY IF EXISTS "Public Manage Match Pairs" ON public.game_match_pairs;
@@ -413,6 +439,23 @@ CREATE TABLE IF NOT EXISTS public.user_streaks (
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.streak_check_ins (
+  user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  check_in_date DATE NOT NULL,
+  xp_awarded INTEGER NOT NULL DEFAULT 50,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  PRIMARY KEY (user_id, check_in_date)
+);
+
+CREATE INDEX IF NOT EXISTS streak_check_ins_user_date_idx
+  ON public.streak_check_ins(user_id, check_in_date DESC);
+
+INSERT INTO public.streak_check_ins (user_id, check_in_date, xp_awarded)
+SELECT user_id, last_check_in, 50
+FROM public.user_streaks
+WHERE last_check_in IS NOT NULL
+ON CONFLICT (user_id, check_in_date) DO NOTHING;
+
 ALTER TABLE public.user_streaks ALTER COLUMN current_streak SET DEFAULT 0;
 ALTER TABLE public.user_streaks ALTER COLUMN longest_streak SET DEFAULT 0;
 ALTER TABLE public.user_streaks ALTER COLUMN last_check_in DROP DEFAULT;
@@ -427,6 +470,7 @@ DECLARE
   v_today DATE := (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Ho_Chi_Minh')::DATE;
   v_row public.user_streaks;
   v_user_id TEXT;
+  v_inserted INTEGER := 0;
 BEGIN
   SELECT id INTO v_user_id FROM public.users WHERE auth_user_id = auth.uid() AND status = 'active';
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501'; END IF;
@@ -436,26 +480,29 @@ BEGIN
 
   SELECT * INTO v_row FROM public.user_streaks WHERE user_id = v_user_id FOR UPDATE;
 
-  IF v_row.last_check_in = v_today THEN
-    RETURN v_row;
+  INSERT INTO public.streak_check_ins (user_id, check_in_date, xp_awarded)
+  VALUES (v_user_id, v_today, 50)
+  ON CONFLICT (user_id, check_in_date) DO NOTHING;
+  GET DIAGNOSTICS v_inserted = ROW_COUNT;
+
+  IF v_inserted > 0 THEN
+    v_row.current_streak := CASE
+      WHEN v_row.last_check_in = v_today - 1 THEN v_row.current_streak + 1
+      ELSE 1
+    END;
+    v_row.longest_streak := GREATEST(v_row.longest_streak, v_row.current_streak);
+    v_row.last_check_in := v_today;
+    v_row.total_xp := v_row.total_xp + 50;
+
+    UPDATE public.user_streaks SET
+      current_streak = v_row.current_streak,
+      longest_streak = v_row.longest_streak,
+      last_check_in = v_row.last_check_in,
+      total_xp = v_row.total_xp,
+      updated_at = timezone('utc'::text, now())
+    WHERE user_id = v_user_id
+    RETURNING * INTO v_row;
   END IF;
-
-  v_row.current_streak := CASE
-    WHEN v_row.last_check_in = v_today - 1 THEN v_row.current_streak + 1
-    ELSE 1
-  END;
-  v_row.longest_streak := GREATEST(v_row.longest_streak, v_row.current_streak);
-  v_row.last_check_in := v_today;
-  v_row.total_xp := v_row.total_xp + 50;
-
-  UPDATE public.user_streaks SET
-    current_streak = v_row.current_streak,
-    longest_streak = v_row.longest_streak,
-    last_check_in = v_row.last_check_in,
-    total_xp = v_row.total_xp,
-    updated_at = timezone('utc'::text, now())
-  WHERE user_id = v_user_id
-  RETURNING * INTO v_row;
 
   RETURN v_row;
 END;
@@ -497,6 +544,7 @@ CREATE TABLE IF NOT EXISTS public.forum_comments (
 
 -- Bật RLS
 ALTER TABLE public.user_streaks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.streak_check_ins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_comments ENABLE ROW LEVEL SECURITY;
 
@@ -504,6 +552,13 @@ CREATE POLICY "Cho phép đọc dữ liệu Gamification" ON public.user_streaks
 CREATE POLICY "Học viên quản lý streak cá nhân" ON public.user_streaks FOR ALL TO authenticated
 USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()))
 WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+DROP POLICY IF EXISTS "Học viên xem lịch sử streak cá nhân" ON public.streak_check_ins;
+DROP POLICY IF EXISTS "Nhân viên xem lịch sử streak" ON public.streak_check_ins;
+CREATE POLICY "Học viên xem lịch sử streak cá nhân" ON public.streak_check_ins FOR SELECT TO authenticated
+USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Nhân viên xem lịch sử streak" ON public.streak_check_ins FOR SELECT TO authenticated
+USING (public.is_hanzify_staff());
+GRANT SELECT ON public.streak_check_ins TO authenticated;
 CREATE POLICY "Cho phép đọc bài viết diễn đàn" ON public.forum_posts FOR SELECT USING (true);
 CREATE POLICY "Thành viên ghi bài viết diễn đàn" ON public.forum_posts FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Chủ bài hoặc staff cập nhật diễn đàn" ON public.forum_posts FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());

@@ -98,13 +98,20 @@ export const HomeView = ({
   const unlockedLessonIds = currentClass?.unlockedLessons || [];
   const nextLesson = isTeacherOrAdmin
     ? (currentCourse?.lessons?.find((l) => l.status === 'active') || currentCourse?.lessons?.[0])
-    : (currentCourse?.lessons?.find((l) => unlockedLessonIds.includes(l.id)) || currentCourse?.lessons?.[0]);
+    : currentCourse?.lessons?.find((l) => unlockedLessonIds.includes(l.id));
 
   // Submissions stats
   const pendingSubmissions = submissions.filter(
     (s) => s.status === 'pending' && s.submissionState !== 'redo_requested'
   );
   const pendingCount = pendingSubmissions.length;
+  const completedLessonIds = new Set(
+    submissions
+      .filter((submission) => ['submitted', 'graded'].includes(submission.submissionState) || submission.status === 'graded')
+      .map((submission) => String(submission.lessonId))
+  );
+  const currentCourseCompletedCount = (currentCourse?.lessons || [])
+    .filter((lesson) => completedLessonIds.has(String(lesson.id))).length;
   const classCourses = user?.role === 'teacher'
     ? courses.filter((course) => teacherProgressCourseIds.includes(course.id))
     : [];
@@ -254,7 +261,7 @@ export const HomeView = ({
                 <i className="fa-solid fa-plus-circle"></i>
                 <span>Mở Lớp Học Mới</span>
               </button>
-            ) : (
+            ) : !user ? (
               <button
                 type="button"
                 onClick={onOpenJoinClass}
@@ -277,7 +284,7 @@ export const HomeView = ({
                 <i className="fa-solid fa-ticket"></i>
                 <span>Tham Gia Lớp Bằng Mã</span>
               </button>
-            )}
+            ) : null}
 
             {/* Vào phòng thi chỉ hiển thị cho học sinh và khách, ẩn đối với giáo viên và admin */}
             {!['teacher', 'admin'].includes(user?.role) && (
@@ -431,7 +438,7 @@ export const HomeView = ({
                 <i className="fa-solid fa-plus"></i>
                 <span>Tạo Lớp Mới</span>
               </button>
-            ) : (
+            ) : user?.role === 'student' ? null : (
               <button
                 type="button"
                 onClick={onOpenJoinClass}
@@ -469,9 +476,9 @@ export const HomeView = ({
             <p style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 600 }}>
               {isTeacherOrAdmin ? 'Hiện tại chưa có lớp học nào được tạo trong hệ thống.' : 'Bạn chưa được ghi danh vào lớp học nào.'}
             </p>
-            <button
+            {isTeacherOrAdmin && <button
               type="button"
-              onClick={isTeacherOrAdmin ? onOpenCreateClass : onOpenJoinClass}
+              onClick={onOpenCreateClass}
               style={{
                 padding: '0.55rem 1.15rem',
                 borderRadius: '10px',
@@ -483,8 +490,8 @@ export const HomeView = ({
                 cursor: 'pointer'
               }}
             >
-              {isTeacherOrAdmin ? 'Tạo Lớp Học Đầu Tiên' : 'Nhập Mã Tham Gia Lớp'}
-            </button>
+              Tạo Lớp Học Đầu Tiên
+            </button>}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
@@ -1386,7 +1393,7 @@ export const HomeView = ({
                 <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#A11D24' }}>
                   {user?.role === 'teacher'
                     ? classProgressPercent
-                    : Math.min(100, Math.round(((currentCourse.completedLessons || 0) / (currentCourse.lessons?.length || currentCourse.totalLessons || 1)) * 100))}%
+                    : Math.min(100, Math.round((currentCourseCompletedCount / (currentCourse.lessons?.length || currentCourse.totalLessons || 1)) * 100))}%
                 </span>
               </div>
 

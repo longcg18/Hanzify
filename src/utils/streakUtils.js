@@ -48,7 +48,18 @@ export function calculateCheckIn(current = {}, today = getDateKey()) {
   };
 }
 
-export function generateCurrentWeekDays(currentStreak = 0, checkedInToday = false) {
+export function getCurrentWeekDateKeys(today = getDateKey()) {
+  const [year, month, day] = today.split('-').map(Number);
+  const current = new Date(Date.UTC(year, month - 1, day));
+  const mondayOffset = (current.getUTCDay() + 6) % 7;
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(current);
+    date.setUTCDate(current.getUTCDate() - mondayOffset + index);
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+export function generateCurrentWeekDays(currentStreak = 0, checkedInToday = false, checkInDates = null, today = getDateKey()) {
   const dayNames = [
     { day: 'T2', name: 'Thứ 2' },
     { day: 'T3', name: 'Thứ 3' },
@@ -59,20 +70,24 @@ export function generateCurrentWeekDays(currentStreak = 0, checkedInToday = fals
     { day: 'CN', name: 'Chủ Nhật' }
   ];
 
-  const now = new Date();
-  const currentDow = now.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  const todayIndex = (currentDow + 6) % 7; // 0 for Mon, 6 for Sun
+  const weekDateKeys = getCurrentWeekDateKeys(today);
+  const todayIndex = weekDateKeys.indexOf(today);
+  const savedDates = Array.isArray(checkInDates) ? new Set(checkInDates) : null;
 
   return dayNames.map((item, idx) => {
+    const date = weekDateKeys[idx];
     const daysAgo = todayIndex - idx;
     let completed = false;
-    if (daysAgo === 0) {
+    if (savedDates) {
+      completed = savedDates.has(date);
+    } else if (daysAgo === 0) {
       completed = Boolean(checkedInToday);
     } else if (daysAgo > 0) {
       completed = currentStreak > daysAgo;
     }
     return {
       ...item,
+      date,
       completed
     };
   });

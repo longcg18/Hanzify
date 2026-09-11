@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { countExamTotalQuestions } from '../data/examsData';
 import { ExamExcelBatchModal } from '../components/ExamExcelBatchModal';
+import { fetchExamAttempts } from '../services/supabaseService';
 
 export const ExamView = ({ 
   exams = [],
@@ -13,6 +14,21 @@ export const ExamView = ({
 }) => {
   const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+  const [examHistory, setExamHistory] = useState([]);
+
+  useEffect(() => {
+    if (!user?.id || user.role !== 'student') {
+      setExamHistory([]);
+      return;
+    }
+    fetchExamAttempts(user.id).then(setExamHistory);
+  }, [user?.id, user?.role]);
+
+  const formatAttemptDuration = (seconds = 0) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes} phút ${remainingSeconds.toString().padStart(2, '0')} giây`;
+  };
 
   // Modal State for Excel Batch Editor
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
@@ -511,6 +527,35 @@ export const ExamView = ({
           </div>
         )}
       </div>
+
+      {user?.role === 'student' && (
+        <section style={{ marginBottom: '1.75rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: examHistory.length ? '1rem' : 0 }}>
+            <div>
+              <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.05rem' }}>
+                <i className="fa-solid fa-clock-rotate-left" style={{ color: '#A11D24', marginRight: '0.5rem' }}></i>
+                Lịch sử thi của bạn
+              </h2>
+              {!examHistory.length && <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>Bạn chưa hoàn thành đề thi nào.</p>}
+            </div>
+            {!!examHistory.length && <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{examHistory.length} lượt thi gần nhất</span>}
+          </div>
+          {!!examHistory.length && (
+            <div style={{ display: 'grid', gap: '0.65rem' }}>
+              {examHistory.map((attempt) => (
+                <div key={attempt.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) auto auto', alignItems: 'center', gap: '1rem', padding: '0.75rem 0.9rem', background: '#f8fafc', borderRadius: '11px' }}>
+                  <div>
+                    <strong style={{ display: 'block', color: '#1e293b', fontSize: '0.9rem' }}>{attempt.examTitle}</strong>
+                    <span style={{ color: '#64748b', fontSize: '0.75rem' }}>{new Date(attempt.completedAt).toLocaleString('vi-VN')} · {attempt.level}</span>
+                  </div>
+                  <span style={{ color: '#475569', fontSize: '0.82rem' }}><i className="fa-regular fa-clock"></i> {formatAttemptDuration(attempt.durationSeconds)}</span>
+                  <strong style={{ color: '#A11D24', fontSize: '0.95rem' }}>{attempt.totalScore}/{attempt.maxScore} điểm</strong>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Exam Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>

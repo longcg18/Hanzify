@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { generateCurrentWeekDays, formatStreakMilestones, getDateKey, getEffectiveStreak } from '../utils/streakUtils';
+import { generateCurrentWeekDays, formatStreakMilestones, getCurrentWeekDateKeys, getDateKey, getEffectiveStreak } from '../utils/streakUtils';
 import { HSK_VOCABULARY_LIST } from '../data/hskVocabularyData';
 
 // ==========================================
@@ -1412,6 +1412,76 @@ export async function fetchSubmissions() {
   };
 }
 
+export async function saveExamAttempt(attempt) {
+  if (!attempt?.studentId) return { success: false };
+  const storageKey = `hanzify_exam_history_${attempt.studentId}`;
+  const localAttempt = {
+    id: attempt.id || `${attempt.examId || 'exam'}-${Date.now()}`,
+    examId: attempt.examId,
+    examTitle: attempt.examTitle,
+    level: attempt.level || '',
+    totalScore: attempt.totalScore,
+    maxScore: attempt.maxScore,
+    durationSeconds: attempt.durationSeconds || 0,
+    completedAt: attempt.completedAt || new Date().toISOString()
+  };
+
+  try {
+    const previous = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    localStorage.setItem(storageKey, JSON.stringify([localAttempt, ...previous.filter((item) => item.id !== localAttempt.id)].slice(0, 50)));
+  } catch (error) {
+    console.warn('Không thể lưu lịch sử thi trên thiết bị:', error);
+  }
+
+  try {
+    const { error } = await supabase.from('exam_attempts').insert({
+      id: localAttempt.id,
+      exam_id: localAttempt.examId,
+      student_id: attempt.studentId,
+      exam_title: localAttempt.examTitle,
+      level: localAttempt.level,
+      total_score: localAttempt.totalScore,
+      max_score: localAttempt.maxScore,
+      duration_seconds: localAttempt.durationSeconds,
+      completed_at: localAttempt.completedAt
+    });
+    return { success: !error, localOnly: Boolean(error) };
+  } catch {
+    return { success: true, localOnly: true };
+  }
+}
+
+export async function fetchExamAttempts(studentId) {
+  if (!studentId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('exam_attempts')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('completed_at', { ascending: false })
+      .limit(50);
+    if (!error && data) {
+      return data.map((attempt) => ({
+        id: attempt.id,
+        examId: attempt.exam_id,
+        examTitle: attempt.exam_title,
+        level: attempt.level,
+        totalScore: attempt.total_score,
+        maxScore: attempt.max_score,
+        durationSeconds: attempt.duration_seconds,
+        completedAt: attempt.completed_at
+      }));
+    }
+  } catch {
+    // Fall through to the device history while the database is unavailable.
+  }
+  try {
+    return JSON.parse(localStorage.getItem(`hanzify_exam_history_${studentId}`) || '[]');
+  } catch {
+    return [];
+  }
+}
+
 export async function gradeSubmission(submissionId, totalScore, teacherComment, questionScores = {}) {
   try {
     const { data: existing } = await supabase
@@ -1590,13 +1660,20 @@ export async function fetchUserStreak(userId) {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('user_streaks')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const weekKeys = getCurrentWeekDateKeys(today);
+    const [{ data, error }, { data: history, error: historyError }] = await Promise.all([
+      supabase.from('user_streaks').select('*').eq('user_id', userId).maybeSingle(),
+      supabase
+        .from('streak_check_ins')
+        .select('check_in_date')
+        .eq('user_id', userId)
+        .gte('check_in_date', weekKeys[0])
+        .lte('check_in_date', weekKeys[6])
+        .order('check_in_date', { ascending: true })
+    ]);
 
     if (!error && data) {
+      const checkInDates = historyError ? null : (history || []).map((item) => item.check_in_date);
       const checkedInToday = data.last_check_in === today;
       const currentStreak = getEffectiveStreak(data.current_streak, data.last_check_in, today);
       const longestStreak = data.longest_streak || currentStreak;
@@ -1607,7 +1684,8 @@ export async function fetchUserStreak(userId) {
         totalXp,
         checkedInToday,
         lastCheckIn: data.last_check_in,
-        weekDays: generateCurrentWeekDays(currentStreak, checkedInToday),
+        checkInDates: checkInDates || [],
+        weekDays: generateCurrentWeekDays(currentStreak, checkedInToday, checkInDates),
         milestones: formatStreakMilestones(currentStreak)
       };
       saveLocalStreak(userId, streakResult);
@@ -1639,30 +1717,15 @@ export async function checkInUser(userId) {
   if (!userId) return { success: false, error: 'Vui lòng đăng nhập để điểm danh.' };
   const currentRes = await fetchUserStreak(userId);
   const current = currentRes.data || { currentStreak: 0, longestStreak: 0, totalXp: 0 };
-  const today = getDateKey();
-
   if (current.checkedInToday) {
     return { success: true, data: current };
   }
 
   try {
-    const { data, error } = await supabase.rpc('check_in_user');
+    const { error } = await supabase.rpc('check_in_user');
     if (error) throw error;
-    const row = Array.isArray(data) ? data[0] : data;
-    const persisted = {
-      currentStreak: Number(row.current_streak) || 0,
-      longestStreak: Number(row.longest_streak) || 0,
-      totalXp: Number(row.total_xp) || 0,
-      checkedInToday: row.last_check_in === today,
-      lastCheckIn: row.last_check_in
-    };
-    const updatedData = {
-      ...persisted,
-      weekDays: generateCurrentWeekDays(persisted.currentStreak, persisted.checkedInToday),
-      milestones: formatStreakMilestones(persisted.currentStreak)
-    };
-    saveLocalStreak(userId, updatedData);
-    return { success: true, data: updatedData };
+    const refreshed = await fetchUserStreak(userId);
+    return { success: true, data: refreshed.data };
   } catch (e) {
     console.error('Supabase check-in error:', e);
     return { success: false, error: 'Không thể ghi nhận điểm danh. Vui lòng kiểm tra kết nối và thử lại.' };

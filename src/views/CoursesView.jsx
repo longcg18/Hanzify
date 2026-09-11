@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { isCourseAssignedToStudent } from '../utils/classEnrollment';
+import { fetchStudentSubmissions } from '../services/supabaseService';
 
 const GRADIENT_PRESETS = [
   { label: 'Đỏ Imperial', value: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', color: '#b91c1c' },
@@ -25,6 +26,21 @@ export const CoursesView = ({
 }) => {
   const { user } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
+  const [submittedLessonIds, setSubmittedLessonIds] = useState(new Set());
+
+  useEffect(() => {
+    if (user?.role !== 'student' || !user?.id) {
+      setSubmittedLessonIds(new Set());
+      return;
+    }
+    fetchStudentSubmissions(user.id).then(({ data }) => {
+      setSubmittedLessonIds(new Set(
+        (data || [])
+          .filter((submission) => ['submitted', 'graded'].includes(submission.submissionState) || submission.status === 'graded')
+          .map((submission) => String(submission.lessonId))
+      ));
+    });
+  }, [user?.id, user?.role]);
 
   // Modal State for Create / Edit Course
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -352,7 +368,7 @@ export const CoursesView = ({
                 <span>Tạo Khóa Học</span>
               </button>
             </>
-          ) : (
+          ) : !user ? (
             <button
               type="button"
               onClick={onOpenJoinClass}
@@ -374,7 +390,7 @@ export const CoursesView = ({
               <i className="fa-solid fa-ticket"></i>
               <span>Tham Gia Lớp Bằng Mã</span>
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -382,7 +398,9 @@ export const CoursesView = ({
       <div className="courses-grid">
         {courses.map((course) => {
           const totalL = course.lessons?.length || course.totalLessons || 1;
-          const completedL = course.completedLessons || 0;
+          const completedL = user?.role === 'student'
+            ? (course.lessons || []).filter((lesson) => submittedLessonIds.has(String(lesson.id))).length
+            : (course.completedLessons || 0);
           const percent = Math.min(100, Math.round((completedL / totalL) * 100));
           const isEnrolled = isTeacherOrAdmin ? true : isCourseAssignedToStudent(course.id, classrooms, user);
           const courseStudentsCount = (classrooms || [])
@@ -408,7 +426,7 @@ export const CoursesView = ({
                 <div className="cover-tags">
                   <span className="course-level-badge">{course.level}</span>
                   <span className="course-status-badge">
-                    {!user ? course.badge : isEnrolled ? (isTeacherOrAdmin ? course.badge : '✓ Lớp của bạn') : '🔒 Khóa ngoài lớp'}
+                    {!user ? 'Xem trước khóa học' : isEnrolled ? (isTeacherOrAdmin ? course.badge : '✓ Lớp của bạn') : '🔒 Chưa được mở cho bạn'}
                   </span>
                 </div>
                 <div className="cover-chinese-sub">{course.chineseTitle}</div>

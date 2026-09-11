@@ -66,6 +66,16 @@ export const CourseDetailView = ({
 
   if (!course) return null;
 
+  const visibleLessons = isTeacherOrAdmin
+    ? (course.lessons || [])
+    : (course.lessons || []).filter((lesson) => (studentClass?.unlockedLessons || []).includes(lesson.id));
+  const submittedLessonIds = new Set(
+    studentSubmissions
+      .filter((submission) => ['submitted', 'graded'].includes(submission.submissionState) || submission.status === 'graded')
+      .map((submission) => String(submission.lessonId))
+  );
+  const completedLessonsCount = (course.lessons || []).filter((lesson) => submittedLessonIds.has(String(lesson.id))).length;
+
   const handleOpenAddLesson = () => {
     const nextNum = String((course.lessons?.length || 0) + 1).padStart(2, '0');
     setNewLessonNumber(nextNum);
@@ -204,14 +214,14 @@ export const CourseDetailView = ({
                 <span className="lbl">{isTeacherOrAdmin ? 'Bài Đã Thiết Lập' : 'Tổng bài học'}</span>
               </div>
               <div className="hero-stat-item">
-                <span className="val">{isTeacherOrAdmin ? courseEnrolledStudents : (course.completedLessons || 0)}</span>
+                <span className="val">{isTeacherOrAdmin ? courseEnrolledStudents : completedLessonsCount}</span>
                 <span className="lbl">{isTeacherOrAdmin ? 'Học Viên Ghi Danh' : 'Đã hoàn thành'}</span>
               </div>
               <div className="hero-stat-item">
                 <span className="val">
                   {isTeacherOrAdmin 
                     ? (courseEnrolledStudents > 0 ? '100%' : '0%') 
-                    : `${Math.round(((course.completedLessons || 0) / (course.lessons?.length || course.totalLessons || 1)) * 100)}%`}
+                    : `${Math.round((completedLessonsCount / (course.lessons?.length || course.totalLessons || 1)) * 100)}%`}
                 </span>
                 <span className="lbl">{isTeacherOrAdmin ? 'Tỷ Lệ Kích Hoạt' : 'Tiến độ'}</span>
               </div>
@@ -296,7 +306,7 @@ export const CourseDetailView = ({
         <div className="roadmap-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h2 className="roadmap-title">
-              <i className="fa-solid fa-list-check"></i> Lộ Trình & Danh Sách Bài Tập ({course.lessons?.length || 0} Bài)
+              <i className="fa-solid fa-list-check"></i> Lộ Trình & Danh Sách Bài Tập ({visibleLessons.length} Bài)
             </h2>
             <span className="roadmap-sub">
               {isTeacherOrAdmin
@@ -362,7 +372,7 @@ export const CourseDetailView = ({
         )}
 
         <div className="lesson-list">
-          {(course.lessons || []).map((lesson, index) => {
+          {visibleLessons.map((lesson, index) => {
             const isLessonOpenForClass = studentClass
               ? (studentClass.unlockedLessons || []).includes(lesson.id)
               : false;

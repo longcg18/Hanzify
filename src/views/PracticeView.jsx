@@ -9,10 +9,25 @@ import { HSK_LEVELS } from '../data/hskVocabularyData';
 // Sanitize option text to strip any giveaway comments or notes
 const cleanOptionText = (text) => {
   if (typeof text !== 'string') return text;
-  if (text.startsWith('错 (Sai')) return '错 (Sai)';
-  return text
+  if (/^(Đúng|正确)\s*[\(（]/i.test(text)) return '正确';
+  if (/^(Sai|错误|错)\s*[\(（]/i.test(text)) return '错误';
+  const withoutGiveaway = text
+    .replace(/\s*[\(（](đúng|correct|đáp án đúng)[^\)）]*[\)）]/gi, '')
+    .replace(/\s*[✓✔]\s*$/g, '')
     .replace(/\s*[\(（](Sai|Sai trật tự|Sai ngữ pháp|Sai cấu trúc|Nghĩa ngược|Ít tự nhiên)[^\)）]*[\)）]/gi, '')
     .trim();
+  const chineseNote = withoutGiveaway.match(/[\(（]([^\)）]*[\u3400-\u9fff][^\)）]*)[\)）]/);
+  const baseBeforeNote = withoutGiveaway.split(/[\(（]/)[0];
+  if (chineseNote && !/[\u3400-\u9fff]/.test(baseBeforeNote)) {
+    const prefix = withoutGiveaway.match(/^\s*([A-D][.:]\s*)/i)?.[1] || '';
+    return `${prefix}${chineseNote[1]}`.trim();
+  }
+  return withoutGiveaway;
+};
+
+const getPracticePrompt = (question, skill) => {
+  if (skill !== 'reading') return question.prompt;
+  return <>请阅读下面的内容并选择正确答案。<br /><span style={{ fontWeight: 600 }}>{question.prompt}</span></>;
 };
 
 export const PracticeView = () => {
@@ -709,7 +724,7 @@ export const PracticeView = () => {
                         lineHeight: 1.4
                       }}
                     >
-                      {q.prompt}
+                      {getPracticePrompt(q, activeTopic?.skill)}
                     </div>
 
                     {/* Thanh audio nếu câu hỏi có âm thanh */}
@@ -750,8 +765,14 @@ export const PracticeView = () => {
                           <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>
                             {isAudioPlaying ? 'Đang phát âm thanh...' : 'Bấm để nghe phát âm'}
                           </div>
-                          {q.pinyin && <div style={{ fontSize: '0.75rem', color: '#fef08a' }}>{q.pinyin}</div>}
+                          {isAnswered && q.pinyin && <div style={{ fontSize: '0.75rem', color: '#fef08a' }}>{q.pinyin}</div>}
                         </div>
+                      </div>
+                    )}
+
+                    {q.audio && isAnswered && (
+                      <div style={{ margin: '-0.35rem 0 0.85rem', padding: '0.65rem 0.85rem', borderRadius: '9px', background: '#fff7ed', color: '#7c2d12', fontSize: '0.85rem' }}>
+                        <strong>听力原文：</strong> {q.audio}
                       </div>
                     )}
 

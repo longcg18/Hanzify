@@ -1,8 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { flattenExamQuestions } from '../data/examsData';
+import { useAuth } from '../context/AuthContext';
+import { saveExamAttempt } from '../services/supabaseService';
+
+const cleanExamOption = (option) => {
+  if (typeof option !== 'string') return option;
+  if (/^(Đúng|正确)\s*[\(（]/i.test(option)) return '正确（√）';
+  if (/^(Sai|错误|错)\s*[\(（]/i.test(option)) return '错误（×）';
+  const withoutVietnameseNote = option.replace(/\s*[\(（][^\)）\u3400-\u9fff]*[\)）]/g, '').trim();
+  const chineseInNote = option.match(/[\(（]([^\)）]*[\u3400-\u9fff][^\)）]*)[\)）]/);
+  const visibleBase = option.split(/[\(（]/)[0];
+  if (chineseInNote && !/[\u3400-\u9fff]/.test(visibleBase)) {
+    const prefix = option.match(/^\s*([A-D][.:]\s*)/i)?.[1] || '';
+    return `${prefix}${chineseInNote[1]}`.trim();
+  }
+  return withoutVietnameseNote;
+};
+
+const getChineseExamPrompt = (question) => {
+  if (question?.section === 'listening') return '请听录音，选择正确答案。';
+  if (question?.section === 'reading') return '请阅读下面的内容，选择正确答案。';
+  return '请根据题目要求，选择正确答案。';
+};
 
 export const ExamRoomView = ({ exam, onExit }) => {
+  const { user } = useAuth();
   const dynamicQuestions = React.useMemo(() => {
     if (exam?.skills && exam.skills.length > 0) {
       const flattened = flattenExamQuestions(exam);
@@ -95,6 +118,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
   };
 
   const handleSubmitExam = () => {
+    if (isSubmitted) return;
     let listeningCorrect = 0, readingCorrect = 0, writingCorrect = 0;
     let totalListening = 0, totalReading = 0, totalWriting = 0;
 
@@ -140,6 +164,20 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
     setResult(res);
     setIsSubmitted(true);
+
+    if (user?.id) {
+      saveExamAttempt({
+          id: `${exam?.id || 'exam'}-${Date.now()}`,
+          studentId: user.id,
+          examId: exam?.id,
+          examTitle: exam?.title || 'Đề thi HSK',
+          level: exam?.level || '',
+          totalScore,
+          maxScore: res.maxScore,
+          durationSeconds: Math.max(0, (exam?.duration || 35) * 60 - timeLeft),
+          completedAt: new Date().toISOString()
+      });
+    }
 
     if (isPassed) {
       confetti({
@@ -243,7 +281,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
           </div>
 
           {/* Prompt */}
-          <p className="er-qprompt">{currentQ?.prompt}</p>
+          <p className="er-qprompt">{getChineseExamPrompt(currentQ)}</p>
 
           {/* Listening Audio Box */}
           {currentQ?.section === 'listening' && currentQ?.audioText && (
@@ -289,7 +327,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
                   onClick={() => handleSelectAnswer(option)}
                 >
                   <span className="er-option-circle">{String.fromCharCode(65 + idx)}</span>
-                  <span className="er-option-text">{option}</span>
+                  <span className="er-option-text">{cleanExamOption(option)}</span>
                   {isSubmitted && isCorrect && (
                     <i className="fa-solid fa-circle-check" style={{ color: '#22c55e', marginLeft: 'auto' }}></i>
                   )}

@@ -690,7 +690,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 <i className={`fa-solid ${audioPlaying ? 'fa-pause' : 'fa-play'}`}></i>
               </button>
               <div className="hw-audio-track">
-                <div className="hw-audio-title">Đoạn thoại: Hỏi giá mua táo ở chợ (苹果多少钱一斤)</div>
+                <div className="hw-audio-title">Đoạn thoại nghe hiểu — bấm phát để nghe</div>
                 <div className={`hw-audio-wave ${audioPlaying ? 'playing' : ''}`}>
                   {[...Array(10)].map((_, i) => <span key={i} className="wbar"></span>)}
                 </div>
@@ -709,6 +709,12 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 ))}
               </div>
             </div>
+
+            {q1Answer && (
+              <div className="hw-hint" style={{ marginTop: '-0.35rem' }}>
+                <i className="fa-solid fa-file-lines"></i> 听力原文：苹果多少钱一斤？五块钱一斤。
+              </div>
+            )}
 
             <div className="hw-options-grid">
               <label className={`hw-option-card ${q1Answer === 'A' ? 'selected' : ''}`} style={{ cursor: isReadOnly ? 'default' : 'pointer' }}>
@@ -778,7 +784,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
                 <div className="hw-option-indicator">A</div>
                 <div className="hw-option-body">
                   <div className="hw-pinyin-big">yī fu</div>
-                  <div className="hw-option-sub">Thanh 1 + Thanh nhẹ (Chuẩn)</div>
+                  <div className="hw-option-sub">Thanh 1 + Thanh nhẹ</div>
                 </div>
               </label>
 
@@ -864,9 +870,6 @@ export const HomeworkView = ({ lesson, onBack }) => {
 
             <div className="hw-passage-box">
               今天星期六，王明去超市买东西。超市里的水果很多，有苹果、香蕉和西瓜。苹果五块钱一斤，很甜；西瓜两块钱一斤。王明买了三斤苹果和一个西瓜，一共花了二十五块钱。
-              <div className="translation-hint">
-                * Dịch gợi ý: Hôm nay thứ Bảy, Vương Minh đi siêu thị mua đồ. Hoa quả trong siêu thị rất nhiều, có táo, chuối và dưa hấu...
-              </div>
             </div>
 
             {/* Sub-question 1: True/False */}
@@ -892,7 +895,7 @@ export const HomeworkView = ({ lesson, onBack }) => {
                   style={{ cursor: isReadOnly ? 'default' : 'pointer', opacity: isReadOnly && q4Answers.sq1 !== 'F' ? 0.6 : 1 }}
                   onClick={() => !isReadOnly && setQ4Answers({ ...q4Answers, sq1: 'F' })}
                 >
-                  错 (Sai — Có bán dưa hấu)
+                  错 (Sai)
                 </button>
               </div>
             </div>
