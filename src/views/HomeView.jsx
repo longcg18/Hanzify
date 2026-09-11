@@ -3,6 +3,60 @@ import { useAuth } from '../context/AuthContext';
 import { fetchForumPosts, fetchLeaderboard, fetchSubmissions, fetchExams } from '../services/supabaseService';
 import { isStudentInClassroom, getStudentEnrolledCourseIds } from '../utils/classEnrollment';
 
+const getCategoryMeta = (post) => {
+  switch (post.category) {
+    case 'bai-kho': {
+      const isAnswered = post.status === 'answered' || (post.comments || []).some(
+        (c) => c.isTeacherAnswer || c.author?.role === 'teacher' || c.author?.role === 'admin'
+      );
+      return {
+        badgeLabel: '❓ Hỏi bài khó',
+        badgeBg: '#ffe4e6',
+        badgeColor: '#be123c',
+        cardBg: '#fff1f2',
+        cardBorder: '#fecdd3',
+        statusLabel: isAnswered ? '• Cô Hoài đã giải đáp' : '• Chờ giải đáp',
+        statusColor: isAnswered ? '#047857' : '#b45309'
+      };
+    }
+    case 'bao-loi': {
+      const isFixed = post.status === 'fixed';
+      return {
+        badgeLabel: '🐛 Báo lỗi Web',
+        badgeBg: isFixed ? '#d1fae5' : '#fef3c7',
+        badgeColor: isFixed ? '#047857' : '#b45309',
+        cardBg: isFixed ? '#ecfdf5' : '#fffbeb',
+        cardBorder: isFixed ? '#a7f3d0' : '#fde68a',
+        statusLabel: isFixed ? '• Admin đã fix xong' : '• Chờ xử lý',
+        statusColor: isFixed ? '#047857' : '#b45309'
+      };
+    }
+    case 'kinh-nghiem': {
+      return {
+        badgeLabel: '💡 Kinh nghiệm',
+        badgeBg: '#fef3c7',
+        badgeColor: '#b45309',
+        cardBg: '#fffdf5',
+        cardBorder: '#fde68a',
+        statusLabel: (post.comments || []).length > 0 ? `• ${(post.comments || []).length} phản hồi` : '• Mới chia sẻ',
+        statusColor: '#b45309'
+      };
+    }
+    case 'thao-luan':
+    default: {
+      return {
+        badgeLabel: '☕ Thảo luận',
+        badgeBg: '#f1f5f9',
+        badgeColor: '#334155',
+        cardBg: '#f8fafc',
+        cardBorder: '#e2e8f0',
+        statusLabel: (post.comments || []).length > 0 ? `• ${(post.comments || []).length} bình luận` : '• Mới đăng',
+        statusColor: '#64748b'
+      };
+    }
+  }
+};
+
 export const HomeView = ({ 
   courses = [], 
   classrooms = [],
@@ -132,15 +186,8 @@ export const HomeView = ({
     : leaderboard.filter((item) => item.classroom_id === selectedClassId || item.classId === selectedClassId)
   ).slice(0, 3);
 
-  // Latest forum posts
-  const hotQuestion = forumPosts.find((p) => p.category === 'bai-kho');
-  const isHotQuestionAnswered = hotQuestion && (
-    hotQuestion.status === 'answered' || 
-    (hotQuestion.comments || []).some((c) => c.isTeacherAnswer || c.author?.role === 'teacher' || c.author?.role === 'admin')
-  );
-
-  const fixedBug = forumPosts.find((p) => p.category === 'bao-loi');
-  const isBugFixed = fixedBug && (fixedBug.status === 'fixed');
+  // Latest forum posts for Home preview
+  const previewForumPosts = (forumPosts || []).slice(0, 2);
 
   return (
     <div className="home-view-container" style={{ maxWidth: '1180px', margin: '0 auto', padding: '1.5rem 1rem 3.5rem' }}>
@@ -1222,78 +1269,46 @@ export const HomeView = ({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
-              {hotQuestion && (
-                <div 
-                  onClick={() => onNavigate('forum')}
-                  style={{ 
-                    padding: '8px 10px', 
-                    borderRadius: '10px', 
-                    background: '#fff1f2', 
-                    cursor: 'pointer',
-                    border: '1px solid #fecdd3'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#be123c', background: '#ffe4e6', padding: '1px 5px', borderRadius: '4px' }}>
-                      ❓ Hỏi bài khó
-                    </span>
-                    {isHotQuestionAnswered ? (
-                      <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
-                        • Cô Hoài đã giải đáp
+              {previewForumPosts.map((post) => {
+                const meta = getCategoryMeta(post);
+                return (
+                  <div 
+                    key={post.id}
+                    onClick={() => onNavigate('forum')}
+                    style={{ 
+                      padding: '8px 10px', 
+                      borderRadius: '10px', 
+                      background: meta.cardBg, 
+                      cursor: 'pointer',
+                      border: `1px solid ${meta.cardBorder}`,
+                      transition: 'transform 0.15s, box-shadow 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <span style={{ 
+                        fontSize: '0.68rem', 
+                        fontWeight: 800, 
+                        color: meta.badgeColor, 
+                        background: meta.badgeBg, 
+                        padding: '1px 5px', 
+                        borderRadius: '4px' 
+                      }}>
+                        {meta.badgeLabel}
                       </span>
-                    ) : (
-                      <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 700 }}>
-                        • Chờ giải đáp
+                      <span style={{ fontSize: '0.7rem', color: meta.statusColor, fontWeight: 700 }}>
+                        {meta.statusLabel}
                       </span>
-                    )}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {post.title}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {hotQuestion.title}
-                  </div>
-                </div>
-              )}
+                );
+              })}
 
-              {fixedBug && (
-                <div 
-                  onClick={() => onNavigate('forum')}
-                  style={{ 
-                    padding: '8px 10px', 
-                    borderRadius: '10px', 
-                    background: isBugFixed ? '#ecfdf5' : '#fffbeb', 
-                    cursor: 'pointer',
-                    border: isBugFixed ? '1px solid #a7f3d0' : '1px solid #fde68a'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                    <span style={{ 
-                      fontSize: '0.68rem', 
-                      fontWeight: 800, 
-                      color: isBugFixed ? '#047857' : '#b45309', 
-                      background: isBugFixed ? '#d1fae5' : '#fef3c7', 
-                      padding: '1px 5px', 
-                      borderRadius: '4px' 
-                    }}>
-                      🐛 Báo lỗi Web
-                    </span>
-                    {isBugFixed ? (
-                      <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
-                        • Admin đã fix xong
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 700 }}>
-                        • Chờ xử lý
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {fixedBug.title}
-                  </div>
-                </div>
-              )}
-
-              {!hotQuestion && !fixedBug && (
+              {previewForumPosts.length === 0 && (
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 2px' }}>
-                  Chưa có bài hỏi hay báo lỗi nào mới.
+                  Chưa có bài thảo luận nào mới.
                 </div>
               )}
             </div>
