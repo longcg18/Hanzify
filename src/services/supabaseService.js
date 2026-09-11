@@ -1792,6 +1792,7 @@ export async function createForumComment(postId, comment, user) {
 export async function updateForumPost(postId, changes) {
   const payload = {};
   if (changes.status !== undefined) payload.status = changes.status;
+  if (changes.category !== undefined) payload.category = changes.category;
   if (changes.likesCount !== undefined) payload.likes_count = changes.likesCount;
   const { error } = await supabase.from('forum_posts').update(payload).eq('id', postId);
   return error ? { success: false, error: error.message } : { success: true };

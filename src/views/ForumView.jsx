@@ -138,12 +138,37 @@ export const ForumView = () => {
     setExpandedPostId(newPost.id);
   };
 
+  // Smart Open New Post Modal
+  const handleOpenNewPostModal = () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (selectedCategory && selectedCategory !== 'all') {
+      setNewCategory(selectedCategory);
+    } else {
+      setNewCategory('thao-luan');
+    }
+    setIsNewPostModalOpen(true);
+  };
+
   // Quick Change Post Status (Admin & Teacher)
   const handleChangeStatus = async (postId, newStatus, e) => {
     e.stopPropagation();
     const result = await updateForumPost(postId, { status: newStatus });
     if (result.success) setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, status: newStatus } : p)));
     else setLoadError(result.error);
+  };
+
+  // Quick Change Post Category (Admin, Teacher, or Post Author)
+  const handleChangeCategory = async (postId, newCat, e) => {
+    e.stopPropagation();
+    const result = await updateForumPost(postId, { category: newCat });
+    if (result.success) {
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, category: newCat } : p)));
+    } else {
+      setLoadError(result.error);
+    }
   };
 
   // Filter posts
@@ -219,13 +244,7 @@ export const ForumView = () => {
 
           <button
             type="button"
-            onClick={() => {
-              if (!user) {
-                setIsAuthModalOpen(true);
-              } else {
-                setIsNewPostModalOpen(true);
-              }
-            }}
+            onClick={handleOpenNewPostModal}
             style={{
               padding: '0.75rem 1.4rem',
               borderRadius: '14px',
@@ -380,7 +399,7 @@ export const ForumView = () => {
               </p>
               <button
                 type="button"
-                onClick={() => setIsNewPostModalOpen(true)}
+                onClick={handleOpenNewPostModal}
                 style={{
                   padding: '0.65rem 1.25rem',
                   borderRadius: '10px',
@@ -530,6 +549,52 @@ export const ForumView = () => {
                             }}>
                               Chờ giải đáp
                             </span>
+                          )}
+
+                          {/* Category Badge */}
+                          {post.category === 'bai-kho' && (
+                            <span style={{ background: '#ffe4e6', color: '#be123c', padding: '3px 8px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+                              ❓ Hỏi Bài Khó
+                            </span>
+                          )}
+                          {post.category === 'bao-loi' && (
+                            <span style={{ background: '#ecfdf5', color: '#047857', padding: '3px 8px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+                              🐛 Báo Lỗi Web
+                            </span>
+                          )}
+                          {post.category === 'kinh-nghiem' && (
+                            <span style={{ background: '#fef3c7', color: '#b45309', padding: '3px 8px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+                              💡 Kinh Nghiệm
+                            </span>
+                          )}
+                          {post.category === 'thao-luan' && (
+                            <span style={{ background: '#f1f5f9', color: '#334155', padding: '3px 8px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+                              ☕ Góc Thảo Luận
+                            </span>
+                          )}
+
+                          {/* Quick Admin/Teacher/Author Category Changer */}
+                          {(isTeacherOrAdmin || (user && user.name === post.author?.name)) && (
+                            <select
+                              value={post.category}
+                              onChange={(e) => handleChangeCategory(post.id, e.target.value, e)}
+                              title="Chuyển chuyên mục bài viết"
+                              style={{
+                                padding: '2px 6px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '0.7rem',
+                                color: '#475569',
+                                background: '#f8fafc',
+                                outline: 'none',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <option value="thao-luan">Mục: ☕ Thảo luận</option>
+                              <option value="bai-kho">Mục: ❓ Hỏi bài khó</option>
+                              <option value="kinh-nghiem">Mục: 💡 Kinh nghiệm</option>
+                              <option value="bao-loi">Mục: 🐛 Báo lỗi</option>
+                            </select>
                           )}
 
                           {/* Quick Admin/Teacher Toggle Status Menu */}
@@ -841,10 +906,10 @@ export const ForumView = () => {
                     outline: 'none'
                   }}
                 >
-                  <option value="bai-kho">❓ Hỏi Bài Khó (Ngữ pháp, Đề thi, Phát âm)</option>
-                  <option value="bao-loi">🐛 Báo Lỗi & Góp Ý Web (Âm thanh, Giao diện, Bug)</option>
-                  <option value="kinh-nghiem">💡 Kinh Nghiệm Học HSK (Mẹo thi cử, Lộ trình)</option>
                   <option value="thao-luan">☕ Góc Thảo Luận Chung (Tìm bạn học, Chia sẻ)</option>
+                  <option value="bai-kho">❓ Hỏi Bài Khó (Ngữ pháp, Đề thi, Phát âm)</option>
+                  <option value="kinh-nghiem">💡 Kinh Nghiệm Học HSK (Mẹo thi cử, Lộ trình)</option>
+                  <option value="bao-loi">🐛 Báo Lỗi & Góp Ý Web (Âm thanh, Giao diện, Bug)</option>
                 </select>
               </div>
 

@@ -134,7 +134,13 @@ export const HomeView = ({
 
   // Latest forum posts
   const hotQuestion = forumPosts.find((p) => p.category === 'bai-kho');
+  const isHotQuestionAnswered = hotQuestion && (
+    hotQuestion.status === 'answered' || 
+    (hotQuestion.comments || []).some((c) => c.isTeacherAnswer || c.author?.role === 'teacher' || c.author?.role === 'admin')
+  );
+
   const fixedBug = forumPosts.find((p) => p.category === 'bao-loi');
+  const isBugFixed = fixedBug && (fixedBug.status === 'fixed');
 
   return (
     <div className="home-view-container" style={{ maxWidth: '1180px', margin: '0 auto', padding: '1.5rem 1rem 3.5rem' }}>
@@ -1231,9 +1237,15 @@ export const HomeView = ({
                     <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#be123c', background: '#ffe4e6', padding: '1px 5px', borderRadius: '4px' }}>
                       ❓ Hỏi bài khó
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
-                      • Cô Hoài đã giải đáp
-                    </span>
+                    {isHotQuestionAnswered ? (
+                      <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
+                        • Cô Hoài đã giải đáp
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 700 }}>
+                        • Chờ giải đáp
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {hotQuestion.title}
@@ -1247,22 +1259,41 @@ export const HomeView = ({
                   style={{ 
                     padding: '8px 10px', 
                     borderRadius: '10px', 
-                    background: '#ecfdf5', 
+                    background: isBugFixed ? '#ecfdf5' : '#fffbeb', 
                     cursor: 'pointer',
-                    border: '1px solid #a7f3d0'
+                    border: isBugFixed ? '1px solid #a7f3d0' : '1px solid #fde68a'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#047857', background: '#d1fae5', padding: '1px 5px', borderRadius: '4px' }}>
+                    <span style={{ 
+                      fontSize: '0.68rem', 
+                      fontWeight: 800, 
+                      color: isBugFixed ? '#047857' : '#b45309', 
+                      background: isBugFixed ? '#d1fae5' : '#fef3c7', 
+                      padding: '1px 5px', 
+                      borderRadius: '4px' 
+                    }}>
                       🐛 Báo lỗi Web
                     </span>
-                    <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
-                      • Admin đã fix xong
-                    </span>
+                    {isBugFixed ? (
+                      <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
+                        • Admin đã fix xong
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 700 }}>
+                        • Chờ xử lý
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {fixedBug.title}
                   </div>
+                </div>
+              )}
+
+              {!hotQuestion && !fixedBug && (
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '6px 2px' }}>
+                  Chưa có bài hỏi hay báo lỗi nào mới.
                 </div>
               )}
             </div>
