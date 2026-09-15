@@ -527,9 +527,13 @@ export const HomeworkView = ({ lesson, onBack }) => {
           </span>
         </div>
 
-        <h1 className="hw-title">Hệ Thống Bài Tập Toàn Diện 7 Dạng Chuẩn HSK 2</h1>
+        <div className="hw-course-kicker">
+          <span className="hw-course-kicker-icon"><i className="fa-solid fa-graduation-cap"></i></span>
+          Phiên luyện tập cá nhân
+        </div>
+        <h1 className="hw-title">Bài luyện tập {lesson?.hskLevel || lesson?.level || 'HSK'}</h1>
         <p className="hw-desc">
-          Luyện trọn vẹn: Nghe hiểu, Thanh điệu Pinyin, Sắp xếp câu, Đọc hiểu đa dạng, Thu âm khẩu ngữ và Luyện viết (chép chính tả &amp; đoạn văn).
+          Hoàn thành lần lượt từng phần. Bài làm được lưu tạm để bạn có thể tiếp tục mà không mất tiến độ.
         </p>
 
         <div className="hw-progress-row">
