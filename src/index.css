@@ -3539,7 +3539,7 @@ rt {
   padding: 1.5rem 1rem 3rem;
 }
 
-.er-wrapper-official { max-width: 1560px; margin-top: -24px; padding: .35rem .75rem 2rem; }
+.er-wrapper-official { max-width: 1560px; margin-top: -24px; padding: .35rem 0 2rem; }
 
 /* Top Bar */
 .er-topbar {
