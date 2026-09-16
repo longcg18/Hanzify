@@ -188,6 +188,22 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
           </button>
         )}
 
+        {['admin', 'teacher'].includes(user?.role) && (
+          <button
+            type="button"
+            className="primary-nav-button"
+            aria-label="Theo Dõi Học Sinh"
+            title="Theo Dõi Học Sinh"
+            onClick={() => onNavigate('student-progress')}
+            style={{
+              padding: '0.5rem 0.95rem', borderRadius: '10px', border: 'none',
+              background: currentView === 'student-progress' ? '#A11D24' : 'transparent',
+              color: currentView === 'student-progress' ? '#fff' : '#64748b',
+              fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap'
+            }}
+          ><i className="fa-solid fa-chart-line"></i> <span className="primary-nav-label">Theo Dõi</span></button>
+        )}
+
         {/* 8. Admin Only Tab */}
         {user?.role === 'admin' && (
           <button

@@ -4306,8 +4306,21 @@ rt {
 .er-matrix-group-icon.listening { color: #818cf8; }
 .er-matrix-group-icon.reading   { color: #34d399; }
 .er-matrix-group-icon.writing   { color: #fbbf24; }
-/* Official HSK paper: controls live in the answer matrix, not a separate bar. */
+/* Official HSK paper: PDF and answer controls stay visible side by side. */
 .er-body { grid-template-columns: minmax(0, 1fr) 320px; }
+.er-body-official { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+.er-body-official .er-answer-sheet { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+.er-official-controls { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--ink-200); }
+.er-official-question-title { font-weight: 800; color: var(--ink-900); margin: .8rem 0; }
+.er-official-controls .er-options-list { gap: .45rem; }
+.er-official-controls .er-option { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.er-official-controls .er-nav-row { margin-top: .8rem; }
+.er-audio-status { display: flex; align-items: center; gap: .5rem; padding: .65rem .8rem; border-radius: 10px; background: #fef2f2; color: #991b1b; font-size: .82rem; font-weight: 700; }
+.er-start-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 1rem; background: rgba(15, 23, 42, .72); }
+.er-start-card { width: min(100%, 440px); padding: 2rem; border-radius: 18px; background: white; box-shadow: 0 20px 60px rgba(0,0,0,.25); text-align: center; }
+.er-start-card h2 { margin: 0 0 .7rem; }
+.er-start-card p { color: #475569; line-height: 1.5; }
+.er-start-card .er-submit-btn { margin: 1rem auto 0; }
 .er-qpanel { min-width: 0; }
 .er-sheet-heading-row { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
 .er-sheet-heading-row .er-sheet-title { margin: 0; }
@@ -4319,5 +4332,20 @@ rt {
 .er-official-audio audio { display: block; width: min(100%, 520px); }
 .er-writing-answer { display: grid; gap: .5rem; font-weight: 700; margin: 1rem 0; }
 .er-writing-answer input { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: .85rem 1rem; font: inherit; }
-@media (max-width: 900px) { .er-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 900px) { .er-body { grid-template-columns: minmax(0, 1fr); } .er-body-official .er-answer-sheet { position: static; max-height: none; overflow: visible; order: -1; } }
 @media (max-width: 640px) { .er-paper-frame { min-height: 330px; height: 58vh; } }
+
+.student-progress-view { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+.student-progress-view h1 { font-size: 1.5rem; color: #0f172a; }
+.student-progress-view label { display: block; margin: 1.25rem 0 .4rem; font-weight: 700; }
+.student-progress-view select { width: min(100%, 420px); padding: .75rem; border: 1px solid #cbd5e1; border-radius: 10px; background: white; font: inherit; }
+.progress-error { color: #b91c1c; }
+.progress-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.progress-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.2rem; min-width: 0; }
+.progress-card h2 { display: flex; justify-content: space-between; font-size: 1.05rem; margin: 0 0 1rem; }
+.progress-card h2 span { color: #991b1b; }
+.progress-card ul { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; }
+.progress-card li { display: grid; gap: .2rem; padding: .75rem 0; border-top: 1px solid #f1f5f9; }
+.progress-card li span { color: #991b1b; font-weight: 700; }
+.progress-card li small { color: #64748b; }
+@media (max-width: 700px) { .progress-grid { grid-template-columns: 1fr; } }

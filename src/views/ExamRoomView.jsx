@@ -36,6 +36,7 @@ const getChineseExamPrompt = (question) => {
 
 export const ExamRoomView = ({ exam, onExit }) => {
   const { user } = useAuth();
+  const timeLimitMinutes = 10;
   const dynamicQuestions = React.useMemo(() => {
     if (exam?.skills && exam.skills.length > 0) {
       const flattened = flattenExamQuestions(exam);
@@ -59,8 +60,12 @@ export const ExamRoomView = ({ exam, onExit }) => {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [flagged, setFlagged] = useState({});
-  const [timeLeft, setTimeLeft] = useState((exam?.duration || 35) * 60);
+  const [timeLeft, setTimeLeft] = useState(timeLimitMinutes * 60);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [audioStatus, setAudioStatus] = useState('idle');
+  const officialAudioRef = useRef(null);
+  const startedAtRef = useRef(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
@@ -72,11 +77,14 @@ export const ExamRoomView = ({ exam, onExit }) => {
     setCurrentQIndex(0);
     setAnswers({});
     setFlagged({});
-    setTimeLeft((exam?.duration || 35) * 60);
+    setTimeLeft(timeLimitMinutes * 60);
     setIsSubmitted(false);
     setShowResult(false);
     setSaveStatus('idle');
     setResult(null);
+    setHasStarted(false);
+    setAudioStatus('idle');
+    startedAtRef.current = null;
   }, [dynamicQuestions, exam]);
 
   const currentQ = questions[currentQIndex] || questions[0];
@@ -90,12 +98,30 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
   // Timer countdown
   useEffect(() => {
-    if (isSubmitted) return;
+    if (isSubmitted || !hasStarted || (isOfficialPaper && exam?.audioUrl && audioStatus === 'playing')) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isSubmitted]);
+  }, [isSubmitted, hasStarted, isOfficialPaper, exam?.audioUrl, audioStatus]);
+
+  const startExam = async () => {
+    if (hasStarted) return;
+    if (isOfficialPaper && exam.audioUrl) {
+      const audio = officialAudioRef.current;
+      if (!audio) return;
+      audio.currentTime = 0;
+      try {
+        await audio.play();
+        setAudioStatus('playing');
+      } catch {
+        setAudioStatus('blocked');
+        return;
+      }
+    }
+    startedAtRef.current = Date.now();
+    setHasStarted(true);
+  };
 
   useEffect(() => {
     if (timeLeft === 0 && !isSubmitted) submitRef.current?.(true);
@@ -141,6 +167,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
     setResult(res);
     setIsSubmitted(true);
     setShowResult(true);
+    officialAudioRef.current?.pause();
 
     if (user?.id) {
       setSaveStatus('saving');
@@ -152,7 +179,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
           level: exam?.level || '',
           totalScore: res.totalScore,
           maxScore: res.maxScore,
-          durationSeconds: Math.max(0, (exam?.duration || 35) * 60 - timeLeft),
+          durationSeconds: startedAtRef.current ? Math.max(0, Math.round((Date.now() - startedAtRef.current) / 1000)) : 0,
           completedAt: new Date().toISOString()
       }).then((saved) => setSaveStatus(saved.localOnly ? 'local' : saved.success ? 'saved' : 'failed'))
         .catch(() => setSaveStatus('failed'));
@@ -210,6 +237,28 @@ export const ExamRoomView = ({ exam, onExit }) => {
   return (
     <div className="er-wrapper">
 
+      {isOfficialPaper && exam.audioUrl && (
+        <audio
+          ref={officialAudioRef}
+          src={exam.audioUrl}
+          preload="auto"
+          onEnded={() => setAudioStatus('ended')}
+          onError={() => setAudioStatus('blocked')}
+          aria-label="Bản nghe đề thi"
+        />
+      )}
+
+      {!hasStarted && !isSubmitted && (
+        <div className="er-start-overlay">
+          <div className="er-start-card">
+            <h2>Sẵn sàng làm bài?</h2>
+            <p>{isOfficialPaper && exam.audioUrl ? 'Bản nghe phát một lượt khi bắt đầu. Sau khi nghe xong, bạn có 10 phút hoàn tất bài; không thể tua hoặc nghe lại.' : 'Bạn có 10 phút làm bài kể từ khi bấm bắt đầu.'}</p>
+            {audioStatus === 'blocked' && <p role="alert">Không phát được audio. Kiểm tra âm lượng và kết nối rồi bấm bắt đầu lại.</p>}
+            <button type="button" className="er-submit-btn" onClick={startExam}>Bắt đầu thi</button>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar */}
       {!isOfficialPaper && <div className="er-topbar">
         <div className="er-topbar-left">
@@ -248,7 +297,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
       </div>}
 
       {/* Main Layout */}
-      <div className="er-body">
+      <div className={`er-body ${isOfficialPaper ? 'er-body-official' : ''}`}>
 
         {/* Left: Current Question */}
         <div className="er-qpanel">
@@ -272,14 +321,6 @@ export const ExamRoomView = ({ exam, onExit }) => {
               src={`${studentPaperUrl}#page=1&toolbar=1`}
               loading="lazy"
             />
-          )}
-
-          {isOfficialPaper && currentQ?.section === 'listening' && exam.audioUrl && (
-            <div className="er-official-audio">
-              <audio controls preload="metadata" aria-label="Bản nghe đầy đủ của đề thi" src={exam.audioUrl}>
-                Trình duyệt không hỗ trợ phát audio.
-              </audio>
-            </div>
           )}
 
           {/* Listening Audio Box */}
@@ -308,7 +349,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
           )}
 
           {/* Options */}
-          {isOfficialPaper && currentQ?.section === 'writing' ? (
+          {!isOfficialPaper && (currentQ?.section === 'writing' ? (
             <label className="er-writing-answer">
               Đáp án câu {currentQ?.questionNumber}
               <input
@@ -347,14 +388,10 @@ export const ExamRoomView = ({ exam, onExit }) => {
                 </div>
               );
             })}
-          </div>}
-
-          {isSubmitted && isOfficialPaper && currentQ?.section === 'writing' && (
-            <div className="er-explanation">Đáp án gốc: {currentQ.correctAnswer}</div>
-          )}
+          </div>)}
 
           {/* Explanation after submit */}
-          {isSubmitted && currentQ?.explanation && (
+          {!isOfficialPaper && isSubmitted && currentQ?.explanation && (
             <div className="er-explanation">
               <div className="er-explanation-title">
                 <i className="fa-solid fa-circle-info"></i> Đáp án &amp; Giải thích:
@@ -364,7 +401,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
           )}
 
           {/* Navigation */}
-          <div className="er-nav-row">
+          {!isOfficialPaper && <div className="er-nav-row">
             <button
               className="er-nav-btn prev"
               onClick={() => setCurrentQIndex((prev) => Math.max(0, prev - 1))}
@@ -379,11 +416,61 @@ export const ExamRoomView = ({ exam, onExit }) => {
             >
               Câu tiếp theo <i className="fa-solid fa-arrow-right"></i>
             </button>
-          </div>
+          </div>}
         </div>
 
         {/* Right: Answer Sheet */}
         <div className="er-answer-sheet">
+          {isOfficialPaper && (
+            <div className="er-official-controls">
+              {exam.audioUrl && (
+                <div className="er-audio-status" role="status">
+                  <i className={`fa-solid ${audioStatus === 'playing' ? 'fa-volume-high' : 'fa-headphones'}`}></i>
+                  {audioStatus === 'playing' ? 'Đang phát bản nghe · 10 phút bắt đầu sau bản nghe' : audioStatus === 'ended' ? 'Đã phát xong bản nghe' : 'Bản nghe phát khi bắt đầu thi'}
+                </div>
+              )}
+              <div className="er-official-question-title">Câu {currentQ?.questionNumber}</div>
+              {currentQ?.section === 'writing' ? (
+                <label className="er-writing-answer">
+                  Đáp án
+                  <input
+                    value={answers[currentQ.id] || ''}
+                    onChange={(event) => setAnswers((previous) => ({ ...previous, [currentQ.id]: event.target.value }))}
+                    disabled={isSubmitted}
+                    autoComplete="off"
+                    placeholder="Nhập câu hoặc chữ Hán"
+                  />
+                </label>
+              ) : (
+                <div className="er-options-list">
+                  {currentQ?.options.map((option, idx) => {
+                    const isSelected = answers[currentQ.id] === option;
+                    const isCorrect = option === currentQ.correctAnswer;
+                    const cls = isSubmitted ? (isCorrect ? 'correct' : isSelected ? 'wrong' : '') : isSelected ? 'selected' : '';
+                    return (
+                      <button
+                        type="button"
+                        key={idx}
+                        className={`er-option ${cls}`}
+                        onClick={() => handleSelectAnswer(option)}
+                        disabled={isSubmitted}
+                        aria-pressed={isSelected}
+                      >
+                        <span className="er-option-circle">{option}</span>
+                        <span className="er-option-text">{option === '√' ? 'Đúng' : option === '×' ? 'Sai' : `Phương án ${option} trong đề`}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {isSubmitted && currentQ?.section === 'writing' && <div className="er-explanation">Đáp án gốc: {currentQ.correctAnswer}</div>}
+              {isSubmitted && currentQ?.explanation && <div className="er-explanation">{currentQ.explanation}</div>}
+              <div className="er-nav-row">
+                <button className="er-nav-btn prev" onClick={() => setCurrentQIndex((prev) => Math.max(0, prev - 1))} disabled={currentQIndex === 0}>Câu trước</button>
+                <button className="er-nav-btn next" onClick={() => setCurrentQIndex((prev) => Math.min(questions.length - 1, prev + 1))} disabled={currentQIndex === questions.length - 1}>Câu tiếp</button>
+              </div>
+            </div>
+          )}
           <div className="er-sheet-heading-row">
             <div className="er-sheet-title">
               <i className="fa-solid fa-table-cells"></i> Ma Trận Câu Hỏi

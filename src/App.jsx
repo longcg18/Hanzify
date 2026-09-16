@@ -12,6 +12,7 @@ import { ExamView } from './views/ExamView';
 import { ExamRoomView } from './views/ExamRoomView';
 import { TeacherGradingView } from './views/TeacherGradingView';
 import { AdminUsersView } from './views/AdminUsersView';
+import { StudentProgressView } from './views/StudentProgressView';
 import { LeaderboardView } from './views/LeaderboardView';
 import { ForumView } from './views/ForumView';
 import { StreakModal } from './components/StreakModal';
@@ -149,7 +150,7 @@ export function AppContent() {
   const getInitialView = () => {
     const rawPath = window.location.pathname.replace(/^\//, '').toLowerCase();
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    const validViews = ['home', 'courses', 'course-detail', 'homework', 'practice', 'exam', 'entertainment', 'grading', 'admin-users', 'leaderboard', 'forum'];
+    const validViews = ['home', 'courses', 'course-detail', 'homework', 'practice', 'exam', 'entertainment', 'grading', 'admin-users', 'student-progress', 'leaderboard', 'forum'];
     if (validViews.includes(rawPath)) return rawPath;
     if (validViews.includes(hash)) return hash;
     return 'home';
@@ -592,6 +593,8 @@ export function AppContent() {
     } else if (user && currentView === 'grading' && user.role !== 'teacher') {
       setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (currentView === 'student-progress' && !['admin', 'teacher'].includes(user?.role)) {
+      setCurrentView('home');
     }
   }, [user, user?.role, currentView]);
 
@@ -1020,6 +1023,8 @@ export function AppContent() {
           </main>
         )
       )}
+
+      {currentView === 'student-progress' && ['admin', 'teacher'].includes(user?.role) && <StudentProgressView />}
 
       {/* Floating Role Switch & Route Guard Toast Notification */}
       {roleToast && (

@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 import { BASE_PRACTICE_TOPICS, PRACTICE_TOPICS, countTotalPracticeQuestions } from '../data/practiceData';
 import { buildVocabPracticeTopics } from '../data/vocabPracticeBuilder';
-import { fetchVocabularies, addGameRewardXp } from '../services/supabaseService';
+import { fetchVocabularies, addGameRewardXp, saveStudentActivity } from '../services/supabaseService';
 import { HSK_LEVELS } from '../data/hskVocabularyData';
 
 // Sanitize option text to strip any giveaway comments or notes
@@ -219,6 +219,15 @@ export const PracticeView = () => {
       setSessionXpEarned(earnedXp);
 
       if (user?.id) {
+        saveStudentActivity({
+          studentId: user.id,
+          activityType: 'practice',
+          title: activeTopic.title,
+          score: finalScore,
+          maxScore: totalQ,
+          xp: earnedXp
+        }).then((saved) => { if (!saved.success) console.warn('Could not save practice history:', saved.error); })
+          .catch((error) => console.warn('Could not save practice history:', error));
         try {
           await addGameRewardXp(user.id, earnedXp, {
             gameTitle: activeTopic.title,

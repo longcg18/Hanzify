@@ -157,21 +157,10 @@ export const CoursesView = ({
   // Student & System statistics calculation
   const totalStudents = classrooms.reduce((acc, c) => acc + (c.students?.length || 0), 0);
   const totalLessons = courses.reduce((acc, c) => acc + (c.lessons?.length || 0), 0);
-  const studentCompletedLessons = courses.reduce((acc, c) => acc + (c.completedLessons || 0), 0);
-  const allScores = [];
-  courses.forEach((c) => {
-    (c.lessons || []).forEach((l) => {
-      if (typeof l.score === 'number') allScores.push(l.score);
-    });
-  });
-  const avgScore = allScores.length > 0 
-    ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(1) 
-    : '0.0';
-
   return (
     <div className="courses-view-container">
       {/* Motivational / Admin Banner */}
-      <section className="welcome-banner" style={{
+      {isTeacherOrAdmin && <section className="welcome-banner" style={{
         background: isTeacherOrAdmin ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : undefined,
         border: isTeacherOrAdmin ? '1.5px solid #334155' : undefined
       }}>
@@ -231,7 +220,7 @@ export const CoursesView = ({
           )}
         </div>
 
-        <div className="banner-stats">
+        {isTeacherOrAdmin && <div className="banner-stats">
           {user?.role === 'admin' ? (
             <>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
@@ -274,30 +263,9 @@ export const CoursesView = ({
                 <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Đang Phụ Trách</span>
               </div>
             </>
-          ) : (
-            <>
-              <div className="stat-card">
-                <span className="stat-num">
-                  {courses.length < 10 ? `0${courses.length}` : courses.length}
-                </span>
-                <span className="stat-label">{user ? 'Khóa Đang Học' : 'Khóa Đang Mở'}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-num">
-                  {user
-                    ? (studentCompletedLessons < 10 ? `0${studentCompletedLessons}` : studentCompletedLessons)
-                    : (totalLessons < 10 ? `0${totalLessons}` : totalLessons)}
-                </span>
-                <span className="stat-label">{user ? 'Bài Đã Hoàn Thành' : 'Bài Học Có Sẵn'}</span>
-              </div>
-              <div className="stat-card highlight">
-                <span className="stat-num">{user ? (allScores.length > 0 ? avgScore : '--') : 'HSK'}</span>
-                <span className="stat-label">{user ? 'Điểm Trung Bình' : 'Lộ Trình Chuẩn'}</span>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
+          ) : null}
+        </div>}
+      </section>}
 
       {/* Course List Section Header */}
       <div className="section-title-row">

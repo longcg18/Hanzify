@@ -1495,6 +1495,34 @@ export async function fetchExamAttempts(studentId) {
   return localAttempts;
 }
 
+export async function saveStudentActivity({ studentId, activityType, title, score = null, maxScore = null, xp = null }) {
+  if (!studentId || !['practice', 'game'].includes(activityType)) return { success: false };
+  const { error } = await supabase.from('student_activity_events').insert({
+    id: `${activityType}-${studentId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    student_id: studentId,
+    activity_type: activityType,
+    title,
+    score,
+    max_score: maxScore,
+    xp
+  });
+  return { success: !error, error: error?.message || null };
+}
+
+export async function fetchStudentActivityHistory(studentId) {
+  if (!studentId) return { data: [], error: null };
+  const { data, error } = await supabase.from('student_activity_events')
+    .select('*').eq('student_id', studentId).order('completed_at', { ascending: false }).limit(100);
+  return { data: data || [], error: error?.message || null };
+}
+
+export async function fetchStudentExamAttemptsForStaff(studentId) {
+  if (!studentId) return { data: [], error: null };
+  const { data, error } = await supabase.from('exam_attempts')
+    .select('*').eq('student_id', studentId).order('completed_at', { ascending: false }).limit(100);
+  return { data: data || [], error: error?.message || null };
+}
+
 export async function gradeSubmission(submissionId, totalScore, teacherComment, questionScores = {}) {
   try {
     const { data: existing } = await supabase

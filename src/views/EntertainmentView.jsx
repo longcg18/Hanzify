@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
-import { fetchMatchPairs, fetchToneItems, fetchLeaderboard, addGameRewardXp } from '../services/supabaseService';
+import { fetchMatchPairs, fetchToneItems, fetchLeaderboard, addGameRewardXp, saveStudentActivity } from '../services/supabaseService';
 import {
   MEMORY_PAIRS_BY_LEVEL,
   TONE_ITEMS_BY_LEVEL,
@@ -446,6 +446,15 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   // Universal Award Points Handler based on Game & Difficulty
   const handleAwardPoints = async (earnedXp, gameTitle, level, bonusReason = null) => {
     if (!earnedXp || earnedXp <= 0 || rewardResult) return;
+    if (user?.id) {
+      saveStudentActivity({
+        studentId: user.id,
+        activityType: 'game',
+        title: `${gameTitle} · ${level}`,
+        xp: earnedXp
+      }).then((saved) => { if (!saved.success) console.warn('Could not save game history:', saved.error); })
+        .catch((error) => console.warn('Could not save game history:', error));
+    }
     try {
       if (onRewardXp) {
         const res = await onRewardXp({
