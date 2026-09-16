@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { flattenExamQuestions } from '../data/examsData';
 import { useAuth } from '../context/AuthContext';
 import { saveExamAttempt } from '../services/supabaseService';
+import { gradeExam, isExamAnswerCorrect } from '../utils/examScoring';
 
 const cleanExamOption = (option) => {
   if (typeof option !== 'string') return option;
@@ -52,7 +53,10 @@ export const ExamRoomView = ({ exam, onExit }) => {
   const [timeLeft, setTimeLeft] = useState((exam?.duration || 35) * 60);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle');
   const [result, setResult] = useState(null);
+  const submitRef = useRef(null);
 
   useEffect(() => {
     setQuestions(dynamicQuestions);
@@ -61,10 +65,13 @@ export const ExamRoomView = ({ exam, onExit }) => {
     setFlagged({});
     setTimeLeft((exam?.duration || 35) * 60);
     setIsSubmitted(false);
+    setShowResult(false);
+    setSaveStatus('idle');
     setResult(null);
   }, [dynamicQuestions, exam]);
 
   const currentQ = questions[currentQIndex] || questions[0];
+  const isOfficialPaper = Boolean(exam?.sourcePdfUrl);
 
   // Derive current skill name and part title for breadcrumb
   const currentSkillName = currentQ?.skillName || (currentQ?.section === 'listening' ? 'Kỹ Năng Nghe Hiểu' : currentQ?.section === 'reading' ? 'Kỹ Năng Đọc Hiểu' : currentQ?.section === 'writing' ? 'Kỹ Năng Viết' : 'Bài Thi');
@@ -74,17 +81,14 @@ export const ExamRoomView = ({ exam, onExit }) => {
   useEffect(() => {
     if (isSubmitted) return;
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmitExam();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, [isSubmitted]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !isSubmitted) submitRef.current?.(true);
+  }, [timeLeft, isSubmitted]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -117,69 +121,33 @@ export const ExamRoomView = ({ exam, onExit }) => {
     setFlagged({ ...flagged, [qId]: !flagged[qId] });
   };
 
-  const handleSubmitExam = () => {
+  const handleSubmitExam = (forced = false) => {
     if (isSubmitted) return;
-    let listeningCorrect = 0, readingCorrect = 0, writingCorrect = 0;
-    let totalListening = 0, totalReading = 0, totalWriting = 0;
-
-    questions.forEach((q) => {
-      const isCorrect = answers[q.id] === q.correctAnswer;
-      // `section` là field được flattenExamQuestions gán từ skill.type
-      const skillType = q.section || '';
-      if (skillType === 'listening') {
-        totalListening++;
-        if (isCorrect) listeningCorrect++;
-      } else if (skillType === 'writing') {
-        totalWriting++;
-        if (isCorrect) writingCorrect++;
-      } else {
-        totalReading++;
-        if (isCorrect) readingCorrect++;
-      }
-    });
-
-    const listeningScore = totalListening > 0 ? Math.round((listeningCorrect / totalListening) * 100) : 0;
-    const readingScore = totalReading > 0 ? Math.round((readingCorrect / totalReading) * 100) : 0;
-    const writingScore = totalWriting > 0 ? Math.round((writingCorrect / totalWriting) * 100) : 0;
-
-    const totalScore = listeningScore + readingScore + (totalWriting > 0 ? writingScore : 0);
-    const passThreshold = exam?.passingScore || (totalWriting > 0 ? 180 : 120);
-    const isPassed = totalScore >= passThreshold;
-
-    const res = {
-      listeningScore,
-      readingScore,
-      writingScore,
-      hasWriting: totalWriting > 0,
-      totalListening,
-      totalReading,
-      totalWriting,
-      totalScore,
-      isPassed,
-      passThreshold,
-      maxScore: exam?.maxScore || (totalWriting > 0 ? 300 : 200),
-      answeredCount: Object.keys(answers).length,
-      totalQuestions: questions.length
-    };
+    const res = gradeExam(questions, answers, exam);
+    const unanswered = res.totalQuestions - res.answeredCount;
+    if (!forced && unanswered > 0 && !window.confirm(`Bạn còn ${unanswered} câu chưa trả lời. Vẫn nộp bài?`)) return;
 
     setResult(res);
     setIsSubmitted(true);
+    setShowResult(true);
 
     if (user?.id) {
+      setSaveStatus('saving');
       saveExamAttempt({
           id: `${exam?.id || 'exam'}-${Date.now()}`,
           studentId: user.id,
           examId: exam?.id,
           examTitle: exam?.title || 'Đề thi HSK',
           level: exam?.level || '',
-          totalScore,
+          totalScore: res.totalScore,
           maxScore: res.maxScore,
           durationSeconds: Math.max(0, (exam?.duration || 35) * 60 - timeLeft),
           completedAt: new Date().toISOString()
-      });
-    }
+      }).then((saved) => setSaveStatus(saved.localOnly ? 'local' : saved.success ? 'saved' : 'failed'))
+        .catch(() => setSaveStatus('failed'));
+    } else setSaveStatus('unsigned');
 
-    if (isPassed) {
+    if (res.isPassed) {
       confetti({
         particleCount: 100,
         spread: 70,
@@ -188,6 +156,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
       });
     }
   };
+  submitRef.current = handleSubmitExam;
 
   if (!questions || questions.length === 0) {
     return (
@@ -256,10 +225,13 @@ export const ExamRoomView = ({ exam, onExit }) => {
           </div>
 
           {!isSubmitted && (
-            <button className="er-submit-btn" onClick={handleSubmitExam}>
+            <button className="er-submit-btn" onClick={() => handleSubmitExam(false)}>
               <i className="fa-solid fa-check"></i>
               Nộp Bài Thi
             </button>
+          )}
+          {isSubmitted && !showResult && (
+            <button className="er-submit-btn" onClick={() => setShowResult(true)}>Xem kết quả</button>
           )}
         </div>
       </div>
@@ -281,10 +253,32 @@ export const ExamRoomView = ({ exam, onExit }) => {
           </div>
 
           {/* Prompt */}
-          <p className="er-qprompt">{getChineseExamPrompt(currentQ)}</p>
+          <p className="er-qprompt">{isOfficialPaper ? currentQ?.prompt : getChineseExamPrompt(currentQ)}</p>
+
+          {isOfficialPaper && (
+            <div className="er-paper-box">
+              <div className="er-paper-heading">
+                <strong>Đề gốc có tranh · {exam.chineseTitle}</strong>
+                <a href={exam.sourcePdfUrl} target="_blank" rel="noopener noreferrer">Mở PDF trong tab mới ↗</a>
+              </div>
+              <p>Đọc câu {currentQ?.questionNumber} trên đề gốc, rồi điền đáp án ở phiếu bên dưới. Có thể cuộn và phóng to PDF.</p>
+              <iframe title={`Đề gốc ${exam.chineseTitle}`} src={`${exam.sourcePdfUrl}#page=2&toolbar=1`} loading="lazy" />
+            </div>
+          )}
+
+          {isOfficialPaper && currentQ?.section === 'listening' && exam.audioUrl && (
+            <div className="er-audio-box er-official-audio">
+              <div>
+                <div className="er-audio-info-title">🎧 Bản nghe đầy đủ {exam.chineseTitle}</div>
+                <div className="er-audio-info-sub">Phát liên tục theo thứ tự câu hỏi của đề gốc. Không dùng giọng đọc tự động.</div>
+              </div>
+              <audio controls preload="metadata" src={exam.audioUrl}>Trình duyệt không hỗ trợ phát audio.</audio>
+              <a href={exam.audioUrl} target="_blank" rel="noopener noreferrer">Mở file nghe ↗</a>
+            </div>
+          )}
 
           {/* Listening Audio Box */}
-          {currentQ?.section === 'listening' && currentQ?.audioText && (
+          {!isOfficialPaper && currentQ?.section === 'listening' && currentQ?.audioText && (
             <div className="er-audio-box">
               <button
                 className="er-audio-play-btn"
@@ -309,7 +303,18 @@ export const ExamRoomView = ({ exam, onExit }) => {
           )}
 
           {/* Options */}
-          <div className="er-options-list">
+          {isOfficialPaper && currentQ?.section === 'writing' ? (
+            <label className="er-writing-answer">
+              Đáp án câu {currentQ?.questionNumber}
+              <input
+                value={answers[currentQ.id] || ''}
+                onChange={(event) => setAnswers((previous) => ({ ...previous, [currentQ.id]: event.target.value }))}
+                disabled={isSubmitted}
+                autoComplete="off"
+                placeholder="Nhập câu hoặc chữ Hán theo đề gốc"
+              />
+            </label>
+          ) : <div className="er-options-list">
             {currentQ?.options.map((option, idx) => {
               const isSelected = answers[currentQ.id] === option;
               const isCorrect = option === currentQ.correctAnswer;
@@ -326,8 +331,8 @@ export const ExamRoomView = ({ exam, onExit }) => {
                   className={`er-option ${cls}`}
                   onClick={() => handleSelectAnswer(option)}
                 >
-                  <span className="er-option-circle">{String.fromCharCode(65 + idx)}</span>
-                  <span className="er-option-text">{cleanExamOption(option)}</span>
+                  <span className="er-option-circle">{isOfficialPaper ? option : String.fromCharCode(65 + idx)}</span>
+                  <span className="er-option-text">{isOfficialPaper ? (option === '√' ? 'Đúng' : option === '×' ? 'Sai' : `Phương án ${option} trong đề`) : cleanExamOption(option)}</span>
                   {isSubmitted && isCorrect && (
                     <i className="fa-solid fa-circle-check" style={{ color: '#22c55e', marginLeft: 'auto' }}></i>
                   )}
@@ -337,7 +342,11 @@ export const ExamRoomView = ({ exam, onExit }) => {
                 </div>
               );
             })}
-          </div>
+          </div>}
+
+          {isSubmitted && isOfficialPaper && currentQ?.section === 'writing' && (
+            <div className="er-explanation">Đáp án gốc: {currentQ.correctAnswer}</div>
+          )}
 
           {/* Explanation after submit */}
           {isSubmitted && currentQ?.explanation && (
@@ -408,7 +417,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
                   let cls = '';
                   if (isSubmitted) {
-                    cls = answers[q.id] === q.correctAnswer ? 'result-correct' : 'result-wrong';
+                    cls = isExamAnswerCorrect(answers[q.id], q.correctAnswer) ? 'result-correct' : 'result-wrong';
                   } else if (isFlag) {
                     cls = 'flagged';
                   } else if (isAnswered) {
@@ -433,14 +442,14 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
           {/* Stats */}
           <div className="er-stats">
-            <div>Đã trả lời: <strong>{Object.keys(answers).length} / {questions.length}</strong></div>
+            <div>Đã trả lời: <strong>{questions.filter((q) => String(answers[q.id] || '').trim()).length} / {questions.length}</strong></div>
             <div>Nghi vấn: <span className="flagged-count">{Object.values(flagged).filter(Boolean).length} câu</span></div>
           </div>
         </div>
       </div>
 
       {/* Result Modal */}
-      {isSubmitted && result && (
+      {showResult && result && (
         <div className="er-result-overlay">
           <div className="er-result-box">
             <div className={`er-result-icon ${result.isPassed ? 'pass' : 'fail'}`}>
@@ -453,6 +462,13 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
             <div className="er-result-score">{result.totalScore} / {result.maxScore} điểm</div>
             <div className="er-result-threshold">Chuẩn đạt HSK: từ {result.passThreshold} điểm trở lên</div>
+            <div className="er-result-threshold" role="status">
+              {saveStatus === 'saving' && 'Đang lưu kết quả...'}
+              {saveStatus === 'saved' && 'Kết quả đã lưu vào tài khoản.'}
+              {saveStatus === 'local' && 'Chưa đồng bộ được; kết quả đã lưu trên thiết bị này.'}
+              {saveStatus === 'failed' && 'Không lưu được kết quả. Hãy ghi lại điểm trước khi thoát.'}
+              {saveStatus === 'unsigned' && 'Bạn chưa đăng nhập nên kết quả không được lưu.'}
+            </div>
 
             <div className="er-score-breakdown">
               <div>
@@ -476,7 +492,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
             </div>
 
             <div className="er-result-actions">
-              <button className="er-btn-review" onClick={() => setIsSubmitted(false)}>
+              <button className="er-btn-review" onClick={() => setShowResult(false)}>
                 Xem Lại Từng Câu
               </button>
               <button className="er-btn-exit" onClick={onExit}>

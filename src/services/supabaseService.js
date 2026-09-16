@@ -712,6 +712,8 @@ export async function fetchExams() {
       maxScore: ex.max_score || 200,
       description: ex.description,
       tag: ex.tag,
+      sourcePdfUrl: ex.source_pdf_url,
+      audioUrl: ex.audio_url,
       skills: (skills || []).filter((s) => s.exam_id === ex.id).map((skill) => ({
         id: skill.id,
         type: skill.skill_type,
@@ -1427,9 +1429,11 @@ export async function saveExamAttempt(attempt) {
     completedAt: attempt.completedAt || new Date().toISOString()
   };
 
+  let localSaved = false;
   try {
     const previous = JSON.parse(localStorage.getItem(storageKey) || '[]');
     localStorage.setItem(storageKey, JSON.stringify([localAttempt, ...previous.filter((item) => item.id !== localAttempt.id)].slice(0, 50)));
+    localSaved = true;
   } catch (error) {
     console.warn('Không thể lưu lịch sử thi trên thiết bị:', error);
   }
@@ -1446,14 +1450,20 @@ export async function saveExamAttempt(attempt) {
       duration_seconds: localAttempt.durationSeconds,
       completed_at: localAttempt.completedAt
     });
-    return { success: !error, localOnly: Boolean(error) };
+    return { success: !error || localSaved, localOnly: Boolean(error) && localSaved };
   } catch {
-    return { success: true, localOnly: true };
+    return { success: localSaved, localOnly: localSaved };
   }
 }
 
 export async function fetchExamAttempts(studentId) {
   if (!studentId) return [];
+  let localAttempts = [];
+  try {
+    localAttempts = JSON.parse(localStorage.getItem(`hanzify_exam_history_${studentId}`) || '[]');
+  } catch {
+    // Device history is optional.
+  }
   try {
     const { data, error } = await supabase
       .from('exam_attempts')
@@ -1462,7 +1472,7 @@ export async function fetchExamAttempts(studentId) {
       .order('completed_at', { ascending: false })
       .limit(50);
     if (!error && data) {
-      return data.map((attempt) => ({
+      const remoteAttempts = data.map((attempt) => ({
         id: attempt.id,
         examId: attempt.exam_id,
         examTitle: attempt.exam_title,
@@ -1472,15 +1482,15 @@ export async function fetchExamAttempts(studentId) {
         durationSeconds: attempt.duration_seconds,
         completedAt: attempt.completed_at
       }));
+      const remoteIds = new Set(remoteAttempts.map((attempt) => attempt.id));
+      return [...remoteAttempts, ...localAttempts.filter((attempt) => !remoteIds.has(attempt.id))]
+        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+        .slice(0, 50);
     }
   } catch {
     // Fall through to the device history while the database is unavailable.
   }
-  try {
-    return JSON.parse(localStorage.getItem(`hanzify_exam_history_${studentId}`) || '[]');
-  } catch {
-    return [];
-  }
+  return localAttempts;
 }
 
 export async function gradeSubmission(submissionId, totalScore, teacherComment, questionScores = {}) {
