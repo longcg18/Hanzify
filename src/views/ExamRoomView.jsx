@@ -200,12 +200,12 @@ export const ExamRoomView = ({ exam, onExit }) => {
     <div className="er-wrapper">
 
       {/* Top Bar */}
-      <div className="er-topbar">
+      <div className={`er-topbar ${isOfficialPaper ? 'er-topbar-official' : ''}`}>
         <div className="er-topbar-left">
-          <button className="er-exit-btn" onClick={onExit}>
+          <button className="er-exit-btn" onClick={onExit} aria-label="Quay lại danh sách đề thi">
             <i className="fa-solid fa-arrow-left"></i>
           </button>
-          <div>
+          {!isOfficialPaper && <div>
             <div className="er-exam-title">{exam?.title || 'Phòng Thi Mô Phỏng HSK'}</div>
             {/* Breadcrumb: Kỹ năng > Phần */}
             <div className="er-breadcrumb">
@@ -215,7 +215,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
                : <span className="er-bc-skill">{currentSkillName}</span>}
               {currentPartTitle && <><span className="er-bc-sep">›</span><span className="er-bc-part">{currentPartTitle}</span></>}
             </div>
-          </div>
+          </div>}
         </div>
 
         <div className="er-topbar-right">
@@ -252,28 +252,22 @@ export const ExamRoomView = ({ exam, onExit }) => {
             </button>
           </div>
 
-          {/* Prompt */}
-          <p className="er-qprompt">{isOfficialPaper ? currentQ?.prompt : getChineseExamPrompt(currentQ)}</p>
+          {!isOfficialPaper && <p className="er-qprompt">{getChineseExamPrompt(currentQ)}</p>}
 
           {isOfficialPaper && (
-            <div className="er-paper-box">
-              <div className="er-paper-heading">
-                <strong>Đề gốc có tranh · {exam.chineseTitle}</strong>
-                <a href={exam.sourcePdfUrl} target="_blank" rel="noopener noreferrer">Mở PDF trong tab mới ↗</a>
-              </div>
-              <p>Đọc câu {currentQ?.questionNumber} trên đề gốc, rồi điền đáp án ở phiếu bên dưới. Có thể cuộn và phóng to PDF.</p>
-              <iframe title={`Đề gốc ${exam.chineseTitle}`} src={`${exam.sourcePdfUrl}#page=2&toolbar=1`} loading="lazy" />
-            </div>
+            <iframe
+              className="er-paper-frame"
+              title={`Đề gốc ${exam.chineseTitle}`}
+              src={`${exam.sourcePdfUrl}#page=2&toolbar=1`}
+              loading="lazy"
+            />
           )}
 
           {isOfficialPaper && currentQ?.section === 'listening' && exam.audioUrl && (
-            <div className="er-audio-box er-official-audio">
-              <div>
-                <div className="er-audio-info-title">🎧 Bản nghe đầy đủ {exam.chineseTitle}</div>
-                <div className="er-audio-info-sub">Phát liên tục theo thứ tự câu hỏi của đề gốc. Không dùng giọng đọc tự động.</div>
-              </div>
-              <audio controls preload="metadata" src={exam.audioUrl}>Trình duyệt không hỗ trợ phát audio.</audio>
-              <a href={exam.audioUrl} target="_blank" rel="noopener noreferrer">Mở file nghe ↗</a>
+            <div className="er-official-audio">
+              <audio controls preload="metadata" aria-label="Bản nghe đầy đủ của đề thi" src={exam.audioUrl}>
+                Trình duyệt không hỗ trợ phát audio.
+              </audio>
             </div>
           )}
 
@@ -383,8 +377,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
             <i className="fa-solid fa-table-cells"></i> Ma Trận Câu Hỏi
           </div>
 
-          {/* Legend */}
-          <div className="er-legend">
+          {!isOfficialPaper && <div className="er-legend">
             <div className="er-legend-item">
               <span className="er-legend-dot" style={{ background: 'var(--primary-800)' }}></span> Đã làm
             </div>
@@ -397,7 +390,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
             <div className="er-legend-item">
               <span className="er-legend-dot" style={{ background: 'transparent', border: '2.5px solid var(--ink-900)' }}></span> Đang xem
             </div>
-          </div>
+          </div>}
 
           {/* Matrix Grid — grouped by skill */}
           {skillGroups.map((group) => (

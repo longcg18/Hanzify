@@ -66,9 +66,8 @@ export const CourseDetailView = ({
 
   if (!course) return null;
 
-  const visibleLessons = isTeacherOrAdmin
-    ? (course.lessons || [])
-    : (course.lessons || []).filter((lesson) => (studentClass?.unlockedLessons || []).includes(lesson.id));
+  // Show the full roadmap. Locked lessons already render as non-actionable cards below.
+  const visibleLessons = course.lessons || [];
   const submittedLessonIds = new Set(
     studentSubmissions
       .filter((submission) => ['submitted', 'graded'].includes(submission.submissionState) || submission.status === 'graded')
@@ -545,7 +544,12 @@ export const CourseDetailView = ({
                     </div>
                   ) : (
                     <>
-                      {isGraded ? (
+                      {isLocked ? (
+                        <div className="locked-badge">
+                          <i className="fa-solid fa-lock"></i>
+                          <span>Chưa mở</span>
+                        </div>
+                      ) : isGraded ? (
                         <div className="completed-score-box">
                           <span className="score-val">{(sub?.totalScore !== undefined && sub?.totalScore !== null ? sub.totalScore : (lesson.score || 9.5)).toFixed(1)}</span>
                           <span className="score-max">/ 10 đ</span>
@@ -629,12 +633,7 @@ export const CourseDetailView = ({
                           <span>{user ? 'Làm Bài Ngay' : 'Đăng Nhập Để Làm Bài'}</span>
                           <i className="fa-solid fa-arrow-right"></i>
                         </button>
-                      ) : (
-                        <div className="locked-badge">
-                          <i className="fa-solid fa-lock"></i>
-                          <span>Chưa mở</span>
-                        </div>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </div>
