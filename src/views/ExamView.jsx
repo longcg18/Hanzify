@@ -404,15 +404,13 @@ export const ExamView = ({
           }}>
             {isTeacherOrAdmin ? 'Quản Lý Ngân Hàng Đề Thi HSK' : 'Luyện Thi & Thi Thử HSK'}
           </h1>
-          <p style={{
+          {isTeacherOrAdmin && <p style={{
             margin: 0,
             fontSize: '0.82rem',
             color: isTeacherOrAdmin ? '#94a3b8' : '#64748b'
           }}>
-            {isTeacherOrAdmin
-              ? 'Tạo mới, quản lý cấu trúc đề thi 4 tầng (Đề ➔ Kỹ năng ➔ Phần ➔ Câu hỏi) và nhập đề Excel.'
-              : 'Trải nghiệm thi thử chuẩn quốc tế với đồng hồ bấm giờ, ma trận câu hỏi và bảng điểm chuẩn HSK.'}
-          </p>
+            Tạo mới, quản lý cấu trúc đề thi 4 tầng (Đề ➔ Kỹ năng ➔ Phần ➔ Câu hỏi) và nhập đề Excel.
+          </p>}
         </div>
 
         {isTeacherOrAdmin ? (
@@ -477,55 +475,7 @@ export const ExamView = ({
               {isDbLive ? 'Supabase Live' : 'Offline'}
             </span>
           </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '10px',
-              fontSize: '0.78rem',
-              color: '#475569',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}>
-              <i className="fa-solid fa-file-pen" style={{ color: '#A11D24' }}></i>
-              HSK 1 - 3
-            </span>
-            <span style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '10px',
-              fontSize: '0.78rem',
-              color: '#475569',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}>
-              <i className="fa-solid fa-stopwatch" style={{ color: '#d97706' }}></i>
-              Bấm giờ thi thật
-            </span>
-            <span style={{
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '10px',
-              fontSize: '0.78rem',
-              color: '#15803d',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}>
-              <i className="fa-solid fa-square-poll-vertical" style={{ color: '#16a34a' }}></i>
-              Chấm điểm tự động
-            </span>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {user?.role === 'student' && (
@@ -599,9 +549,9 @@ export const ExamView = ({
                   {exam.chineseTitle}
                 </div>
 
-                <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+                {!exam.sourcePdfUrl && exam.description && <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.25rem' }}>
                   {exam.description}
-                </p>
+                </p>}
 
                 {/* Exam Specs Pills */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '1.5rem' }}>

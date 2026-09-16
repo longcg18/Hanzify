@@ -248,13 +248,11 @@ export const HomeView = ({
             )}
           </h1>
 
-          <p style={{ margin: '0 0 1.5rem', fontSize: '0.96rem', color: '#fee2e2', lineHeight: 1.6, opacity: 0.95 }}>
+          {(user?.role === 'teacher' || user?.role === 'admin') && <p style={{ margin: '0 0 1.5rem', fontSize: '0.96rem', color: '#fee2e2', lineHeight: 1.6, opacity: 0.95 }}>
             {user?.role === 'teacher'
               ? (pendingCount > 0 ? `Hôm nay có ${pendingCount} bài tập mới cần chấm điểm từ học viên.` : 'Hôm nay chưa có bài tập mới cần chấm. Hệ thống sẵn sàng cho buổi học tiếp theo!')
-              : user?.role === 'admin'
-              ? `Hệ thống vận hành mượt mà, gồm ${courses.length} khóa học và ${examsCount} đề thi HSK đã sẵn sàng.`
-              : 'Học tiếng Trung mỗi ngày cùng Cô Hoài giúp bạn tự tin giao tiếp và chinh phục chứng chỉ HSK chuẩn quốc tế.'}
-          </p>
+              : `Hệ thống vận hành mượt mà, gồm ${courses.length} khóa học và ${examsCount} đề thi HSK đã sẵn sàng.`}
+          </p>}
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button

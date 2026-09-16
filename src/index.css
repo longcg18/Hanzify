@@ -4306,14 +4306,18 @@ rt {
 .er-matrix-group-icon.listening { color: #818cf8; }
 .er-matrix-group-icon.reading   { color: #34d399; }
 .er-matrix-group-icon.writing   { color: #fbbf24; }
-/* Official HSK paper: keep the controls and the paper itself in focus. */
-.er-topbar-official { padding: .7rem 1rem; }
+/* Official HSK paper: controls live in the answer matrix, not a separate bar. */
 .er-body { grid-template-columns: minmax(0, 1fr) 320px; }
 .er-qpanel { min-width: 0; }
+.er-sheet-heading-row { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.er-sheet-heading-row .er-sheet-title { margin: 0; }
+.er-timer-compact { padding: .28rem .45rem; font-size: .8rem; letter-spacing: 0; white-space: nowrap; }
+.er-sheet-actions { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .8rem 0 1rem; }
+.er-sheet-actions .er-submit-btn { justify-content: center; flex: 1; }
 .er-paper-frame { display: block; width: 100%; height: min(75vh, 820px); min-height: 420px; margin: .5rem 0 1rem; border: 1px solid #cbd5e1; border-radius: 10px; background: white; }
 .er-official-audio { margin: 0 0 1rem; }
 .er-official-audio audio { display: block; width: min(100%, 520px); }
 .er-writing-answer { display: grid; gap: .5rem; font-weight: 700; margin: 1rem 0; }
 .er-writing-answer input { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: .85rem 1rem; font: inherit; }
 @media (max-width: 900px) { .er-body { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) { .er-topbar-official { padding: .7rem; } .er-paper-frame { min-height: 330px; height: 58vh; } }
+@media (max-width: 640px) { .er-paper-frame { min-height: 330px; height: 58vh; } }

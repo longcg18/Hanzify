@@ -5,6 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import { saveExamAttempt } from '../services/supabaseService';
 import { gradeExam, isExamAnswerCorrect } from '../utils/examScoring';
 
+const STUDENT_PAPER_CODES = {
+  'official-hsk1-01': 'H10901',
+  'official-hsk1-02': 'H10902',
+  'official-hsk2-01': 'H20901',
+  'official-hsk2-02': 'H20902',
+  'official-hsk3-01': 'H31001',
+  'official-hsk3-02': 'H31002',
+};
+
 const cleanExamOption = (option) => {
   if (typeof option !== 'string') return option;
   if (/^(Đúng|正确)\s*[\(（]/i.test(option)) return '正确（√）';
@@ -72,6 +81,8 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
   const currentQ = questions[currentQIndex] || questions[0];
   const isOfficialPaper = Boolean(exam?.sourcePdfUrl);
+  const studentPaperCode = STUDENT_PAPER_CODES[exam?.id];
+  const studentPaperUrl = studentPaperCode ? `/exam-papers/${studentPaperCode}.pdf` : exam?.sourcePdfUrl;
 
   // Derive current skill name and part title for breadcrumb
   const currentSkillName = currentQ?.skillName || (currentQ?.section === 'listening' ? 'Kỹ Năng Nghe Hiểu' : currentQ?.section === 'reading' ? 'Kỹ Năng Đọc Hiểu' : currentQ?.section === 'writing' ? 'Kỹ Năng Viết' : 'Bài Thi');
@@ -200,12 +211,12 @@ export const ExamRoomView = ({ exam, onExit }) => {
     <div className="er-wrapper">
 
       {/* Top Bar */}
-      <div className={`er-topbar ${isOfficialPaper ? 'er-topbar-official' : ''}`}>
+      {!isOfficialPaper && <div className="er-topbar">
         <div className="er-topbar-left">
           <button className="er-exit-btn" onClick={onExit} aria-label="Quay lại danh sách đề thi">
             <i className="fa-solid fa-arrow-left"></i>
           </button>
-          {!isOfficialPaper && <div>
+          <div>
             <div className="er-exam-title">{exam?.title || 'Phòng Thi Mô Phỏng HSK'}</div>
             {/* Breadcrumb: Kỹ năng > Phần */}
             <div className="er-breadcrumb">
@@ -215,7 +226,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
                : <span className="er-bc-skill">{currentSkillName}</span>}
               {currentPartTitle && <><span className="er-bc-sep">›</span><span className="er-bc-part">{currentPartTitle}</span></>}
             </div>
-          </div>}
+          </div>
         </div>
 
         <div className="er-topbar-right">
@@ -234,7 +245,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
             <button className="er-submit-btn" onClick={() => setShowResult(true)}>Xem kết quả</button>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Main Layout */}
       <div className="er-body">
@@ -258,7 +269,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
             <iframe
               className="er-paper-frame"
               title={`Đề gốc ${exam.chineseTitle}`}
-              src={`${exam.sourcePdfUrl}#page=2&toolbar=1`}
+              src={`${studentPaperUrl}#page=1&toolbar=1`}
               loading="lazy"
             />
           )}
@@ -373,9 +384,32 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
         {/* Right: Answer Sheet */}
         <div className="er-answer-sheet">
-          <div className="er-sheet-title">
-            <i className="fa-solid fa-table-cells"></i> Ma Trận Câu Hỏi
+          <div className="er-sheet-heading-row">
+            <div className="er-sheet-title">
+              <i className="fa-solid fa-table-cells"></i> Ma Trận Câu Hỏi
+            </div>
+            {isOfficialPaper && (
+              <div className={`er-timer er-timer-compact ${timeLeft < 300 ? 'danger' : ''}`} aria-label="Thời gian còn lại">
+                <i className="fa-regular fa-clock"></i>
+                <span>{formatTime(timeLeft)}</span>
+              </div>
+            )}
           </div>
+
+          {isOfficialPaper && (
+            <div className="er-sheet-actions">
+              <button className="er-exit-btn" onClick={onExit} aria-label="Quay lại danh sách đề thi">
+                <i className="fa-solid fa-arrow-left"></i>
+              </button>
+              {!isSubmitted ? (
+                <button className="er-submit-btn" onClick={() => handleSubmitExam(false)}>
+                  <i className="fa-solid fa-check"></i> Nộp Bài Thi
+                </button>
+              ) : !showResult ? (
+                <button className="er-submit-btn" onClick={() => setShowResult(true)}>Xem kết quả</button>
+              ) : null}
+            </div>
+          )}
 
           {!isOfficialPaper && <div className="er-legend">
             <div className="er-legend-item">
