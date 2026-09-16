@@ -311,6 +311,7 @@ export async function fetchCoursesWithLessons() {
           number: String(l.number).padStart(2, '0'),
           title: l.title,
           chineseTitle: l.chinese_title,
+          hskLevel: l.hsk_level || c.level,
           deadline: l.description || '23:59 Chủ Nhật',
           status: l.is_unlocked ? 'active' : 'locked',
           questionsCount: 5
