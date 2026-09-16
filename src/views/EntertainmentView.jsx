@@ -421,6 +421,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
   const [toneQuestions, setToneQuestions] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [rewardResult, setRewardResult] = useState(null);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([fetchMatchPairs(), fetchToneItems(), fetchLeaderboard()]).then(([pairsResult, tonesResult, lbResult]) => {
@@ -440,7 +441,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
       if (remoteTones.length > 0) {
         setToneQuestionsList(getToneQuestionsForLevel(currentGameLevel, remoteTones));
       }
-    });
+    }).finally(() => setIsCatalogLoading(false));
   }, []);
 
   // Universal Award Points Handler based on Game & Difficulty
@@ -1766,7 +1767,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                   Bảng Vàng Kỷ Lục Tuần Này
                 </h4>
                 <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                  {leaderboard.length > 0 ? (
+                  {isCatalogLoading ? (
+                    'Đang tải bảng thành tích…'
+                  ) : leaderboard.length > 0 ? (
                     <>Top 1: <strong>{leaderboard[0].user_name}</strong> ({leaderboard[0].score} điểm) {leaderboard[1] ? `• Top 2: ${leaderboard[1].user_name} (${leaderboard[1].score} điểm)` : ''}</>
                   ) : (
                     'Chưa có kỷ lục trong tuần này • Hãy chơi ngay để trở thành người đứng đầu!'

@@ -60,12 +60,14 @@ const getCategoryMeta = (post) => {
 export const HomeView = ({ 
   courses = [], 
   classrooms = [],
+  isCoreDataLoading = false,
   onOpenCreateClass,
   onOpenJoinClass,
   onOpenClassLessonManager,
   onOpenEditClass,
   onDeleteClassroom,
   streakData, 
+  isStreakLoading = false,
   onOpenStreakModal, 
   onNavigate, 
   onSelectCourse, 
@@ -85,6 +87,8 @@ export const HomeView = ({
   const [forumPosts, setForumPosts] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [examsCount, setExamsCount] = useState(0);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
+  const [isHomeDataLoading, setIsHomeDataLoading] = useState(Boolean(user));
 
   useEffect(() => {
     fetchLeaderboard().then((leaderboardResult) => {
@@ -100,7 +104,7 @@ export const HomeView = ({
         classId: item.classId || item.classroom_id || 'all',
         classroom_id: item.classId || item.classroom_id || 'all'
       })));
-    });
+    }).finally(() => setIsLeaderboardLoading(false));
   }, [user?.id, streakData?.totalXp, streakData?.currentStreak]);
 
   useEffect(() => {
@@ -108,9 +112,11 @@ export const HomeView = ({
       setForumPosts([]);
       setSubmissions([]);
       setExamsCount(0);
+      setIsHomeDataLoading(false);
       return;
     }
 
+    setIsHomeDataLoading(true);
     Promise.all([
       fetchForumPosts(),
       fetchSubmissions(),
@@ -119,7 +125,7 @@ export const HomeView = ({
       setForumPosts(forumResult.data || []);
       setSubmissions(subResult?.data || []);
       if (examResult?.data) setExamsCount(examResult.data.length);
-    });
+    }).finally(() => setIsHomeDataLoading(false));
   }, [user?.id]);
 
   const handleCopyClassCode = (code, classId, e) => {
@@ -188,6 +194,15 @@ export const HomeView = ({
 
   // Latest forum posts for Home preview
   const previewForumPosts = (forumPosts || []).slice(0, 2);
+
+  if (isCoreDataLoading || isHomeDataLoading || isLeaderboardLoading || isStreakLoading) {
+    return (
+      <main className="main-content" style={{ padding: '4rem 1rem', textAlign: 'center', color: '#64748b' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+        Đang tải dữ liệu học tập…
+      </main>
+    );
+  }
 
   return (
     <div className="home-view-container" style={{ maxWidth: '1180px', margin: '0 auto', padding: '1.5rem 1rem 3.5rem' }}>

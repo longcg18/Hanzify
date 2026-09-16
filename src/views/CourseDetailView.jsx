@@ -26,14 +26,19 @@ export const CourseDetailView = ({
   const isCourseEnrolled = isTeacherOrAdmin ? true : Boolean(studentClass);
 
   const [studentSubmissions, setStudentSubmissions] = useState([]);
+  const [areSubmissionsLoading, setAreSubmissionsLoading] = useState(user?.role === 'student');
 
   useEffect(() => {
     if (user?.id) {
-      fetchStudentSubmissions(user.id).then(({ data }) => {
-        setStudentSubmissions(data || []);
-      });
+      setAreSubmissionsLoading(user.role === 'student');
+      fetchStudentSubmissions(user.id)
+        .then(({ data }) => {
+          setStudentSubmissions(data || []);
+        })
+        .finally(() => setAreSubmissionsLoading(false));
     } else {
       setStudentSubmissions([]);
+      setAreSubmissionsLoading(false);
     }
   }, [user?.id, course?.id]);
 
@@ -65,6 +70,14 @@ export const CourseDetailView = ({
   const [editCourseDesc, setEditCourseDesc] = useState('');
 
   if (!course) return null;
+  if (areSubmissionsLoading) {
+    return (
+      <main className="main-content" style={{ padding: '4rem 1rem', textAlign: 'center', color: '#64748b' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+        Đang tải tiến độ khóa học…
+      </main>
+    );
+  }
 
   // Show the full roadmap. Locked lessons already render as non-actionable cards below.
   const visibleLessons = course.lessons || [];

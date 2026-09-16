@@ -8,6 +8,7 @@ import { getOfficialExamIdentity, getStudentExamTitle } from '../utils/examDispl
 export const ExamView = ({ 
   exams = [],
   isDbLive = false,
+  isLoading = false,
   onStartExam, 
   onCreateExam, 
   onEditExam, 
@@ -16,13 +17,18 @@ export const ExamView = ({
   const { user, setIsAuthModalOpen } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
   const [examHistory, setExamHistory] = useState([]);
+  const [isExamHistoryLoading, setIsExamHistoryLoading] = useState(false);
 
   useEffect(() => {
     if (!user?.id || user.role !== 'student') {
       setExamHistory([]);
+      setIsExamHistoryLoading(false);
       return;
     }
-    fetchExamAttempts(user.id).then(setExamHistory);
+    setIsExamHistoryLoading(true);
+    fetchExamAttempts(user.id)
+      .then(setExamHistory)
+      .finally(() => setIsExamHistoryLoading(false));
   }, [user?.id, user?.role]);
 
   const formatAttemptDuration = (seconds = 0) => {
@@ -472,7 +478,7 @@ export const ExamView = ({
               border: isDbLive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(148, 163, 184, 0.2)'
             }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isDbLive ? '#22c55e' : '#64748b', display: 'inline-block' }}></span>
-              {isDbLive ? 'Supabase Live' : 'Offline'}
+              {isLoading ? 'Đang tải…' : (isDbLive ? 'Supabase Live' : 'Offline')}
             </span>
           </div>
         ) : null}
@@ -486,7 +492,11 @@ export const ExamView = ({
                 <i className="fa-solid fa-clock-rotate-left" style={{ color: '#A11D24', marginRight: '0.5rem' }}></i>
                 Lịch sử thi của bạn
               </h2>
-              {!examHistory.length && <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>Bạn chưa hoàn thành đề thi nào.</p>}
+              {isExamHistoryLoading ? (
+                <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>Đang tải lịch sử thi…</p>
+              ) : !examHistory.length ? (
+                <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>Bạn chưa hoàn thành đề thi nào.</p>
+              ) : null}
             </div>
             {!!examHistory.length && <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{examHistory.length} lượt thi gần nhất</span>}
           </div>
@@ -509,6 +519,12 @@ export const ExamView = ({
 
       {/* Exam Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>
+        {isLoading && (
+          <div style={{ gridColumn: '1 / -1', padding: '3rem 1rem', textAlign: 'center', color: '#64748b' }}>
+            <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+            Đang tải kho đề thi…
+          </div>
+        )}
         {exams.map((exam) => {
           const officialIdentity = getOfficialExamIdentity(exam);
           const studentFacingTitle = getStudentExamTitle(exam, exam.title);

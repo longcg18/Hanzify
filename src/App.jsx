@@ -168,13 +168,16 @@ export function AppContent() {
 
   // Classrooms state - Pure Supabase
   const [classrooms, setClassrooms] = useState([]);
+  const [areClassroomsLoading, setAreClassroomsLoading] = useState(true);
 
   // Courses state - Pure Supabase
   const [courses, setCourses] = useState([]);
+  const [areCoursesLoading, setAreCoursesLoading] = useState(true);
 
   // Exams state — Supabase là nguồn dữ liệu duy nhất
   const [exams, setExams] = useState([]);
   const [isExamsDbLive, setIsExamsDbLive] = useState(false);
+  const [areExamsLoading, setAreExamsLoading] = useState(true);
 
   const [activeCourseId, setActiveCourseId] = useState(null);
   const activeCourse = courses.find((c) => c.id === activeCourseId) || courses[0] || null;
@@ -186,29 +189,35 @@ export function AppContent() {
 
   // Load courses and classrooms directly from Supabase Cloud
   useEffect(() => {
-    fetchCoursesWithLessons().then((data) => {
-      if (Array.isArray(data) && data.length > 0) {
-        setCourses(data);
-        setActiveCourseId((prev) => prev || data[0].id);
-        if (data[0].lessons && data[0].lessons.length > 0) {
-          setActiveLesson((prev) => prev || data[0].lessons[0]);
+    fetchCoursesWithLessons()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          setActiveCourseId((prev) => prev || data[0].id);
+          if (data[0].lessons && data[0].lessons.length > 0) {
+            setActiveLesson((prev) => prev || data[0].lessons[0]);
+          }
         }
-      }
-    });
+      })
+      .finally(() => setAreCoursesLoading(false));
 
-    fetchClassrooms().then((data) => {
-      if (Array.isArray(data)) {
-        setClassrooms(data);
-      }
-    });
+    fetchClassrooms()
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setClassrooms(data);
+        }
+      })
+      .finally(() => setAreClassroomsLoading(false));
   }, []);
 
   // Load exams từ Supabase khi mount
   useEffect(() => {
-    fetchExams().then(({ data, isLiveDb }) => {
-      setExams(data || []);
-      setIsExamsDbLive(Boolean(isLiveDb));
-    });
+    fetchExams()
+      .then(({ data, isLiveDb }) => {
+        setExams(data || []);
+        setIsExamsDbLive(Boolean(isLiveDb));
+      })
+      .finally(() => setAreExamsLoading(false));
   }, []);
 
   const [roleToast, setRoleToast] = useState(null);
@@ -223,18 +232,23 @@ export function AppContent() {
     milestones: formatStreakMilestones(0)
   }));
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
+  const [isStreakLoading, setIsStreakLoading] = useState(Boolean(user?.id));
 
   useEffect(() => {
     if (user?.id) {
-      fetchUserStreak(user.id).then(({ data }) => {
-        if (data) {
-          setStreakData(data);
-          if (data.checkedInToday || data.lastCheckIn || (data.currentStreak && data.currentStreak > 0)) {
-            dismissWelcomeNotification?.();
+      setIsStreakLoading(true);
+      fetchUserStreak(user.id)
+        .then(({ data }) => {
+          if (data) {
+            setStreakData(data);
+            if (data.checkedInToday || data.lastCheckIn || (data.currentStreak && data.currentStreak > 0)) {
+              dismissWelcomeNotification?.();
+            }
           }
-        }
-      });
+        })
+        .finally(() => setIsStreakLoading(false));
     } else {
+      setIsStreakLoading(false);
       setStreakData({
         currentStreak: 0,
         longestStreak: 0,
@@ -734,6 +748,7 @@ export function AppContent() {
         onBack={handleBack}
         onRoleSwitched={handleRoleSwitched}
         streakData={streakData}
+        isStreakLoading={isStreakLoading}
         onOpenStreakModal={handleOpenStreakModal}
         classrooms={classrooms}
       />
@@ -743,12 +758,14 @@ export function AppContent() {
         <HomeView
           courses={courses}
           classrooms={classrooms}
+          isCoreDataLoading={areCoursesLoading || areClassroomsLoading || areExamsLoading}
           onOpenCreateClass={() => setIsCreateClassModalOpen(true)}
           onOpenJoinClass={() => setIsJoinClassModalOpen(true)}
           onOpenClassLessonManager={(cls) => setManagingClassroom(cls)}
           onOpenEditClass={(cls) => setEditingClassroom(cls)}
           onDeleteClassroom={handleDeleteClassroom}
           streakData={streakData}
+          isStreakLoading={isStreakLoading}
           onOpenStreakModal={handleOpenStreakModal}
           onNavigate={handleNavigate}
           onSelectCourse={handleSelectCourse}
@@ -766,6 +783,7 @@ export function AppContent() {
           <CoursesView 
             courses={courses}
             classrooms={classrooms}
+            isLoading={areCoursesLoading || areClassroomsLoading}
             onOpenCreateClass={() => setIsCreateClassModalOpen(true)}
             onOpenJoinClass={() => setIsJoinClassModalOpen(true)}
             onSelectCourse={handleSelectCourse} 
@@ -873,6 +891,7 @@ export function AppContent() {
           <ExamView 
             exams={exams}
             isDbLive={isExamsDbLive}
+            isLoading={areExamsLoading}
             onStartExam={handleStartExam} 
             onCreateExam={handleCreateExam}
             onEditExam={handleEditExam}
@@ -901,7 +920,7 @@ export function AppContent() {
               Chế độ xem khách: Bạn đang theo dõi bảng xếp hạng toàn hệ thống. Đăng nhập để ghi nhận điểm số của bạn vào bảng vàng!
             </GuestPreviewNotice>
           )}
-          <LeaderboardView classrooms={classrooms} onNavigate={handleNavigate} />
+          <LeaderboardView classrooms={classrooms} areClassroomsLoading={areClassroomsLoading} onNavigate={handleNavigate} />
         </>
       )}
 
@@ -981,6 +1000,7 @@ export function AppContent() {
         user?.role === 'admin' ? (
           <AdminUsersView 
             classrooms={classrooms}
+            areClassroomsLoading={areClassroomsLoading}
             onTransferStudent={handleTransferStudent}
           />
         ) : (

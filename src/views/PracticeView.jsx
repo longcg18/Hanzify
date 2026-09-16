@@ -34,8 +34,8 @@ export const PracticeView = () => {
   const { user, setIsAuthModalOpen } = useAuth();
 
   // Dynamic practice topics list (curated base + live vocabulary topics from DB)
-  const [topicsList, setTopicsList] = useState(PRACTICE_TOPICS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [topicsList, setTopicsList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filters
   const [selectedSkill, setSelectedSkill] = useState('all'); // 'all' | 'listening' | 'reading' | 'grammar' | 'pinyin' | 'hanzi'
@@ -61,13 +61,16 @@ export const PracticeView = () => {
     fetchVocabularies()
       .then((res) => {
         const items = Array.isArray(res) ? res : res?.data || [];
-        if (isMounted && items.length > 0) {
-          const liveVocabTopics = buildVocabPracticeTopics(items);
-          setTopicsList([...BASE_PRACTICE_TOPICS, ...liveVocabTopics]);
+        if (isMounted) {
+          const resolvedTopics = items.length > 0
+            ? [...BASE_PRACTICE_TOPICS, ...buildVocabPracticeTopics(items)]
+            : PRACTICE_TOPICS;
+          setTopicsList(resolvedTopics);
         }
       })
       .catch((err) => {
         console.warn('PracticeView: using static practice dataset', err);
+        if (isMounted) setTopicsList(PRACTICE_TOPICS);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -321,7 +324,9 @@ export const PracticeView = () => {
             >
               {user?.role === 'admin'
                 ? 'Quản lý ngân hàng câu hỏi phân theo 5 kỹ năng (Nghe, Đọc, Ngữ Pháp, Pinyin, Chữ Hán) qua tất cả 6 cấp độ HSK.'
-                : `Luyện sâu từng kỹ năng Nghe, Đọc, Ngữ Pháp, Pinyin, Chữ Hán theo cấp độ HSK 1 đến HSK 6 với ${totalQuestions} câu hỏi phong phú, mỗi lượt 10 câu ngẫu nhiên.`}
+                : isLoading
+                  ? 'Đang tải danh sách luyện tập...'
+                  : `Luyện sâu từng kỹ năng Nghe, Đọc, Ngữ Pháp, Pinyin, Chữ Hán theo cấp độ HSK 1 đến HSK 6 với ${totalQuestions} câu hỏi phong phú, mỗi lượt 10 câu ngẫu nhiên.`}
             </p>
           </div>
 
@@ -400,7 +405,7 @@ export const PracticeView = () => {
                 }}
               >
                 <i className="fa-solid fa-circle-check" style={{ color: '#16a34a' }}></i>
-                {topicsList.length} Chuyên đề
+                {isLoading ? 'Đang tải...' : `${topicsList.length} Chuyên đề`}
               </span>
             </div>
           )}
@@ -961,9 +966,11 @@ export const PracticeView = () => {
               <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Cấp độ:</span>
               {['all', ...HSK_LEVELS].map((lvl) => {
                 const isSelected = selectedLevel === lvl;
-                const count = lvl === 'all'
-                  ? topicsList.length
-                  : topicsList.filter((t) => t.level === lvl).length;
+                const count = isLoading
+                  ? '…'
+                  : lvl === 'all'
+                    ? topicsList.length
+                    : topicsList.filter((t) => t.level === lvl).length;
 
                 return (
                   <button
@@ -1054,7 +1061,12 @@ export const PracticeView = () => {
           </div>
 
           {/* Topic Cards Grid */}
-          {filteredTopics.length === 0 ? (
+          {isLoading ? (
+            <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748b', fontWeight: 600 }}>
+              <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+              Đang tải chuyên đề...
+            </div>
+          ) : filteredTopics.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',

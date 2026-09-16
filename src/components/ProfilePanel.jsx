@@ -34,7 +34,7 @@ export const ProfilePanel = () => {
     if (activeTab === 'history' && user?.id) {
       setLoadingSubs(true);
       fetchStudentSubmissions(user.id)
-        .then(res => setSubmissions(res || []))
+        .then(({ data }) => setSubmissions(data || []))
         .catch(err => console.warn('Failed to load submissions:', err))
         .finally(() => setLoadingSubs(false));
     }
@@ -402,7 +402,7 @@ export const ProfilePanel = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                  Tổng cộng: <strong>{submissions.length} lượt nộp bài</strong>
+                  {loadingSubs ? 'Đang tải lịch sử…' : <>Tổng cộng: <strong>{submissions.length} lượt nộp bài</strong></>}
                 </span>
                 {submissions.length > 0 && (
                   <span style={{ fontSize: '0.82rem', color: '#16a34a', fontWeight: 600 }}>

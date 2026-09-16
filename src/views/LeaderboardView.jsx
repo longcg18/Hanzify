@@ -3,27 +3,32 @@ import { useAuth } from '../context/AuthContext';
 import { fetchLeaderboard } from '../services/supabaseService';
 import { getStudentClassrooms } from '../utils/classEnrollment';
 
-export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
+export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoading = false }) => {
   const { user } = useAuth();
   const [selectedClassId, setSelectedClassId] = useState('all'); // 'all' | 'hsk1-k02' | 'hsk1-k03' | 'hsk2-k01'
   const [timeRange, setTimeRange] = useState('weekly'); // 'weekly' | 'monthly' | 'allTime'
   const [isXpRulesOpen, setIsXpRulesOpen] = useState(false);
   const [entries, setEntries] = useState([]);
   const [loadError, setLoadError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    fetchLeaderboard().then(({ data }) => {
-      const mapped = (data || []).map((item, index) => ({
-        ...item,
-        rank: index + 1,
-        name: item.name || item.user_name || 'Học viên',
-        avatar: item.avatar || (item.name ? item.name.slice(0, 1) : '学'),
-        xp: item.xp || item.score || 0,
-        points: item.xp || item.score || 0,
-        classId: item.classId || item.classroom_id || 'all'
-      }));
-      setEntries(mapped);
-      setLoadError('');
-    });
+    setIsLoading(true);
+    fetchLeaderboard()
+      .then(({ data }) => {
+        const mapped = (data || []).map((item, index) => ({
+          ...item,
+          rank: index + 1,
+          name: item.name || item.user_name || 'Học viên',
+          avatar: item.avatar || (item.name ? item.name.slice(0, 1) : '学'),
+          xp: item.xp || item.score || 0,
+          points: item.xp || item.score || 0,
+          classId: item.classId || item.classroom_id || 'all'
+        }));
+        setEntries(mapped);
+        setLoadError('');
+      })
+      .catch(() => setLoadError('Không thể tải bảng xếp hạng. Vui lòng thử lại.'))
+      .finally(() => setIsLoading(false));
   }, [user?.id]);
 
   const currentList = selectedClassId === 'all' 
@@ -276,7 +281,12 @@ export const LeaderboardView = ({ onNavigate, classrooms = [] }) => {
       </section>
 
       {/* RANKING CONTENT OR EMPTY STATE */}
-      {currentList.length === 0 ? (
+      {isLoading || areClassroomsLoading ? (
+        <section style={{ padding: '3.5rem 2rem', textAlign: 'center', color: '#64748b' }}>
+          <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+          Đang tải bảng xếp hạng…
+        </section>
+      ) : currentList.length === 0 ? (
         <section style={{
           background: '#ffffff',
           borderRadius: '24px',

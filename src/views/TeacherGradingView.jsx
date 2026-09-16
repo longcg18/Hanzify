@@ -36,9 +36,10 @@ export const TeacherGradingView = () => {
   const [directScoreInput, setDirectScoreInput] = useState('0');
   const [directCommentInput, setDirectCommentInput] = useState('');
   const [isSavingDirectGrade, setIsSavingDirectGrade] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadSubmissionsData = () => {
-    fetchSubmissions().then(({ data }) => {
+    return fetchSubmissions().then(({ data }) => {
       const list = data || [];
       setSubmissions(list);
       if (!selectedSub && list.length > 0) {
@@ -51,22 +52,24 @@ export const TeacherGradingView = () => {
   };
 
   useEffect(() => {
-    loadSubmissionsData();
-
-    fetchClassrooms().then((data) => {
+    const submissionsPromise = loadSubmissionsData();
+    const classroomsPromise = fetchClassrooms().then((data) => {
       if (Array.isArray(data) && data.length > 0) {
         setClassrooms(data);
         setSelectedClassId(String(data[0].id));
       }
     });
 
-    fetchCoursesWithLessons().then((data) => {
+    const coursesPromise = fetchCoursesWithLessons().then((data) => {
       if (Array.isArray(data) && data.length > 0) {
         setCourses(data);
         const firstLesson = data[0]?.lessons?.[0];
         if (firstLesson) setSelectedLessonId(firstLesson.id);
       }
     });
+
+    Promise.all([submissionsPromise, classroomsPromise, coursesPromise])
+      .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -293,7 +296,12 @@ export const TeacherGradingView = () => {
 
       {/* TAB 1: SUBMISSIONS QUEUE */}
       {activeTab === 'queue' && (
-        submissions.length === 0 ? (
+        isLoading ? (
+          <div style={{ padding: '3.5rem 2rem', textAlign: 'center', color: '#64748b' }}>
+            <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+            Đang tải danh sách bài nộp…
+          </div>
+        ) : submissions.length === 0 ? (
           <div style={{
             background: '#ffffff',
             borderRadius: '24px',
@@ -708,6 +716,14 @@ export const TeacherGradingView = () => {
 
           {/* Students list of selected class */}
           {(() => {
+            if (isLoading) {
+              return (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+                  Đang tải dữ liệu lớp học…
+                </div>
+              );
+            }
             const currentClass = classrooms.find((c) => String(c.id) === String(selectedClassId));
             const students = currentClass?.students || [];
 

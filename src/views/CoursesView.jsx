@@ -14,6 +14,7 @@ const GRADIENT_PRESETS = [
 export const CoursesView = ({ 
   courses = [], 
   classrooms = [],
+  isLoading = false,
   onOpenCreateClass,
   onOpenJoinClass,
   onSelectCourse, 
@@ -27,19 +28,24 @@ export const CoursesView = ({
   const { user } = useAuth();
   const isTeacherOrAdmin = user?.role === 'admin' || user?.role === 'teacher';
   const [submittedLessonIds, setSubmittedLessonIds] = useState(new Set());
+  const [areSubmissionsLoading, setAreSubmissionsLoading] = useState(user?.role === 'student');
 
   useEffect(() => {
     if (user?.role !== 'student' || !user?.id) {
       setSubmittedLessonIds(new Set());
+      setAreSubmissionsLoading(false);
       return;
     }
-    fetchStudentSubmissions(user.id).then(({ data }) => {
-      setSubmittedLessonIds(new Set(
-        (data || [])
-          .filter((submission) => ['submitted', 'graded'].includes(submission.submissionState) || submission.status === 'graded')
-          .map((submission) => String(submission.lessonId))
-      ));
-    });
+    setAreSubmissionsLoading(true);
+    fetchStudentSubmissions(user.id)
+      .then(({ data }) => {
+        setSubmittedLessonIds(new Set(
+          (data || [])
+            .filter((submission) => ['submitted', 'graded'].includes(submission.submissionState) || submission.status === 'graded')
+            .map((submission) => String(submission.lessonId))
+        ));
+      })
+      .finally(() => setAreSubmissionsLoading(false));
   }, [user?.id, user?.role]);
 
   // Modal State for Create / Edit Course
@@ -225,19 +231,19 @@ export const CoursesView = ({
             <>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
                 <span className="stat-num" style={{ color: '#f8fafc' }}>
-                  {courses.length < 10 ? `0${courses.length}` : courses.length}
+                  {isLoading ? '…' : (courses.length < 10 ? `0${courses.length}` : courses.length)}
                 </span>
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Khóa Hệ Thống</span>
               </div>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
                 <span className="stat-num" style={{ color: '#f8fafc' }}>
-                  {totalStudents < 10 ? `0${totalStudents}` : totalStudents}
+                  {isLoading ? '…' : (totalStudents < 10 ? `0${totalStudents}` : totalStudents)}
                 </span>
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Tổng Học Viên</span>
               </div>
               <div className="stat-card highlight" style={{ background: 'rgba(161, 29, 36, 0.2)', borderColor: '#A11D24' }}>
                 <span className="stat-num" style={{ color: '#fca5a5' }}>
-                  {totalLessons < 10 ? `0${totalLessons}` : totalLessons}
+                  {isLoading ? '…' : (totalLessons < 10 ? `0${totalLessons}` : totalLessons)}
                 </span>
                 <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Tập Thiết Lập</span>
               </div>
@@ -246,19 +252,19 @@ export const CoursesView = ({
             <>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
                 <span className="stat-num" style={{ color: '#f8fafc' }}>
-                  {courses.length < 10 ? `0${courses.length}` : courses.length}
+                  {isLoading ? '…' : (courses.length < 10 ? `0${courses.length}` : courses.length)}
                 </span>
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Khóa Đang Dạy</span>
               </div>
               <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
                 <span className="stat-num" style={{ color: '#f8fafc' }}>
-                  {totalStudents < 10 ? `0${totalStudents}` : totalStudents}
+                  {isLoading ? '…' : (totalStudents < 10 ? `0${totalStudents}` : totalStudents)}
                 </span>
                 <span className="stat-label" style={{ color: '#94a3b8' }}>Tổng Học Viên</span>
               </div>
               <div className="stat-card highlight" style={{ background: 'rgba(161, 29, 36, 0.2)', borderColor: '#A11D24' }}>
                 <span className="stat-num" style={{ color: '#fca5a5' }}>
-                  {totalLessons < 10 ? `0${totalLessons}` : totalLessons}
+                  {isLoading ? '…' : (totalLessons < 10 ? `0${totalLessons}` : totalLessons)}
                 </span>
                 <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Đang Phụ Trách</span>
               </div>
@@ -287,7 +293,7 @@ export const CoursesView = ({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <span className="course-counter">
-            Tổng cộng: <strong>{courses.length}</strong> khóa học
+            {isLoading || areSubmissionsLoading ? 'Đang tải danh sách khóa học…' : <>Tổng cộng: <strong>{courses.length}</strong> khóa học</>}
           </span>
 
           {isTeacherOrAdmin ? (
@@ -364,7 +370,13 @@ export const CoursesView = ({
 
       {/* Courses Grid */}
       <div className="courses-grid">
-        {courses.map((course) => {
+        {(isLoading || areSubmissionsLoading) && (
+          <div style={{ gridColumn: '1 / -1', padding: '3rem 1rem', textAlign: 'center', color: '#64748b' }}>
+            <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+            Đang tải khóa học…
+          </div>
+        )}
+        {!isLoading && !areSubmissionsLoading && courses.map((course) => {
           const totalL = course.lessons?.length || course.totalLessons || 1;
           const completedL = user?.role === 'student'
             ? (course.lessons || []).filter((lesson) => submittedLessonIds.has(String(lesson.id))).length

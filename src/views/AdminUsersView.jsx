@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 
 
 
-export const AdminUsersView = ({ classrooms = [], onTransferStudent }) => {
+export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, onTransferStudent }) => {
   const { user } = useAuth();
   // Main admin sub-tab: 'users' | 'classrooms' | 'entertainment'
   const [adminSection, setAdminSection] = useState('users');
@@ -72,7 +72,6 @@ export const AdminUsersView = ({ classrooms = [], onTransferStudent }) => {
     async function loadData() {
       try {
         const conn = await checkSupabaseConnection();
-        setDbStatus({ connected: conn.connected, loading: false });
 
         const [usersRes, pairsRes, toneRes, lbRes, resetRes] = await Promise.all([
           fetchUsers(),
@@ -87,6 +86,7 @@ export const AdminUsersView = ({ classrooms = [], onTransferStudent }) => {
         setToneItems(toneRes?.data || []);
         setLeaderboard(lbRes?.data || []);
         setResetRequests(resetRes?.data || []);
+        setDbStatus({ connected: conn.connected, loading: false });
       } catch (err) {
         console.error('Error loading Supabase data:', err);
         setDbStatus({ connected: false, loading: false });
@@ -256,6 +256,15 @@ export const AdminUsersView = ({ classrooms = [], onTransferStudent }) => {
       setIsAdminTransferring(false);
     }
   };
+
+  if (dbStatus.loading || areClassroomsLoading) {
+    return (
+      <main className="main-content" style={{ padding: '4rem 1rem', textAlign: 'center', color: '#64748b' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+        Đang tải dữ liệu quản trị…
+      </main>
+    );
+  }
 
   return (
     <main className="main-content">

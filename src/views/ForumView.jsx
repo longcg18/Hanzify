@@ -8,6 +8,7 @@ export const ForumView = () => {
 
   const [posts, setPosts] = useState([]);
   const [loadError, setLoadError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [systemUsers, setSystemUsers] = useState([]);
   const [mentionState, setMentionState] = useState({ postId: null, query: '', cursorPos: 0, matchStart: -1 });
   const [mentionSuggestions, setMentionSuggestions] = useState([]);
@@ -15,10 +16,13 @@ export const ForumView = () => {
   const commentInputRefs = useRef({});
 
   useEffect(() => {
-    fetchForumPosts().then(({ data, error }) => {
-      setPosts(data);
-      setLoadError(error || '');
-    });
+    fetchForumPosts()
+      .then(({ data, error }) => {
+        setPosts(data || []);
+        setLoadError(error || '');
+      })
+      .catch(() => setLoadError('Không thể tải diễn đàn. Vui lòng thử lại.'))
+      .finally(() => setIsLoading(false));
     fetchUsers().then(({ data }) => {
       if (data && data.length > 0) setSystemUsers(data);
     });
@@ -587,7 +591,7 @@ export const ForumView = () => {
                     borderRadius: '999px',
                     fontWeight: 700
                   }}>
-                    {cat.count}
+                    {isLoading ? '…' : cat.count}
                   </span>
                 </button>
               );
@@ -651,7 +655,12 @@ export const ForumView = () => {
           </div>
 
           {/* Posts Feed */}
-          {filteredPosts.length === 0 ? (
+          {isLoading ? (
+            <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748b' }}>
+              <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+              Đang tải bài thảo luận…
+            </div>
+          ) : filteredPosts.length === 0 ? (
             <div style={{
               background: '#ffffff',
               borderRadius: '20px',

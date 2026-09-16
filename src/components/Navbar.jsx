@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProfileDropdown } from './ProfileDropdown';
 
-export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSwitched, streakData, onOpenStreakModal, classrooms = [] }) => {
+export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSwitched, streakData, isStreakLoading = false, onOpenStreakModal, classrooms = [] }) => {
   const { user, setIsAuthModalOpen, unreadNotifsCount } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [profileDropdownTab, setProfileDropdownTab] = useState('profile');
@@ -243,7 +243,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
               <button
                 type="button"
                 onClick={onOpenStreakModal}
-                title={`Chuỗi ngày học: ${streakData?.currentStreak ?? 0} ngày liên tiếp (Bấm để xem & điểm danh)`}
+                title={isStreakLoading ? 'Đang tải chuỗi ngày học' : `Chuỗi ngày học: ${streakData?.currentStreak ?? 0} ngày liên tiếp (Bấm để xem & điểm danh)`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -261,7 +261,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
                 }}
               >
                 <span style={{ fontSize: '1.05rem', filter: 'drop-shadow(0 1px 3px rgba(234,88,12,0.4))' }}>🔥</span>
-                <span>{streakData?.currentStreak ?? 0}</span>
+                <span>{isStreakLoading ? '…' : (streakData?.currentStreak ?? 0)}</span>
               </button>
             )}
 

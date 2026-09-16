@@ -62,12 +62,14 @@ export const HomeworkView = ({ lesson, onBack }) => {
   const [submissionState, setSubmissionState] = useState('initial'); // 'initial' | 'draft' | 'submitted' | 'redo_requested' | 'graded'
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [existingSubmission, setExistingSubmission] = useState(null);
+  const [isSubmissionLoading, setIsSubmissionLoading] = useState(Boolean(lesson?.id && user?.id));
   const [isDraftSaving, setIsDraftSaving] = useState(false);
   const [draftToast, setDraftToast] = useState(null);
 
   // Load existing submission or draft
   useEffect(() => {
     if (lesson?.id && user?.id) {
+      setIsSubmissionLoading(true);
       fetchStudentLessonSubmission(user.id, lesson.id).then(({ success, submission }) => {
         if (success && submission) {
           setExistingSubmission(submission);
@@ -111,7 +113,9 @@ export const HomeworkView = ({ lesson, onBack }) => {
             setIsReadOnly(false);
           }
         }
-      });
+      }).finally(() => setIsSubmissionLoading(false));
+    } else {
+      setIsSubmissionLoading(false);
     }
   }, [lesson?.id, user?.id]);
 
@@ -485,6 +489,15 @@ export const HomeworkView = ({ lesson, onBack }) => {
       colors: ['#A11D24', '#D4AF37', '#ffffff']
     });
   };
+
+  if (isSubmissionLoading) {
+    return (
+      <main className="main-content" style={{ padding: '4rem 1rem', textAlign: 'center', color: '#64748b' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+        Đang tải bài làm đã lưu…
+      </main>
+    );
+  }
 
   return (
     <div className="hw-wrapper">
