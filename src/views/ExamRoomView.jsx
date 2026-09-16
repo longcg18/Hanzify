@@ -36,7 +36,7 @@ const getChineseExamPrompt = (question) => {
 
 export const ExamRoomView = ({ exam, onExit }) => {
   const { user } = useAuth();
-  const timeLimitMinutes = 10;
+  const timeLimitMinutes = Math.max(5, (exam?.duration || 35) - 10);
   const dynamicQuestions = React.useMemo(() => {
     if (exam?.skills && exam.skills.length > 0) {
       const flattened = flattenExamQuestions(exam);
@@ -98,12 +98,12 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
   // Timer countdown
   useEffect(() => {
-    if (isSubmitted || !hasStarted || (isOfficialPaper && exam?.audioUrl && audioStatus === 'playing')) return;
+    if (isSubmitted || !hasStarted) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isSubmitted, hasStarted, isOfficialPaper, exam?.audioUrl, audioStatus]);
+  }, [isSubmitted, hasStarted]);
 
   const startExam = async () => {
     if (hasStarted) return;
@@ -252,7 +252,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
         <div className="er-start-overlay">
           <div className="er-start-card">
             <h2>Sẵn sàng làm bài?</h2>
-            <p>{isOfficialPaper && exam.audioUrl ? 'Bản nghe phát một lượt khi bắt đầu. Sau khi nghe xong, bạn có 10 phút hoàn tất bài; không thể tua hoặc nghe lại.' : 'Bạn có 10 phút làm bài kể từ khi bấm bắt đầu.'}</p>
+            <p>Bạn có {timeLimitMinutes} phút làm bài kể từ khi bấm bắt đầu. {isOfficialPaper && exam.audioUrl ? 'Bản nghe phát đồng thời một lượt, không thể tua hoặc nghe lại.' : ''}</p>
             {audioStatus === 'blocked' && <p role="alert">Không phát được audio. Kiểm tra âm lượng và kết nối rồi bấm bắt đầu lại.</p>}
             <button type="button" className="er-submit-btn" onClick={startExam}>Bắt đầu thi</button>
           </div>
@@ -426,7 +426,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
               {exam.audioUrl && (
                 <div className="er-audio-status" role="status">
                   <i className={`fa-solid ${audioStatus === 'playing' ? 'fa-volume-high' : 'fa-headphones'}`}></i>
-                  {audioStatus === 'playing' ? 'Đang phát bản nghe · 10 phút bắt đầu sau bản nghe' : audioStatus === 'ended' ? 'Đã phát xong bản nghe' : 'Bản nghe phát khi bắt đầu thi'}
+                  {audioStatus === 'playing' ? `Đang phát bản nghe · còn ${formatTime(timeLeft)}` : audioStatus === 'ended' ? 'Đã phát xong bản nghe' : 'Bản nghe phát khi bắt đầu thi'}
                 </div>
               )}
               <div className="er-official-question-title">Câu {currentQ?.questionNumber}</div>

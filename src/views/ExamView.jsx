@@ -63,7 +63,7 @@ export const ExamView = ({
     title: '',
     chineseTitle: '',
     level: 'HSK 2',
-    duration: 10,
+    duration: 35,
     passingScore: 120,
     maxScore: 200,
     tag: 'Đề tiêu chuẩn',
@@ -95,7 +95,7 @@ export const ExamView = ({
       title: 'Đề Thi Thử HSK Mới',
       chineseTitle: '全真模拟考试',
       level: 'HSK 2',
-      duration: 10,
+      duration: 35,
       passingScore: 120,
       maxScore: 200,
       tag: 'Đề mới tạo',
@@ -171,9 +171,9 @@ export const ExamView = ({
     }
 
     if (editingExamId) {
-      if (onEditExam) onEditExam({ ...examForm, duration: 10 });
+      if (onEditExam) onEditExam(examForm);
     } else {
-      if (onCreateExam) onCreateExam({ ...examForm, duration: 10 });
+      if (onCreateExam) onCreateExam(examForm);
     }
     setIsBuilderOpen(false);
   };
@@ -533,13 +533,13 @@ export const ExamView = ({
               <div style={{ height: '4px', width: '100%', background: 'linear-gradient(90deg, #A11D24 0%, #D4AF37 100%)', position: 'absolute', top: 0, left: 0 }}></div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <span style={{ background: '#fef2f2', color: '#A11D24', padding: '0.35rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <span style={{ background: '#fef2f2', color: '#A11D24', padding: '0.35rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, minWidth: 0 }}>
                     {exam.level} · {exam.tag || 'Đề tiêu chuẩn'}
                   </span>
-                  <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span title={`Đã giảm 10 phút so với thời lượng đề gốc ${exam.duration} phút`} style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0, whiteSpace: 'nowrap' }}>
                     <i className="fa-regular fa-clock" style={{ color: '#A11D24' }}></i>
-                    10 phút làm bài{exam.audioUrl ? ' sau bản nghe' : ''}
+                    {Math.max(5, (exam.duration || 35) - 10)} phút
                   </span>
                 </div>
 
@@ -924,14 +924,14 @@ export const ExamView = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                        Thời gian làm bài sau phần nghe (phút)
+                        Thời lượng đề gốc (phút)
                       </label>
                       <input
                         type="number"
-                        min="10"
-                        max="10"
-                        value="10"
-                        readOnly
+                        min="15"
+                        max="180"
+                        value={examForm.duration}
+                        onChange={(e) => setExamForm({ ...examForm, duration: parseInt(e.target.value, 10) || 35 })}
                         style={{
                           width: '100%',
                           padding: '0.7rem 0.9rem',
