@@ -235,7 +235,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
   }
 
   return (
-    <div className="er-wrapper">
+    <div className={`er-wrapper ${isOfficialPaper ? 'er-wrapper-official' : ''}`}>
 
       {isOfficialPaper && exam.audioUrl && (
         <audio
@@ -301,7 +301,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
         {/* Left: Current Question */}
         <div className="er-qpanel">
-          <div className="er-qpanel-top">
+          {!isOfficialPaper && <div className="er-qpanel-top">
             <span className="er-qnum-badge">Câu {currentQ?.questionNumber} / {questions.length}</span>
             <button
               className={`er-flag-btn ${flagged[currentQ?.id] ? 'flagged' : ''}`}
@@ -310,7 +310,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
               <i className="fa-solid fa-flag"></i>
               {flagged[currentQ?.id] ? 'Đã đánh dấu' : 'Đánh dấu xem lại'}
             </button>
-          </div>
+          </div>}
 
           {!isOfficialPaper && <p className="er-qprompt">{getChineseExamPrompt(currentQ)}</p>}
 
@@ -429,7 +429,18 @@ export const ExamRoomView = ({ exam, onExit }) => {
                   {audioStatus === 'playing' ? `Đang phát bản nghe · còn ${formatTime(timeLeft)}` : audioStatus === 'ended' ? 'Đã phát xong bản nghe' : 'Bản nghe phát khi bắt đầu thi'}
                 </div>
               )}
-              <div className="er-official-question-title">Câu {currentQ?.questionNumber}</div>
+              <div className="er-official-question-row">
+                <div className="er-official-question-title">Câu {currentQ?.questionNumber}</div>
+                <button
+                  type="button"
+                  className={`er-flag-btn er-flag-compact ${flagged[currentQ?.id] ? 'flagged' : ''}`}
+                  onClick={() => toggleFlag(currentQ?.id)}
+                  aria-pressed={Boolean(flagged[currentQ?.id])}
+                  title={flagged[currentQ?.id] ? 'Bỏ đánh dấu câu này' : 'Đánh dấu câu này để xem lại'}
+                >
+                  <i className="fa-solid fa-flag"></i> Flag
+                </button>
+              </div>
               {currentQ?.section === 'writing' ? (
                 <label className="er-writing-answer">
                   Đáp án

@@ -3539,6 +3539,8 @@ rt {
   padding: 1.5rem 1rem 3rem;
 }
 
+.er-wrapper-official { max-width: 1560px; padding: .75rem .75rem 2rem; }
+
 /* Top Bar */
 .er-topbar {
   display: flex;
@@ -4308,10 +4310,13 @@ rt {
 .er-matrix-group-icon.writing   { color: #fbbf24; }
 /* Official HSK paper: PDF and answer controls stay visible side by side. */
 .er-body { grid-template-columns: minmax(0, 1fr) 320px; }
-.er-body-official { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+.er-body-official { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); gap: 1rem; }
+.er-body-official .er-qpanel { padding: .65rem; border-radius: 14px; }
 .er-body-official .er-answer-sheet { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
 .er-official-controls { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--ink-200); }
-.er-official-question-title { font-weight: 800; color: var(--ink-900); margin: .8rem 0; }
+.er-official-question-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: .8rem 0; }
+.er-official-question-title { font-weight: 800; color: var(--ink-900); }
+.er-flag-compact { padding: .35rem .65rem; min-height: 32px; font-size: .78rem; cursor: pointer; }
 .er-official-controls .er-options-list { gap: .45rem; }
 .er-official-controls .er-option { width: 100%; text-align: left; font: inherit; cursor: pointer; }
 .er-official-controls .er-nav-row { margin-top: .8rem; }
@@ -4327,7 +4332,7 @@ rt {
 .er-timer-compact { padding: .28rem .45rem; font-size: .8rem; letter-spacing: 0; white-space: nowrap; }
 .er-sheet-actions { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .8rem 0 1rem; }
 .er-sheet-actions .er-submit-btn { justify-content: center; flex: 1; }
-.er-paper-frame { display: block; width: 100%; height: min(75vh, 820px); min-height: 420px; margin: .5rem 0 1rem; border: 1px solid #cbd5e1; border-radius: 10px; background: white; }
+.er-paper-frame { display: block; width: 100%; height: calc(100vh - 8.5rem); min-height: 560px; margin: 0; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
 .er-official-audio { margin: 0 0 1rem; }
 .er-official-audio audio { display: block; width: min(100%, 520px); }
 .er-writing-answer { display: grid; gap: .5rem; font-weight: 700; margin: 1rem 0; }
