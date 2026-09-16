@@ -143,6 +143,8 @@ CREATE TABLE IF NOT EXISTS public.exams (
   max_score INTEGER DEFAULT 200,       -- Thang điểm tối đa
   tag TEXT DEFAULT 'Đề tiêu chuẩn',
   description TEXT,
+  source_pdf_url TEXT,                -- Đề gốc có tranh
+  audio_url TEXT,                     -- Bản nghe liên tục của đề gốc
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );

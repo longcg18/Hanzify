@@ -749,7 +749,9 @@ export async function syncExamToSupabase(exam) {
     passing_score: exam.passingScore || 120,
     max_score: exam.maxScore || 200,
     description: exam.description || '',
-    tag: exam.tag || 'Đề tiêu chuẩn'
+    tag: exam.tag || 'Đề tiêu chuẩn',
+    source_pdf_url: exam.sourcePdfUrl || null,
+    audio_url: exam.audioUrl || null
   };
   try {
     const { data, error } = await supabase.from('exams').upsert([payload], { onConflict: 'id' }).select();
