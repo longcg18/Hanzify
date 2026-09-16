@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { countExamTotalQuestions } from '../data/examsData';
 import { ExamExcelBatchModal } from '../components/ExamExcelBatchModal';
 import { fetchExamAttempts } from '../services/supabaseService';
+import { getOfficialExamIdentity, getStudentExamTitle } from '../utils/examDisplay';
 
 export const ExamView = ({ 
   exams = [],
@@ -494,7 +495,7 @@ export const ExamView = ({
               {examHistory.map((attempt) => (
                 <div key={attempt.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) auto auto', alignItems: 'center', gap: '1rem', padding: '0.75rem 0.9rem', background: '#f8fafc', borderRadius: '11px' }}>
                   <div>
-                    <strong style={{ display: 'block', color: '#1e293b', fontSize: '0.9rem' }}>{attempt.examTitle}</strong>
+                    <strong style={{ display: 'block', color: '#1e293b', fontSize: '0.9rem' }}>{getStudentExamTitle(attempt.examId, attempt.examTitle)}</strong>
                     <span style={{ color: '#64748b', fontSize: '0.75rem' }}>{new Date(attempt.completedAt).toLocaleString('vi-VN')} · {attempt.level}</span>
                   </div>
                   <span style={{ color: '#475569', fontSize: '0.82rem' }}><i className="fa-regular fa-clock"></i> {formatAttemptDuration(attempt.durationSeconds)}</span>
@@ -509,6 +510,8 @@ export const ExamView = ({
       {/* Exam Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>
         {exams.map((exam) => {
+          const officialIdentity = getOfficialExamIdentity(exam);
+          const studentFacingTitle = getStudentExamTitle(exam, exam.title);
           const totalQ = countExamTotalQuestions(exam);
           const listeningCount = (exam.skills?.find((s) => s.type === 'listening')?.parts || []).reduce((sum, p) => sum + (p.questions?.length || 0), 0);
           const readingCount = (exam.skills?.find((s) => s.type === 'reading')?.parts || []).reduce((sum, p) => sum + (p.questions?.length || 0), 0);
@@ -535,18 +538,18 @@ export const ExamView = ({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                   <span style={{ background: '#fef2f2', color: '#A11D24', padding: '0.35rem 0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, minWidth: 0 }}>
-                    {exam.level} · {exam.tag || 'Đề tiêu chuẩn'}
+                    {isTeacherOrAdmin ? `${exam.level} · ${exam.tag || 'Đề tiêu chuẩn'}` : exam.level}
                   </span>
-                  <span title={`Đã giảm 10 phút so với thời lượng đề gốc ${exam.duration} phút`} style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  <span title={`Đã giảm 10 phút so với thời lượng chuẩn ${exam.duration} phút`} style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0, whiteSpace: 'nowrap' }}>
                     <i className="fa-regular fa-clock" style={{ color: '#A11D24' }}></i>
                     {Math.max(5, (exam.duration || 35) - 10)} phút
                   </span>
                 </div>
 
-                <h3 style={{ fontSize: '1.2rem', color: '#0f172a', margin: '0 0 0.35rem 0' }}>{exam.title}</h3>
-                <div style={{ fontSize: '0.9rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif', marginBottom: '0.85rem' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#0f172a', margin: '0 0 0.35rem 0' }}>{isTeacherOrAdmin ? exam.title : studentFacingTitle}</h3>
+                {(!officialIdentity || isTeacherOrAdmin) && <div style={{ fontSize: '0.9rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif', marginBottom: '0.85rem' }}>
                   {exam.chineseTitle}
-                </div>
+                </div>}
 
                 {!exam.sourcePdfUrl && exam.description && <p style={{ fontSize: '0.88rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.25rem' }}>
                   {exam.description}
@@ -924,7 +927,7 @@ export const ExamView = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                        Thời lượng đề gốc (phút)
+                        Thời lượng chuẩn (phút)
                       </label>
                       <input
                         type="number"

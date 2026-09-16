@@ -4,15 +4,7 @@ import { flattenExamQuestions } from '../data/examsData';
 import { useAuth } from '../context/AuthContext';
 import { saveExamAttempt } from '../services/supabaseService';
 import { gradeExam, isExamAnswerCorrect } from '../utils/examScoring';
-
-const STUDENT_PAPER_CODES = {
-  'official-hsk1-01': 'H10901',
-  'official-hsk1-02': 'H10902',
-  'official-hsk2-01': 'H20901',
-  'official-hsk2-02': 'H20902',
-  'official-hsk3-01': 'H31001',
-  'official-hsk3-02': 'H31002',
-};
+import { getStudentExamTitle, getStudentPaperUrl } from '../utils/examDisplay';
 
 const cleanExamOption = (option) => {
   if (typeof option !== 'string') return option;
@@ -89,8 +81,8 @@ export const ExamRoomView = ({ exam, onExit }) => {
 
   const currentQ = questions[currentQIndex] || questions[0];
   const isOfficialPaper = Boolean(exam?.sourcePdfUrl);
-  const studentPaperCode = STUDENT_PAPER_CODES[exam?.id];
-  const studentPaperUrl = studentPaperCode ? `/exam-papers/${studentPaperCode}.pdf` : exam?.sourcePdfUrl;
+  const studentPaperUrl = getStudentPaperUrl(exam);
+  const studentExamTitle = getStudentExamTitle(exam, exam?.title || 'Đề thi HSK');
 
   // Derive current skill name and part title for breadcrumb
   const currentSkillName = currentQ?.skillName || (currentQ?.section === 'listening' ? 'Kỹ Năng Nghe Hiểu' : currentQ?.section === 'reading' ? 'Kỹ Năng Đọc Hiểu' : currentQ?.section === 'writing' ? 'Kỹ Năng Viết' : 'Bài Thi');
@@ -175,7 +167,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
           id: `${exam?.id || 'exam'}-${Date.now()}`,
           studentId: user.id,
           examId: exam?.id,
-          examTitle: exam?.title || 'Đề thi HSK',
+          examTitle: studentExamTitle,
           level: exam?.level || '',
           totalScore: res.totalScore,
           maxScore: res.maxScore,
@@ -317,7 +309,7 @@ export const ExamRoomView = ({ exam, onExit }) => {
           {isOfficialPaper && (
             <iframe
               className="er-paper-frame"
-              title={`Đề gốc ${exam.chineseTitle}`}
+              title={studentExamTitle}
               src={`${studentPaperUrl}#page=1&toolbar=1`}
               loading="lazy"
             />
