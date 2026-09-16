@@ -3539,7 +3539,7 @@ rt {
   padding: 1.5rem 1rem 3rem;
 }
 
-.er-wrapper-official { max-width: 1560px; padding: .75rem .75rem 2rem; }
+.er-wrapper-official { max-width: 1560px; margin-top: -24px; padding: .35rem .75rem 2rem; }
 
 /* Top Bar */
 .er-topbar {
@@ -4332,12 +4332,12 @@ rt {
 .er-timer-compact { padding: .28rem .45rem; font-size: .8rem; letter-spacing: 0; white-space: nowrap; }
 .er-sheet-actions { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .8rem 0 1rem; }
 .er-sheet-actions .er-submit-btn { justify-content: center; flex: 1; }
-.er-paper-frame { display: block; width: 100%; height: calc(100vh - 8.5rem); min-height: 560px; margin: 0; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
+.er-paper-frame { display: block; width: 100%; height: calc(100vh - 6.5rem); min-height: 560px; margin: 0; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
 .er-official-audio { margin: 0 0 1rem; }
 .er-official-audio audio { display: block; width: min(100%, 520px); }
 .er-writing-answer { display: grid; gap: .5rem; font-weight: 700; margin: 1rem 0; }
 .er-writing-answer input { width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; padding: .85rem 1rem; font: inherit; }
-@media (max-width: 900px) { .er-body { grid-template-columns: minmax(0, 1fr); } .er-body-official .er-answer-sheet { position: static; max-height: none; overflow: visible; order: -1; } }
+@media (max-width: 900px) { .er-body { grid-template-columns: minmax(0, 1fr); } .er-wrapper-official { margin-top: -12px; } .er-body-official .er-answer-sheet { position: static; max-height: none; overflow: visible; order: -1; } }
 @media (max-width: 640px) { .er-paper-frame { min-height: 330px; height: 58vh; } }
 
 .student-progress-view { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
