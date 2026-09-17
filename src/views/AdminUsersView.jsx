@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext';
 
 
 export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, onTransferStudent }) => {
-  const { user } = useAuth();
+  const { user, onlineUserIds, presenceStatus } = useAuth();
   // Main admin sub-tab: 'users' | 'classrooms' | 'entertainment'
   const [adminSection, setAdminSection] = useState('users');
 
@@ -39,7 +39,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
   const [users, setUsers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [newRole, setNewRole] = useState('student');
   const [newPhone, setNewPhone] = useState('');
   const [resetRequests, setResetRequests] = useState([]);
@@ -98,26 +98,39 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
   // Add User Handler (With Supabase Sync)
   const handleAddUser = async (e) => {
     e.preventDefault();
-    if (!newName || !newEmail) return;
+    const cleanUsername = newUsername.trim().toLowerCase();
+    if (!newName.trim() || !cleanUsername) return;
+    if (!/^[a-z0-9._]{3,32}$/.test(cleanUsername)) {
+      alert('Tên đăng nhập phải có 3-32 ký tự, chỉ gồm chữ thường không dấu, số, dấu chấm hoặc gạch dưới.');
+      return;
+    }
+    if (users.some((item) => item.username?.toLowerCase() === cleanUsername)) {
+      alert('Tên đăng nhập này đã tồn tại. Vui lòng chọn tên khác.');
+      return;
+    }
 
     const created = {
       id: `user-${Date.now()}`,
-      name: newName,
-      full_name: newName,
-      email: newEmail,
+      name: newName.trim(),
+      full_name: newName.trim(),
+      username: cleanUsername,
       role: newRole,
       phone: newPhone || '0900 000 000',
       joinedDate: new Date().toLocaleDateString('vi-VN'),
       status: 'active'
     };
 
-    await createSupabaseUser(created);
+    const result = await createSupabaseUser(created);
+    if (!result.success) {
+      alert('Không thể tạo tài khoản. Vui lòng kiểm tra tên đăng nhập và thử lại.');
+      return;
+    }
     setUsers([...users, created]);
     setShowAddModal(false);
     setNewName('');
-    setNewEmail('');
+    setNewUsername('');
     setNewPhone('');
-    alert(`🎉 Đã thêm tài khoản [${created.name}] với vai trò [${created.role.toUpperCase()}] vào Supabase thành công!`);
+    alert(`🎉 Đã thêm tài khoản @${created.username} với vai trò [${created.role.toUpperCase()}] vào Supabase thành công!`);
   };
 
   const handleResolvePasswordReset = async (e) => {
@@ -515,16 +528,16 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           </div>
 
           {/* Users Table */}
-          <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+          <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', overflowX: 'auto', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Họ và Tên</th>
-                  <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Email / Số Điện Thoại</th>
+                  <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Tên Đăng Nhập / Số Điện Thoại</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Vai Trò (Role)</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Lớp Học</th>
                   <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Ngày Tham Gia</th>
-                  <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Trạng Thái</th>
+                  <th style={{ padding: '1.1rem 1.5rem', whiteSpace: 'nowrap' }}>Trực Tuyến</th>
                 </tr>
               </thead>
               <tbody>
@@ -540,8 +553,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                         {u.chineseName && <div style={{ fontSize: '0.82rem', color: '#A11D24' }}>{u.chineseName}</div>}
                       </td>
                       <td style={{ padding: '1.2rem 1.5rem', whiteSpace: 'nowrap' }}>
-                        <div style={{ color: '#334155' }}>{u.email}</div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{u.phone}</div>
+                        <div style={{ color: '#334155', fontWeight: 700 }}>@{u.username || u.email?.split('@')[0] || 'chưa-có'}</div>
+                        {u.phone && <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{u.phone}</div>}
                       </td>
                       <td style={{ padding: '1.2rem 1.5rem', whiteSpace: 'nowrap' }}>
                         <span style={{
@@ -633,9 +646,23 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                         {u.joinedDate}
                       </td>
                       <td style={{ padding: '1.2rem 1.5rem', whiteSpace: 'nowrap' }}>
-                        <span style={{
-                          background: '#f0fdf4',
-                          color: '#16a34a',
+                        {(() => {
+                          const isBlocked = u.status === 'blocked';
+                          const isPresenceReady = presenceStatus === 'connected';
+                          const isOnline = isPresenceReady && onlineUserIds.has(String(u.id));
+                          const presence = isBlocked
+                            ? { label: 'Đã khóa', bg: '#fef2f2', color: '#dc2626', icon: 'fa-lock' }
+                            : !isPresenceReady
+                              ? { label: 'Không xác định', bg: '#f8fafc', color: '#64748b', icon: 'fa-circle-question' }
+                              : isOnline
+                                ? { label: 'Đang online', bg: '#f0fdf4', color: '#16a34a', icon: 'fa-circle' }
+                                : { label: 'Ngoại tuyến', bg: '#f1f5f9', color: '#64748b', icon: 'fa-circle' };
+
+                          return <span
+                            title={isPresenceReady ? undefined : 'Đang kết nối dịch vụ trạng thái trực tuyến'}
+                            style={{
+                          background: presence.bg,
+                          color: presence.color,
                           padding: '0.25rem 0.65rem',
                           borderRadius: '8px',
                           fontSize: '0.78rem',
@@ -644,8 +671,10 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                           alignItems: 'center',
                           gap: '0.35rem'
                         }}>
-                          <i className="fa-solid fa-circle" style={{ fontSize: '0.5rem' }}></i> Hoạt động
-                        </span>
+                            <i className={`fa-solid ${presence.icon}`} style={{ fontSize: '0.5rem' }}></i>
+                            {presence.label}
+                          </span>;
+                        })()}
                       </td>
                     </tr>
                   );
@@ -1704,16 +1733,20 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                  Email Đăng Nhập:
+                  Tên Đăng Nhập:
                 </label>
                 <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="hoa.le@hanzify.com"
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value.toLowerCase())}
+                  placeholder="Ví dụ: hoa.le"
+                  autoComplete="username"
+                  pattern="[a-z0-9._]{3,32}"
+                  title="Dùng 3-32 ký tự: chữ thường không dấu, số, dấu chấm hoặc gạch dưới"
                   required
                   style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', outline: 'none' }}
                 />
+                <div style={{ color: '#94a3b8', fontSize: '0.74rem', marginTop: '4px' }}>Không cần nhập email. Học viên sẽ dùng tên này để đăng nhập.</div>
               </div>
 
               <div>
@@ -1840,7 +1873,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS public.users (
   id TEXT PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE, -- Chỉ dùng nội bộ cho Supabase Auth, không hiển thị cho người dùng
   password TEXT DEFAULT '123456',
   full_name TEXT NOT NULL,
   chinese_name TEXT,

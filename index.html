@@ -7,6 +7,16 @@
     <meta name="description" content="Nền tảng học và làm bài tập tiếng Trung thông minh, phân chia khóa học, luyện nghe, khẩu ngữ và chấm điểm tức thì." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.svg" />
+    <script>
+      if (!Promise.withResolvers) {
+        Promise.withResolvers = function () {
+          let resolve;
+          let reject;
+          const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+          return { promise, resolve, reject };
+        };
+      }
+    </script>
 
     <!-- Google Fonts: Be Vietnam Pro + Inter + Noto Serif SC & Noto Sans SC + Ma Shan Zheng -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

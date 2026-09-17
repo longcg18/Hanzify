@@ -164,7 +164,7 @@ export const ProfilePanel = () => {
                 </span>
               </div>
               <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
-                {user.email} · Tham gia: {user.joinedDate}
+                @{user.username || user.email?.split('@')[0] || 'chưa-có-tên-đăng-nhập'} · Tham gia: {user.joinedDate}
               </div>
             </div>
           </div>

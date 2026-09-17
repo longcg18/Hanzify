@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loginWithSupabase, logoutFromSupabase, registerStudentInSupabase } from '../services/supabaseService';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -43,6 +44,60 @@ export const AuthProvider = ({ children }) => {
   const [isProfilePanelOpen, setIsProfilePanelOpen] = useState(false);
   const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
   const [isJoinClassModalOpen, setIsJoinClassModalOpen] = useState(false);
+  const [onlineUserIds, setOnlineUserIds] = useState(() => new Set());
+  const [presenceStatus, setPresenceStatus] = useState('idle');
+
+  // Announce the signed-in account once and keep a live view of everyone
+  // connected to the site. Only the internal profile ID is shared.
+  useEffect(() => {
+    if (!user?.id) {
+      setOnlineUserIds(new Set());
+      setPresenceStatus('idle');
+      return undefined;
+    }
+
+    let disposed = false;
+    const channel = supabase.channel('hanzify-online-users', {
+      config: {
+        presence: { key: String(user.id) }
+      }
+    });
+
+    const syncOnlineUsers = () => {
+      if (disposed) return;
+      setOnlineUserIds(new Set(Object.keys(channel.presenceState())));
+      setPresenceStatus('connected');
+    };
+
+    setOnlineUserIds(new Set());
+    setPresenceStatus('connecting');
+
+    channel
+      .on('presence', { event: 'sync' }, syncOnlineUsers)
+      .subscribe(async (status) => {
+        if (disposed) return;
+
+        if (status === 'SUBSCRIBED') {
+          const trackStatus = await channel.track({
+            userId: String(user.id),
+            onlineAt: new Date().toISOString()
+          });
+          if (trackStatus !== 'ok' && !disposed) setPresenceStatus('error');
+          return;
+        }
+
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setPresenceStatus('error');
+        }
+      });
+
+    return () => {
+      disposed = true;
+      channel.untrack().catch(() => {}).finally(() => {
+        supabase.removeChannel(channel);
+      });
+    };
+  }, [user?.id]);
 
   // Notifications with persistence and check-in / read awareness
   const [notifications, setNotifications] = useState(() => {
@@ -212,7 +267,9 @@ export const AuthProvider = ({ children }) => {
         unreadNotifsCount,
         markAllNotificationsRead,
         dismissNotification,
-        dismissWelcomeNotification
+        dismissWelcomeNotification,
+        onlineUserIds,
+        presenceStatus
       }}
     >
       {children}

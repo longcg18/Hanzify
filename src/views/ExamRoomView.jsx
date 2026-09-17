@@ -6,6 +6,8 @@ import { saveExamAttempt } from '../services/supabaseService';
 import { gradeExam, isExamAnswerCorrect } from '../utils/examScoring';
 import { getStudentExamTitle, getStudentPaperUrl } from '../utils/examDisplay';
 
+const PdfDocumentViewer = React.lazy(() => import('../components/PdfDocumentViewer').then((module) => ({ default: module.PdfDocumentViewer })));
+
 const cleanExamOption = (option) => {
   if (typeof option !== 'string') return option;
   if (/^(Đúng|正确)\s*[\(（]/i.test(option)) return '正确（√）';
@@ -307,12 +309,9 @@ export const ExamRoomView = ({ exam, onExit }) => {
           {!isOfficialPaper && <p className="er-qprompt">{getChineseExamPrompt(currentQ)}</p>}
 
           {isOfficialPaper && (
-            <iframe
-              className="er-paper-frame"
-              title={studentExamTitle}
-              src={`${studentPaperUrl}#page=1&toolbar=1`}
-              loading="lazy"
-            />
+            <React.Suspense fallback={<div className="pdf-viewer-state"><i className="fa-solid fa-spinner fa-spin"></i> Đang mở trình xem PDF…</div>}>
+              <PdfDocumentViewer url={studentPaperUrl} title={studentExamTitle} />
+            </React.Suspense>
           )}
 
           {/* Listening Audio Box */}

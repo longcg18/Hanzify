@@ -7,6 +7,23 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [profileDropdownTab, setProfileDropdownTab] = useState('profile');
 
+  const navigationItems = [
+    { view: 'home', label: 'Trang Chủ', icon: 'fa-house', activeViews: ['home'] },
+    { view: 'courses', label: 'Khóa Học', icon: 'fa-book-bookmark', activeViews: ['courses', 'course-detail', 'homework', 'homework-editor'] },
+    { view: 'practice', label: 'Luyện Tập', icon: 'fa-dumbbell', activeViews: ['practice'] },
+    { view: 'exam', label: 'Thi Thử HSK', icon: 'fa-flag-checkered', activeViews: ['exam', 'exam-room'] },
+    { view: 'entertainment', label: 'Giải Trí', icon: 'fa-gamepad', activeViews: ['entertainment'] },
+    ...(user?.role === 'teacher'
+      ? [{ view: 'grading', label: 'Chấm Bài', icon: 'fa-stamp', activeViews: ['grading'] }]
+      : []),
+    ...(['admin', 'teacher'].includes(user?.role)
+      ? [{ view: 'student-progress', label: 'Theo Dõi', ariaLabel: 'Theo Dõi Học Sinh', icon: 'fa-chart-line', activeViews: ['student-progress'] }]
+      : []),
+    ...(user?.role === 'admin'
+      ? [{ view: 'admin-users', label: 'Quản Trị', icon: 'fa-users-gear', activeViews: ['admin-users'] }]
+      : [])
+  ];
+
   return (
     <header className="top-nav" style={{ position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)', background: 'rgba(255, 255, 255, 0.95)', borderBottom: '1px solid #fee2e2' }}>
       {/* Brand Logo & Title */}
@@ -22,216 +39,44 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
         </div>
       </div>
 
-      {/* Center Navigation Tabs: Trang Chủ - Khóa Học - Luyện Tập - Thi Thử HSK - Giải Trí */}
+      {/* Only the current section keeps its text label; other tabs stay compact. */}
       <nav className="primary-nav" style={{ display: 'flex', gap: '0.4rem', background: '#f8fafc', padding: '0.35rem', borderRadius: '14px', border: '1px solid #fee2e2', flexShrink: 0 }}>
-        {/* 1. Trang Chủ */}
-        <button
-          type="button"
-          className="primary-nav-button"
-          aria-label="Trang Chủ"
-          title="Trang Chủ"
-          onClick={() => onNavigate('home')}
-          style={{
-            padding: '0.5rem 0.95rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: currentView === 'home' ? '#A11D24' : 'transparent',
-            color: currentView === 'home' ? '#ffffff' : '#64748b',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <i className="fa-solid fa-house"></i>
-          <span className="primary-nav-label">Trang Chủ</span>
-        </button>
-
-        {/* 2. Khóa Học */}
-        <button
-          type="button"
-          className="primary-nav-button"
-          aria-label="Khóa Học"
-          title="Khóa Học"
-          onClick={() => onNavigate('courses')}
-          style={{
-            padding: '0.5rem 0.95rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: currentView === 'courses' || currentView === 'course-detail' || currentView === 'homework' ? '#A11D24' : 'transparent',
-            color: currentView === 'courses' || currentView === 'course-detail' || currentView === 'homework' ? '#ffffff' : '#64748b',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <i className="fa-solid fa-book-bookmark"></i>
-          <span className="primary-nav-label">Khóa Học</span>
-        </button>
-
-        {/* 2. Luyện Tập */}
-        <button
-          type="button"
-          className="primary-nav-button"
-          aria-label="Luyện Tập"
-          title="Luyện Tập"
-          onClick={() => onNavigate('practice')}
-          style={{
-            padding: '0.5rem 0.95rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: currentView === 'practice' ? '#A11D24' : 'transparent',
-            color: currentView === 'practice' ? '#ffffff' : '#64748b',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <i className="fa-solid fa-dumbbell"></i>
-          <span className="primary-nav-label">Luyện Tập</span>
-        </button>
-
-        {/* 3. Thi Thử HSK */}
-        <button
-          type="button"
-          className="primary-nav-button"
-          aria-label="Thi Thử HSK"
-          title="Thi Thử HSK"
-          onClick={() => onNavigate('exam')}
-          style={{
-            padding: '0.5rem 0.95rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: currentView === 'exam' || currentView === 'exam-room' ? '#A11D24' : 'transparent',
-            color: currentView === 'exam' || currentView === 'exam-room' ? '#ffffff' : '#64748b',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <i className="fa-solid fa-flag-checkered"></i>
-          <span className="primary-nav-label">Thi Thử HSK</span>
-        </button>
-
-        {/* 5. Giải Trí */}
-        <button
-          type="button"
-          className="primary-nav-button"
-          aria-label="Giải Trí"
-          title="Giải Trí"
-          onClick={() => onNavigate('entertainment')}
-          style={{
-            padding: '0.5rem 0.95rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: currentView === 'entertainment' ? '#A11D24' : 'transparent',
-            color: currentView === 'entertainment' ? '#ffffff' : '#64748b',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <i className="fa-solid fa-gamepad"></i>
-          <span className="primary-nav-label">Giải Trí</span>
-        </button>
-
-        {/* 6. Teacher Only Grading Tab (Chỉ dành riêng cho Cô Giáo) */}
-        {user?.role === 'teacher' && (
+        {navigationItems.map((item) => {
+          const isActive = item.activeViews.includes(currentView);
+          return (
           <button
+            key={item.view}
             type="button"
-            className="primary-nav-button"
-            aria-label="Chấm Bài"
-            title="Chấm Bài"
-            onClick={() => onNavigate('grading')}
+            className={`primary-nav-button${isActive ? ' is-active' : ''}`}
+            aria-label={item.ariaLabel || item.label}
+            aria-current={isActive ? 'page' : undefined}
+            title={isActive ? undefined : item.ariaLabel || item.label}
+            onClick={() => onNavigate(item.view)}
             style={{
-              padding: '0.5rem 0.95rem',
+              width: isActive ? 'auto' : '42px',
+              minWidth: isActive ? 'max-content' : '42px',
+              height: '38px',
+              padding: isActive ? '0.5rem 0.95rem' : 0,
               borderRadius: '10px',
               border: 'none',
-              background: currentView === 'grading' ? '#A11D24' : 'transparent',
-              color: currentView === 'grading' ? '#ffffff' : '#64748b',
+              background: isActive ? '#A11D24' : 'transparent',
+              color: isActive ? '#ffffff' : '#64748b',
               fontWeight: 700,
               fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              justifyContent: 'center',
+              gap: isActive ? '0.4rem' : 0,
               whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease'
+              transition: 'width 0.2s ease, padding 0.2s ease, background 0.15s ease, color 0.15s ease'
             }}
           >
-            <i className="fa-solid fa-stamp"></i>
-            <span className="primary-nav-label">Chấm Bài</span>
+            <i className={`fa-solid ${item.icon}`} aria-hidden="true"></i>
+            {isActive && <span className="primary-nav-label">{item.label}</span>}
           </button>
-        )}
-
-        {['admin', 'teacher'].includes(user?.role) && (
-          <button
-            type="button"
-            className="primary-nav-button"
-            aria-label="Theo Dõi Học Sinh"
-            title="Theo Dõi Học Sinh"
-            onClick={() => onNavigate('student-progress')}
-            style={{
-              padding: '0.5rem 0.95rem', borderRadius: '10px', border: 'none',
-              background: currentView === 'student-progress' ? '#A11D24' : 'transparent',
-              color: currentView === 'student-progress' ? '#fff' : '#64748b',
-              fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap'
-            }}
-          ><i className="fa-solid fa-chart-line"></i> <span className="primary-nav-label">Theo Dõi</span></button>
-        )}
-
-        {/* 8. Admin Only Tab */}
-        {user?.role === 'admin' && (
-          <button
-            type="button"
-            className="primary-nav-button"
-            aria-label="Quản Trị"
-            title="Quản Trị"
-            onClick={() => onNavigate('admin-users')}
-            style={{
-              padding: '0.5rem 0.95rem',
-              borderRadius: '10px',
-              border: 'none',
-              background: currentView === 'admin-users' ? '#A11D24' : 'transparent',
-              color: currentView === 'admin-users' ? '#ffffff' : '#64748b',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <i className="fa-solid fa-users-gear"></i>
-            <span className="primary-nav-label">Quản Trị</span>
-          </button>
-        )}
+          );
+        })}
       </nav>
 
       {/* Right User Status & Quick Role Switcher */}

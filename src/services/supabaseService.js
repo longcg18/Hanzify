@@ -161,10 +161,13 @@ export async function fetchUsers() {
 }
 
 export async function createSupabaseUser(newUser) {
+  const cleanUsername = String(newUser.username || '').trim().toLowerCase();
   const userPayload = {
     id: newUser.id || `user-${Date.now()}`,
-    username: newUser.username,
-    email: newUser.email,
+    username: cleanUsername,
+    // Supabase password auth still requires an email identifier internally.
+    // It is generated automatically and never shown as the user's login name.
+    email: newUser.email || `${cleanUsername}@account.hanzify.com`,
     password: newUser.password || '123456',
     full_name: newUser.name || newUser.full_name,
     chinese_name: newUser.chineseName || newUser.chinese_name || null,
@@ -173,6 +176,8 @@ export async function createSupabaseUser(newUser) {
     phone: newUser.phone || '',
     status: 'active'
   };
+
+  if (!cleanUsername) return { success: false, message: 'Tên đăng nhập không hợp lệ.' };
 
   try {
     const { data, error } = await supabase.from('users').insert([userPayload]).select();
