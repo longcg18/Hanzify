@@ -225,10 +225,36 @@ DROP POLICY IF EXISTS "Public Read Users" ON public.users;
 DROP POLICY IF EXISTS "Public Insert/Update Users" ON public.users;
 DROP POLICY IF EXISTS "Users read own profile" ON public.users;
 DROP POLICY IF EXISTS "Users update own profile" ON public.users;
+DROP POLICY IF EXISTS "Users update own safe profile" ON public.users;
+DROP POLICY IF EXISTS "Admins manage users" ON public.users;
 DROP POLICY IF EXISTS "Users create own profile" ON public.users;
 CREATE POLICY "Users read own profile" ON public.users FOR SELECT TO authenticated USING (auth_user_id = auth.uid() OR public.is_hanzify_staff());
-CREATE POLICY "Users update own profile" ON public.users FOR UPDATE TO authenticated USING (auth_user_id = auth.uid() OR public.is_hanzify_admin()) WITH CHECK (auth_user_id = auth.uid() OR public.is_hanzify_admin());
+CREATE POLICY "Users update own safe profile" ON public.users FOR UPDATE TO authenticated
+  USING (auth_user_id = auth.uid() AND role = 'student' AND status = 'active')
+  WITH CHECK (auth_user_id = auth.uid() AND role = 'student' AND status = 'active');
+CREATE POLICY "Admins manage users" ON public.users FOR ALL TO authenticated
+  USING (public.is_hanzify_admin()) WITH CHECK (public.is_hanzify_admin());
 CREATE POLICY "Users create own profile" ON public.users FOR INSERT TO authenticated WITH CHECK (auth_user_id = auth.uid() AND role = 'student');
+
+CREATE OR REPLACE FUNCTION public.protect_student_profile_fields()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  IF public.is_hanzify_admin() THEN RETURN NEW; END IF;
+  IF auth.uid() IS NULL OR OLD.auth_user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Profile update not allowed' USING ERRCODE = '42501';
+  END IF;
+  IF (to_jsonb(NEW) - ARRAY['full_name', 'chinese_name', 'avatar', 'phone'])
+      IS DISTINCT FROM
+     (to_jsonb(OLD) - ARRAY['full_name', 'chinese_name', 'avatar', 'phone']) THEN
+    RAISE EXCEPTION 'Only display profile fields may be changed' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS protect_student_profile_fields_trigger ON public.users;
+CREATE TRIGGER protect_student_profile_fields_trigger BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.protect_student_profile_fields();
 
 DROP POLICY IF EXISTS "Public Read Courses" ON public.courses;
 DROP POLICY IF EXISTS "Public Manage Courses" ON public.courses;
@@ -247,10 +273,56 @@ CREATE POLICY "Staff Manage Questions" ON public.homework_questions FOR ALL TO a
 
 DROP POLICY IF EXISTS "Public Read Submissions" ON public.submissions;
 DROP POLICY IF EXISTS "Public Manage Submissions" ON public.submissions;
-CREATE POLICY "Public Read Submissions" ON public.submissions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Students create submissions" ON public.submissions;
+DROP POLICY IF EXISTS "Owners and staff read submissions" ON public.submissions;
+DROP POLICY IF EXISTS "Students update own submissions" ON public.submissions;
+DROP POLICY IF EXISTS "Staff grade submissions" ON public.submissions;
+DROP POLICY IF EXISTS "Staff manage submissions" ON public.submissions;
 CREATE POLICY "Students create submissions" ON public.submissions FOR INSERT TO authenticated WITH CHECK (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
 CREATE POLICY "Owners and staff read submissions" ON public.submissions FOR SELECT TO authenticated USING (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());
-CREATE POLICY "Staff grade submissions" ON public.submissions FOR UPDATE TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
+CREATE POLICY "Students update own submissions" ON public.submissions FOR UPDATE TO authenticated
+  USING (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid() AND role = 'student'))
+  WITH CHECK (student_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid() AND role = 'student'));
+CREATE POLICY "Staff manage submissions" ON public.submissions FOR ALL TO authenticated USING (public.is_hanzify_staff()) WITH CHECK (public.is_hanzify_staff());
+
+CREATE OR REPLACE FUNCTION public.protect_student_submission_grading()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE
+  v_is_owner BOOLEAN;
+  v_old_state TEXT;
+  v_new_state TEXT;
+BEGIN
+  IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  IF public.is_hanzify_staff() THEN RETURN NEW; END IF;
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = NEW.student_id AND auth_user_id = auth.uid() AND role = 'student' AND status = 'active'
+  ) INTO v_is_owner;
+  IF NOT v_is_owner THEN
+    RAISE EXCEPTION 'Submission update not allowed' USING ERRCODE = '42501';
+  END IF;
+  v_new_state := coalesce(NEW.answers_json ->> 'submission_state', 'submitted');
+  IF NEW.status IS DISTINCT FROM 'pending' OR NEW.total_score IS NOT NULL
+     OR NEW.teacher_comment IS NOT NULL OR NEW.teacher_audio_feedback IS NOT NULL
+     OR v_new_state NOT IN ('draft', 'submitted') THEN
+    RAISE EXCEPTION 'Students cannot change grading fields' USING ERRCODE = '42501';
+  END IF;
+  IF TG_OP = 'UPDATE' THEN
+    v_old_state := coalesce(OLD.answers_json ->> 'submission_state', 'submitted');
+    IF (to_jsonb(NEW) - ARRAY['student_name', 'submitted_at', 'answers_json'])
+        IS DISTINCT FROM
+       (to_jsonb(OLD) - ARRAY['student_name', 'submitted_at', 'answers_json'])
+       OR OLD.status = 'graded'
+       OR (v_old_state = 'submitted' AND v_new_state <> 'submitted') THEN
+      RAISE EXCEPTION 'Submitted or graded work is locked' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS protect_student_submission_grading_trigger ON public.submissions;
+CREATE TRIGGER protect_student_submission_grading_trigger BEFORE INSERT OR UPDATE ON public.submissions
+  FOR EACH ROW EXECUTE FUNCTION public.protect_student_submission_grading();
 
 DROP POLICY IF EXISTS "Students create own exam attempts" ON public.exam_attempts;
 DROP POLICY IF EXISTS "Students read own exam attempts" ON public.exam_attempts;
@@ -569,11 +641,19 @@ CREATE TABLE IF NOT EXISTS public.forum_comments (
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.forum_post_likes (
+  post_id TEXT NOT NULL REFERENCES public.forum_posts(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (post_id, user_id)
+);
+
 -- Bật RLS
 ALTER TABLE public.user_streaks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.streak_check_ins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.forum_post_likes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Cho phép đọc dữ liệu Gamification" ON public.user_streaks FOR SELECT USING (true);
 CREATE POLICY "Học viên quản lý streak cá nhân" ON public.user_streaks FOR ALL TO authenticated
@@ -591,6 +671,82 @@ CREATE POLICY "Thành viên ghi bài viết diễn đàn" ON public.forum_posts 
 CREATE POLICY "Chủ bài hoặc staff cập nhật diễn đàn" ON public.forum_posts FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()) OR public.is_hanzify_staff());
 CREATE POLICY "Cho phép đọc bình luận diễn đàn" ON public.forum_comments FOR SELECT USING (true);
 CREATE POLICY "Thành viên ghi bình luận diễn đàn" ON public.forum_comments FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Members read own forum likes" ON public.forum_post_likes FOR SELECT TO authenticated
+USING (user_id IN (SELECT id FROM public.users WHERE auth_user_id = auth.uid()));
+
+CREATE OR REPLACE FUNCTION public.protect_forum_post_write()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE v_user public.users;
+BEGIN
+  IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  IF public.is_hanzify_staff() THEN RETURN NEW; END IF;
+  SELECT * INTO v_user FROM public.users
+  WHERE auth_user_id = auth.uid() AND id = NEW.user_id AND role = 'student' AND status = 'active';
+  IF v_user.id IS NULL THEN RAISE EXCEPTION 'Forum write not allowed' USING ERRCODE = '42501'; END IF;
+  IF TG_OP = 'INSERT' THEN
+    NEW.author_name := v_user.full_name;
+    NEW.author_avatar := coalesce(v_user.avatar, '安');
+    NEW.author_role := 'student';
+    NEW.likes_count := 0;
+    NEW.status := 'pending';
+  ELSIF (to_jsonb(NEW) - ARRAY['category', 'title', 'content', 'tags'])
+        IS DISTINCT FROM
+        (to_jsonb(OLD) - ARRAY['category', 'title', 'content', 'tags']) THEN
+    RAISE EXCEPTION 'Protected forum fields cannot be changed' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS protect_forum_post_write_trigger ON public.forum_posts;
+CREATE TRIGGER protect_forum_post_write_trigger BEFORE INSERT OR UPDATE ON public.forum_posts
+  FOR EACH ROW EXECUTE FUNCTION public.protect_forum_post_write();
+
+CREATE OR REPLACE FUNCTION public.prepare_forum_comment_write()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
+DECLARE v_user public.users;
+BEGIN
+  IF current_user NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  SELECT * INTO v_user FROM public.users
+  WHERE auth_user_id = auth.uid() AND id = NEW.user_id AND status = 'active';
+  IF v_user.id IS NULL THEN RAISE EXCEPTION 'Forum comment not allowed' USING ERRCODE = '42501'; END IF;
+  NEW.author_name := v_user.full_name;
+  NEW.author_avatar := coalesce(v_user.avatar, '安');
+  NEW.author_role := v_user.role;
+  NEW.is_teacher_answer := v_user.role IN ('admin', 'teacher');
+  NEW.likes_count := 0;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS prepare_forum_comment_write_trigger ON public.forum_comments;
+CREATE TRIGGER prepare_forum_comment_write_trigger BEFORE INSERT ON public.forum_comments
+  FOR EACH ROW EXECUTE FUNCTION public.prepare_forum_comment_write();
+
+CREATE OR REPLACE FUNCTION public.toggle_forum_post_like(p_post_id TEXT)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_user_id TEXT;
+  v_likes INTEGER;
+  v_liked BOOLEAN;
+BEGIN
+  SELECT id INTO v_user_id FROM public.users
+  WHERE auth_user_id = auth.uid() AND status = 'active';
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Active account required' USING ERRCODE = '42501'; END IF;
+  PERFORM 1 FROM public.forum_posts WHERE id = p_post_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Forum post not found'; END IF;
+  DELETE FROM public.forum_post_likes WHERE post_id = p_post_id AND user_id = v_user_id;
+  IF FOUND THEN
+    v_liked := false;
+  ELSE
+    INSERT INTO public.forum_post_likes (post_id, user_id) VALUES (p_post_id, v_user_id);
+    v_liked := true;
+  END IF;
+  SELECT count(*)::INTEGER INTO v_likes FROM public.forum_post_likes WHERE post_id = p_post_id;
+  UPDATE public.forum_posts SET likes_count = v_likes WHERE id = p_post_id;
+  RETURN jsonb_build_object('liked', v_liked, 'likes_count', v_likes);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.toggle_forum_post_like(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.toggle_forum_post_like(TEXT) TO authenticated;
 
 -- ==============================================================================
 -- 9. BẢNG QUẢN LÝ LỚP HỌC & DANH SÁCH ĐIỂM DANH HỌC VIÊN (CLASSROOMS & ROSTER)

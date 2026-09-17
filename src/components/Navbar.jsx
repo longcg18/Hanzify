@@ -13,7 +13,7 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
     { view: 'practice', label: 'Luyện Tập', icon: 'fa-dumbbell', activeViews: ['practice'] },
     { view: 'exam', label: 'Thi Thử HSK', icon: 'fa-flag-checkered', activeViews: ['exam', 'exam-room'] },
     { view: 'entertainment', label: 'Giải Trí', icon: 'fa-gamepad', activeViews: ['entertainment'] },
-    ...(user?.role === 'teacher'
+    ...(['admin', 'teacher'].includes(user?.role)
       ? [{ view: 'grading', label: 'Chấm Bài', icon: 'fa-stamp', activeViews: ['grading'] }]
       : []),
     ...(['admin', 'teacher'].includes(user?.role)

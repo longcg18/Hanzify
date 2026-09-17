@@ -162,32 +162,22 @@ export async function fetchUsers() {
 
 export async function createSupabaseUser(newUser) {
   const cleanUsername = String(newUser.username || '').trim().toLowerCase();
-  const userPayload = {
-    id: newUser.id || `user-${Date.now()}`,
-    username: cleanUsername,
-    // Supabase password auth still requires an email identifier internally.
-    // It is generated automatically and never shown as the user's login name.
-    email: newUser.email || `${cleanUsername}@account.hanzify.com`,
-    password: newUser.password || '123456',
-    full_name: newUser.name || newUser.full_name,
-    chinese_name: newUser.chineseName || newUser.chinese_name || null,
-    role: newUser.role || 'student',
-    avatar: newUser.avatar || '安',
-    phone: newUser.phone || '',
-    status: 'active'
-  };
-
   if (!cleanUsername) return { success: false, message: 'Tên đăng nhập không hợp lệ.' };
 
   try {
-    const { data, error } = await supabase.from('users').insert([userPayload]).select();
-    if (!error && data && data.length > 0) {
-      return { success: true, user: data[0], isLiveDb: true };
-    }
+    const { data, error } = await supabase.rpc('admin_create_hanzify_user', {
+      p_username: cleanUsername,
+      p_full_name: newUser.name || newUser.full_name,
+      p_role: newUser.role || 'student',
+      p_phone: newUser.phone || '',
+      p_password: newUser.password || '123456'
+    });
+    if (error) throw error;
+    return { success: true, user: data, isLiveDb: true };
   } catch (e) {
-    console.error('Supabase insert user error:', e);
+    console.error('Supabase admin create user error:', e);
+    return { success: false, message: e.message || 'Không thể tạo tài khoản.' };
   }
-  return { success: false };
 }
 
 export async function requestPasswordReset(usernameOrEmail) {
@@ -195,36 +185,8 @@ export async function requestPasswordReset(usernameOrEmail) {
   if (!clean) return { success: false, message: 'Vui lòng nhập tên đăng nhập hoặc email.' };
 
   try {
-    const escaped = clean.replace(/[,%]/g, (character) => `\\${character}`);
-    const { data: account, error: lookupError } = await supabase
-      .from('users')
-      .select('id, username, email, full_name')
-      .or(`email.ilike.${escaped},username.ilike.${escaped}`)
-      .maybeSingle();
-
-    if (lookupError) throw lookupError;
-
-    // Do not reveal whether an account exists. This prevents account enumeration.
-    if (!account) return { success: true };
-
-    const { data: existing, error: existingError } = await supabase
-      .from('password_reset_requests')
-      .select('id')
-      .eq('user_id', account.id)
-      .eq('status', 'pending')
-      .maybeSingle();
-
-    if (existingError) throw existingError;
-    if (!existing) {
-      const { error: insertError } = await supabase.from('password_reset_requests').insert({
-        id: `reset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        user_id: account.id,
-        identifier: clean,
-        user_name: account.full_name || account.username,
-        status: 'pending'
-      });
-      if (insertError) throw insertError;
-    }
+    const { error } = await supabase.rpc('request_hanzify_password_reset', { p_identifier: clean });
+    if (error) throw error;
 
     return { success: true };
   } catch (error) {
@@ -254,22 +216,13 @@ export async function resolvePasswordResetRequest({ requestId, userId, newPasswo
   }
 
   try {
-    const { error: userError } = await supabase
-      .from('users')
-      .update({ password: cleanPassword })
-      .eq('id', userId);
-    if (userError) throw userError;
-
-    const { error: requestError } = await supabase
-      .from('password_reset_requests')
-      .update({
-        status: 'resolved',
-        resolved_at: new Date().toISOString(),
-        resolved_by: adminId || null
-      })
-      .eq('id', requestId)
-      .eq('status', 'pending');
-    if (requestError) throw requestError;
+    const { data, error } = await supabase.rpc('admin_resolve_password_reset', {
+      p_request_id: requestId,
+      p_user_id: userId,
+      p_new_password: cleanPassword
+    });
+    if (error) throw error;
+    if (!data) return { success: false, message: 'Yêu cầu đã được xử lý hoặc không còn tồn tại.' };
 
     return { success: true };
   } catch (error) {
@@ -518,16 +471,48 @@ export async function createClassroomInSupabase(newClass) {
 
 export async function updateClassroomUnlockedLessons(classId, unlockedLessons) {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('classrooms')
       .update({ unlocked_lessons: Array.isArray(unlockedLessons) ? unlockedLessons : [] })
-      .eq('id', classId);
-    if (!error) return { success: true };
+      .eq('id', classId)
+      .select('id, unlocked_lessons')
+      .maybeSingle();
+    if (!error && data) return { success: true, data };
+    if (!error) {
+      const permissionError = new Error('Không thể lưu trạng thái bài học. Vui lòng kiểm tra quyền quản lý lớp.');
+      console.error('Error updating classroom unlocked lessons in Supabase:', permissionError);
+      return { success: false, error: permissionError };
+    }
     console.error('Error updating classroom unlocked lessons in Supabase:', error);
+    return { success: false, error };
   } catch (e) {
     console.error('Error updating classroom unlocked lessons in Supabase:', e);
+    return { success: false, error: e };
   }
-  return { success: false };
+}
+
+export function subscribeToClassroomLessonAccess(onUpdate) {
+  const subscriptionId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const channel = supabase
+    .channel(`classroom-lesson-access-${subscriptionId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'classrooms' },
+      ({ new: classroom }) => {
+        if (!classroom?.id || typeof onUpdate !== 'function') return;
+        onUpdate({
+          id: classroom.id,
+          unlockedLessons: Array.isArray(classroom.unlocked_lessons) ? classroom.unlocked_lessons : []
+        });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function updateClassroomInSupabase(updatedClass) {
@@ -1708,7 +1693,8 @@ const formatForumPost = (post) => ({
   id: post.id, category: post.category, title: post.title, content: post.content,
   author: { name: post.author_name, avatar: post.author_avatar, role: post.author_role },
   createdAt: new Date(post.created_at).toLocaleString('vi-VN'), likesCount: post.likes_count || 0,
-  status: post.status, tags: post.tags || [], comments: (post.forum_comments || []).map((comment) => ({
+  status: post.status, tags: post.tags || [], isLiked: (post.forum_post_likes || []).length > 0,
+  comments: (post.forum_comments || []).map((comment) => ({
     id: comment.id,
     author: { name: comment.author_name, avatar: comment.author_avatar, role: comment.author_role },
     content: comment.content, createdAt: new Date(comment.created_at).toLocaleString('vi-VN'),
@@ -1717,7 +1703,10 @@ const formatForumPost = (post) => ({
 });
 
 export async function fetchForumPosts() {
-  const { data, error } = await supabase.from('forum_posts').select('*, forum_comments(*)').order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('forum_posts')
+    .select('*, forum_comments(*), forum_post_likes(user_id)')
+    .order('created_at', { ascending: false });
   return error ? { data: [], error: error.message } : { data: (data || []).map(formatForumPost), error: null };
 }
 
@@ -1736,7 +1725,16 @@ export async function updateForumPost(postId, changes) {
   const payload = {};
   if (changes.status !== undefined) payload.status = changes.status;
   if (changes.category !== undefined) payload.category = changes.category;
-  if (changes.likesCount !== undefined) payload.likes_count = changes.likesCount;
   const { error } = await supabase.from('forum_posts').update(payload).eq('id', postId);
   return error ? { success: false, error: error.message } : { success: true };
+}
+
+export async function toggleForumPostLike(postId) {
+  const { data, error } = await supabase.rpc('toggle_forum_post_like', { p_post_id: postId });
+  if (error) return { success: false, error: error.message };
+  return {
+    success: true,
+    isLiked: Boolean(data?.liked),
+    likesCount: Number(data?.likes_count || 0)
+  };
 }

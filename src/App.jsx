@@ -33,6 +33,7 @@ import {
   createClassroomInSupabase,
   updateClassroomInSupabase,
   updateClassroomUnlockedLessons,
+  subscribeToClassroomLessonAccess,
   deleteClassroomFromSupabase,
   transferStudentBetweenClasses,
   fetchExams,
@@ -186,6 +187,7 @@ export function AppContent() {
   const [activeExam, setActiveExam] = useState(null);
   const [managingClassroom, setManagingClassroom] = useState(null);
   const [editingClassroom, setEditingClassroom] = useState(null);
+  const [isLessonAccessSaving, setIsLessonAccessSaving] = useState(false);
 
   // Load courses and classrooms directly from Supabase Cloud
   useEffect(() => {
@@ -209,6 +211,15 @@ export function AppContent() {
       })
       .finally(() => setAreClassroomsLoading(false));
   }, []);
+
+  useEffect(() => subscribeToClassroomLessonAccess(({ id, unlockedLessons }) => {
+    setClassrooms((previous) => previous.map((classroom) =>
+      classroom.id === id ? { ...classroom, unlockedLessons } : classroom
+    ));
+    setManagingClassroom((previous) =>
+      previous?.id === id ? { ...previous, unlockedLessons } : previous
+    );
+  }), []);
 
   // Load exams từ Supabase khi mount
   useEffect(() => {
@@ -393,89 +404,89 @@ export function AppContent() {
 
   // Handlers for Unlocking Lessons per Classroom (Theo Lớp Học)
   const handleToggleClassLesson = async (classId, lessonId) => {
-    let updatedClass = null;
-    setClassrooms((prev) =>
-      prev.map((c) => {
-        if (c.id === classId) {
-          const currentUnlocked = new Set(c.unlockedLessons || []);
-          if (currentUnlocked.has(lessonId)) {
-            currentUnlocked.delete(lessonId);
-          } else {
-            currentUnlocked.add(lessonId);
-          }
-          updatedClass = {
-            ...c,
-            unlockedLessons: Array.from(currentUnlocked)
-          };
-          return updatedClass;
-        }
-        return c;
-      })
-    );
+    if (isLessonAccessSaving) return;
+    const classroom = classrooms.find((item) => item.id === classId);
+    if (!classroom) return;
 
-    if (updatedClass) {
-      if (managingClassroom?.id === classId) {
-        setManagingClassroom(updatedClass);
-      }
-      await updateClassroomUnlockedLessons(classId, updatedClass.unlockedLessons);
-      const isNowOpen = updatedClass.unlockedLessons.includes(lessonId);
-      setRoleToast(
-        isNowOpen
-          ? `🟢 Đã mở bài học cho lớp "${updatedClass.name}" (Học sinh lớp này có thể làm bài)`
-          : `🔒 Đã khóa bài học đối với lớp "${updatedClass.name}"`
+    const previousUnlocked = [...(classroom.unlockedLessons || [])];
+    const nextUnlockedSet = new Set(previousUnlocked);
+    if (nextUnlockedSet.has(lessonId)) nextUnlockedSet.delete(lessonId);
+    else nextUnlockedSet.add(lessonId);
+    const nextUnlocked = Array.from(nextUnlockedSet);
+    const applyAccess = (unlockedLessons) => {
+      setClassrooms((previous) => previous.map((item) =>
+        item.id === classId ? { ...item, unlockedLessons } : item
+      ));
+      setManagingClassroom((previous) =>
+        previous?.id === classId ? { ...previous, unlockedLessons } : previous
       );
-      setTimeout(() => setRoleToast(null), 3500);
+    };
+
+    applyAccess(nextUnlocked);
+    setIsLessonAccessSaving(true);
+    const result = await updateClassroomUnlockedLessons(classId, nextUnlocked);
+    setIsLessonAccessSaving(false);
+    if (!result.success) {
+      applyAccess(previousUnlocked);
+      setRoleToast(`Không thể lưu trạng thái bài học: ${result.error?.message || 'Supabase từ chối cập nhật.'}`);
+      setTimeout(() => setRoleToast(null), 4500);
+      return;
     }
+
+    const isNowOpen = nextUnlocked.includes(lessonId);
+    setRoleToast(isNowOpen
+      ? `🟢 Đã mở bài học cho lớp "${classroom.name}" (Học sinh lớp này có thể làm bài)`
+      : `🔒 Đã khóa bài học đối với lớp "${classroom.name}"`);
+    setTimeout(() => setRoleToast(null), 3500);
   };
 
   const handleUnlockAllClassLessons = async (classId, allLessonIds) => {
-    let updatedClass = null;
-    setClassrooms((prev) =>
-      prev.map((c) => {
-        if (c.id === classId) {
-          updatedClass = {
-            ...c,
-            unlockedLessons: allLessonIds
-          };
-          return updatedClass;
-        }
-        return c;
-      })
-    );
+    if (isLessonAccessSaving) return;
+    const classroom = classrooms.find((item) => item.id === classId);
+    if (!classroom) return;
+    const previousUnlocked = [...(classroom.unlockedLessons || [])];
+    const nextUnlocked = [...new Set(allLessonIds)];
+    const applyAccess = (unlockedLessons) => {
+      setClassrooms((previous) => previous.map((item) => item.id === classId ? { ...item, unlockedLessons } : item));
+      setManagingClassroom((previous) => previous?.id === classId ? { ...previous, unlockedLessons } : previous);
+    };
 
-    if (updatedClass) {
-      if (managingClassroom?.id === classId) {
-        setManagingClassroom(updatedClass);
-      }
-      await updateClassroomUnlockedLessons(classId, allLessonIds);
-      setRoleToast(`🟢 Đã mở toàn bộ ${allLessonIds.length} bài học cho lớp "${updatedClass.name}"!`);
-      setTimeout(() => setRoleToast(null), 3500);
+    applyAccess(nextUnlocked);
+    setIsLessonAccessSaving(true);
+    const result = await updateClassroomUnlockedLessons(classId, nextUnlocked);
+    setIsLessonAccessSaving(false);
+    if (!result.success) {
+      applyAccess(previousUnlocked);
+      setRoleToast(`Không thể mở toàn bộ bài học: ${result.error?.message || 'Supabase từ chối cập nhật.'}`);
+      setTimeout(() => setRoleToast(null), 4500);
+      return;
     }
+    setRoleToast(`🟢 Đã mở toàn bộ ${nextUnlocked.length} bài học cho lớp "${classroom.name}"!`);
+    setTimeout(() => setRoleToast(null), 3500);
   };
 
   const handleLockAllClassLessons = async (classId) => {
-    let updatedClass = null;
-    setClassrooms((prev) =>
-      prev.map((c) => {
-        if (c.id === classId) {
-          updatedClass = {
-            ...c,
-            unlockedLessons: []
-          };
-          return updatedClass;
-        }
-        return c;
-      })
-    );
+    if (isLessonAccessSaving) return;
+    const classroom = classrooms.find((item) => item.id === classId);
+    if (!classroom) return;
+    const previousUnlocked = [...(classroom.unlockedLessons || [])];
+    const applyAccess = (unlockedLessons) => {
+      setClassrooms((previous) => previous.map((item) => item.id === classId ? { ...item, unlockedLessons } : item));
+      setManagingClassroom((previous) => previous?.id === classId ? { ...previous, unlockedLessons } : previous);
+    };
 
-    if (updatedClass) {
-      if (managingClassroom?.id === classId) {
-        setManagingClassroom(updatedClass);
-      }
-      await updateClassroomUnlockedLessons(classId, []);
-      setRoleToast(`🔒 Đã khóa toàn bộ bài học đối với lớp "${updatedClass.name}"!`);
-      setTimeout(() => setRoleToast(null), 3500);
+    applyAccess([]);
+    setIsLessonAccessSaving(true);
+    const result = await updateClassroomUnlockedLessons(classId, []);
+    setIsLessonAccessSaving(false);
+    if (!result.success) {
+      applyAccess(previousUnlocked);
+      setRoleToast(`Không thể khóa toàn bộ bài học: ${result.error?.message || 'Supabase từ chối cập nhật.'}`);
+      setTimeout(() => setRoleToast(null), 4500);
+      return;
     }
+    setRoleToast(`🔒 Đã khóa toàn bộ bài học đối với lớp "${classroom.name}"!`);
+    setTimeout(() => setRoleToast(null), 3500);
   };
 
   const handleDeleteClassroom = async (classId) => {
@@ -579,9 +590,9 @@ export function AppContent() {
       setCurrentView('courses');
       redirectNote = ' • Tự động chuyển về trang Khóa Học vì không đủ quyền Quản Trị';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (currentView === 'grading' && newRole !== 'teacher') {
+    } else if (currentView === 'grading' && !['admin', 'teacher'].includes(newRole)) {
       setCurrentView('courses');
-      redirectNote = ' • Tự động chuyển về trang Khóa Học vì chỉ dành cho Giáo Viên';
+      redirectNote = ' • Tự động chuyển về trang Khóa Học vì chỉ dành cho Giáo Viên và Admin';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -604,7 +615,7 @@ export function AppContent() {
     if (user && currentView === 'admin-users' && user.role !== 'admin') {
       setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (user && currentView === 'grading' && user.role !== 'teacher') {
+    } else if (user && currentView === 'grading' && !['admin', 'teacher'].includes(user.role)) {
       setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (currentView === 'student-progress' && !['admin', 'teacher'].includes(user?.role)) {
@@ -953,7 +964,7 @@ export function AppContent() {
       )}
 
       {currentView === 'grading' && (
-        user?.role === 'teacher' ? (
+        ['admin', 'teacher'].includes(user?.role) ? (
           <TeacherGradingView />
         ) : (
           <main className="main-content" style={{ padding: '3rem 1rem' }}>
@@ -972,7 +983,7 @@ export function AppContent() {
                 Quyền Truy Cập Bị Hạn Chế
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-                Bàn Chấm Bài chỉ dành riêng cho Giáo viên phụ trách (Cô Hoài).
+                Bàn Chấm Bài chỉ dành cho Giáo viên và Quản trị viên.
               </p>
               <button
                 type="button"
@@ -1152,6 +1163,7 @@ export function AppContent() {
         onToggleLesson={handleToggleClassLesson}
         onUnlockAll={handleUnlockAllClassLessons}
         onLockAll={handleLockAllClassLessons}
+        isSaving={isLessonAccessSaving}
       />
 
       {/* Classroom Edit Modal (Cô Hoài / Admin) */}

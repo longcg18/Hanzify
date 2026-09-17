@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { createForumComment, createForumPost, fetchForumPosts, updateForumPost, fetchUsers } from '../services/supabaseService';
+import { createForumComment, createForumPost, fetchForumPosts, toggleForumPostLike, updateForumPost, fetchUsers } from '../services/supabaseService';
 
 export const ForumView = () => {
   const { user, setIsAuthModalOpen } = useAuth();
@@ -43,12 +43,14 @@ export const ForumView = () => {
   // Like / Upvote handler
   const handleToggleLike = async (postId, e) => {
     e.stopPropagation();
-    const post = posts.find((item) => item.id === postId);
-    if (!post) return;
-    const isLiked = !post.isLiked;
-    const likesCount = isLiked ? post.likesCount + 1 : Math.max(0, post.likesCount - 1);
-    const result = await updateForumPost(postId, { likesCount });
-    if (result.success) setPosts((prev) => prev.map((item) => item.id === postId ? { ...item, isLiked, likesCount } : item));
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    const result = await toggleForumPostLike(postId);
+    if (result.success) setPosts((prev) => prev.map((item) => item.id === postId
+      ? { ...item, isLiked: result.isLiked, likesCount: result.likesCount }
+      : item));
     else setLoadError(result.error);
   };
 

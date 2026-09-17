@@ -57,45 +57,53 @@ export const AuthProvider = ({ children }) => {
     }
 
     let disposed = false;
-    const channel = supabase.channel('hanzify-online-users', {
-      config: {
-        presence: { key: String(user.id) }
-      }
-    });
-
-    const syncOnlineUsers = () => {
-      if (disposed) return;
-      setOnlineUserIds(new Set(Object.keys(channel.presenceState())));
-      setPresenceStatus('connected');
-    };
+    let channel = null;
 
     setOnlineUserIds(new Set());
     setPresenceStatus('connecting');
 
-    channel
-      .on('presence', { event: 'sync' }, syncOnlineUsers)
-      .subscribe(async (status) => {
-        if (disposed) return;
-
-        if (status === 'SUBSCRIBED') {
-          const trackStatus = await channel.track({
-            userId: String(user.id),
-            onlineAt: new Date().toISOString()
-          });
-          if (trackStatus !== 'ok' && !disposed) setPresenceStatus('error');
-          return;
-        }
-
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          setPresenceStatus('error');
+    // Defer connecting by one task. React Strict Mode mounts, cleans up and mounts
+    // effects again in development; connecting immediately makes Supabase reuse a
+    // channel that is still subscribed and the second `.on()` call throws, which
+    // freezes the whole interface.
+    const connectTimer = window.setTimeout(() => {
+      if (disposed) return;
+      channel = supabase.channel('hanzify-online-users', {
+        config: {
+          presence: { key: String(user.id) }
         }
       });
+
+      const syncOnlineUsers = () => {
+        if (disposed || !channel) return;
+        setOnlineUserIds(new Set(Object.keys(channel.presenceState())));
+        setPresenceStatus('connected');
+      };
+
+      channel
+        .on('presence', { event: 'sync' }, syncOnlineUsers)
+        .subscribe(async (status) => {
+          if (disposed || !channel) return;
+
+          if (status === 'SUBSCRIBED') {
+            const trackStatus = await channel.track({
+              userId: String(user.id),
+              onlineAt: new Date().toISOString()
+            });
+            if (trackStatus !== 'ok' && !disposed) setPresenceStatus('error');
+            return;
+          }
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setPresenceStatus('error');
+          }
+        });
+    }, 0);
 
     return () => {
       disposed = true;
-      channel.untrack().catch(() => {}).finally(() => {
-        supabase.removeChannel(channel);
-      });
+      window.clearTimeout(connectTimer);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [user?.id]);
 

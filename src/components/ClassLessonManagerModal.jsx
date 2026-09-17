@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export const ClassLessonManagerModal = ({
   isOpen,
@@ -7,8 +7,17 @@ export const ClassLessonManagerModal = ({
   courses = [],
   onToggleLesson,
   onUnlockAll,
-  onLockAll
+  onLockAll,
+  isSaving = false
 }) => {
+  const [activeCourseId, setActiveCourseId] = useState('all');
+
+  useEffect(() => {
+    // A filter selected for the previous classroom must never hide every course
+    // when the modal is reopened for another classroom.
+    setActiveCourseId('all');
+  }, [classroom?.id, isOpen]);
+
   if (!isOpen || !classroom) return null;
 
   // Find all courses assigned to this classroom
@@ -17,8 +26,6 @@ export const ClassLessonManagerModal = ({
   );
   // Fallback: if no course matches specifically, provide courses matching level or all courses
   const displayCourses = assignedCourses.length > 0 ? assignedCourses : courses.slice(0, 2);
-
-  const [activeCourseId, setActiveCourseId] = useState(displayCourses[0]?.id || 'all');
 
   const filteredCourses = activeCourseId === 'all'
     ? displayCourses
@@ -162,6 +169,7 @@ export const ClassLessonManagerModal = ({
               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                 ({totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0}%)
               </span>
+              {isSaving && <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 700 }}><i className="fa-solid fa-spinner fa-spin"></i> Đang lưu</span>}
             </div>
           </div>
 
@@ -169,6 +177,7 @@ export const ClassLessonManagerModal = ({
             <button
               type="button"
               onClick={() => onUnlockAll && onUnlockAll(classroom.id, allLessons.map((l) => l.id))}
+              disabled={isSaving}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -180,7 +189,8 @@ export const ClassLessonManagerModal = ({
                 color: '#15803d',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                cursor: 'pointer'
+                cursor: isSaving ? 'wait' : 'pointer',
+                opacity: isSaving ? 0.6 : 1
               }}
             >
               <i className="fa-solid fa-lock-open"></i>
@@ -189,6 +199,7 @@ export const ClassLessonManagerModal = ({
             <button
               type="button"
               onClick={() => onLockAll && onLockAll(classroom.id)}
+              disabled={isSaving}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -200,7 +211,8 @@ export const ClassLessonManagerModal = ({
                 color: '#b91c1c',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                cursor: 'pointer'
+                cursor: isSaving ? 'wait' : 'pointer',
+                opacity: isSaving ? 0.6 : 1
               }}
             >
               <i className="fa-solid fa-lock"></i>
@@ -357,6 +369,7 @@ export const ClassLessonManagerModal = ({
                             <button
                               type="button"
                               onClick={() => onToggleLesson && onToggleLesson(classroom.id, lesson.id)}
+                              disabled={isSaving}
                               title={isUnlocked ? 'Bấm để KHÓA bài học này cho lớp' : 'Bấm để MỞ bài học này cho lớp'}
                               style={{
                                 display: 'inline-flex',
@@ -369,7 +382,8 @@ export const ClassLessonManagerModal = ({
                                 color: isUnlocked ? '#15803d' : '#64748b',
                                 fontWeight: 800,
                                 fontSize: '0.82rem',
-                                cursor: 'pointer',
+                                cursor: isSaving ? 'wait' : 'pointer',
+                                opacity: isSaving ? 0.6 : 1,
                                 transition: 'all 0.15s ease'
                               }}
                             >
