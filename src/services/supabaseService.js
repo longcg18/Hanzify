@@ -896,210 +896,107 @@ export async function fetchVocabularies({ level = 'all', topic = 'all' } = {}) {
 }
 
 export async function fetchLeaderboard() {
-  // Query Supabase for real users, real streaks, real submissions, real classrooms
-  let liveStreaks = [];
-  let liveSubmissions = [];
-  let liveUsers = [];
-  let liveClassrooms = [];
-
-  try {
-    const [streakRes, subRes, userRes, classRes] = await Promise.all([
-      supabase.from('user_streaks').select('*'),
-      supabase.from('submissions').select('*'),
-      supabase.from('users').select('*'),
-      supabase.from('classrooms').select('*')
+  const { data, error } = await supabase.rpc('get_leaderboard_stats');
+  if (error) {
+    console.warn('Leaderboard aggregate RPC unavailable; using direct live tables:', error.message);
+    const [usersResult, streaksResult, submissionsResult, classroomsResult, examsResult] = await Promise.all([
+      supabase.from('users').select('id, username, full_name, chinese_name, avatar, role, status'),
+      supabase.from('user_streaks').select('user_id, total_xp'),
+      supabase.from('submissions').select('student_id, status, total_score, answers_json'),
+      supabase.from('classrooms').select('id, name, level, classroom_students(username, name, created_at)'),
+      supabase.from('exam_attempts').select('student_id, level, total_score, completed_at')
     ]);
-    if (!streakRes.error && streakRes.data) liveStreaks = streakRes.data;
-    if (!subRes.error && subRes.data) liveSubmissions = subRes.data;
-    if (!userRes.error && userRes.data) liveUsers = userRes.data;
-    if (!classRes.error && classRes.data) liveClassrooms = classRes.data;
-  } catch (e) {
-    console.warn('Error querying Supabase for leaderboard:', e);
+
+    if (usersResult.error) {
+      return { data: [], isLiveDb: false, error: usersResult.error.message };
+    }
+
+    const directRows = (usersResult.data || [])
+      .filter((profile) => profile.role === 'student' && profile.status === 'active')
+      .map((profile) => {
+        const enrollment = (classroomsResult.data || []).find((classroom) =>
+          (classroom.classroom_students || []).some((student) =>
+            (profile.username && student.username?.toLowerCase() === profile.username.toLowerCase()) ||
+            (profile.full_name && student.name?.toLowerCase() === profile.full_name.toLowerCase())
+          )
+        );
+        const gradedHomework = (submissionsResult.data || []).filter((submission) =>
+          submission.student_id === profile.id &&
+          submission.status === 'graded' &&
+          (submission.answers_json?.submission_state || 'graded') === 'graded'
+        );
+        const attempts = (examsResult.data || []).filter((attempt) => attempt.student_id === profile.id);
+        const latestAttempt = [...attempts].sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))[0];
+        const activityXp = Number((streaksResult.data || []).find((streak) => streak.user_id === profile.id)?.total_xp) || 0;
+        const homeworkXp = gradedHomework.length * 100;
+        const examXp = attempts.reduce((sum, attempt) => sum + (Number(attempt.total_score) || 0), 0);
+        const scoredHomework = gradedHomework.filter((submission) => submission.total_score != null);
+
+        return {
+          user_id: profile.id,
+          username: profile.username,
+          full_name: profile.full_name,
+          chinese_name: profile.chinese_name,
+          avatar: profile.avatar,
+          classroom_id: enrollment?.id || null,
+          classroom_name: enrollment?.name || null,
+          level: enrollment?.level || latestAttempt?.level || null,
+          activity_xp: activityXp,
+          homework_xp: homeworkXp,
+          exam_xp: examXp,
+          total_xp: activityXp + homeworkXp + examXp,
+          lessons_completed: gradedHomework.length,
+          exams_done: attempts.length,
+          teacher_grade: scoredHomework.length
+            ? Number((scoredHomework.reduce((sum, submission) => sum + Number(submission.total_score), 0) / scoredHomework.length).toFixed(1))
+            : null
+        };
+      })
+      .sort((a, b) => b.total_xp - a.total_xp || String(a.full_name || '').localeCompare(String(b.full_name || ''), 'vi'));
+
+    return formatLeaderboardRows(directRows);
   }
 
-  const entryMap = new Map();
+  return formatLeaderboardRows(data || []);
+}
 
-  const getSubXp = (sub) => {
-    const raw = sub.total_score ?? sub.score ?? sub.answers_json?.autoGradedScore;
-    const val = Number(raw) || 0;
-    return val > 0 ? (val <= 10 ? Math.round(val * 10) : val) : 0;
-  };
-
-  // 1. Populate real enrolled students from classrooms
-  liveClassrooms.forEach((cls) => {
-    const students = Array.isArray(cls.students) ? cls.students : [];
-    students.forEach((st) => {
-      const key = st.id || st.username || st.name;
-      if (!key) return;
-
-      const userStreak = liveStreaks.find((s) => s.user_id === st.id);
-      const userSubs = liveSubmissions.filter(
-        (s) => s.student_id === st.id || s.student_name === st.name || s.student_name === st.username
-      );
-
-      const localStreakKey = `hanzify_streak_${st.id || st.username || 'student'}`;
-      let localStreakXp = 0;
-      try {
-        if (typeof localStorage !== 'undefined') {
-          const raw = localStorage.getItem(localStreakKey);
-          if (raw) localStreakXp = Number(JSON.parse(raw)?.totalXp) || 0;
-        }
-      } catch (e) {}
-
-      const streakXp = Math.max(userStreak?.total_xp || 0, localStreakXp);
-      const subsXp = userSubs.reduce((acc, sub) => acc + getSubXp(sub), 0);
-      const totalXp = streakXp + subsXp + (Number(st.score) || 0);
-
-      const validGradeSubs = userSubs.filter((s) => s.total_score != null || s.score != null || s.answers_json?.autoGradedScore != null);
-      const realAvgGrade = validGradeSubs.length > 0
-        ? Number((validGradeSubs.reduce((sum, s) => sum + Number(s.total_score ?? s.score ?? s.answers_json?.autoGradedScore ?? 0), 0) / validGradeSubs.length).toFixed(1))
-        : null;
-
-      entryMap.set(key, {
-        id: st.id || key,
-        name: st.name || st.username || 'Học viên',
-        user_name: st.name || st.username || 'Học viên',
-        chineseName: st.chineseName || st.chinese_name || '',
-        avatar: st.avatar || (st.name ? st.name.slice(0, 1) : '学'),
-        avatarBg: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
-        level: cls.level || 'HSK 1',
-        badge: 'Lớp ' + (cls.name || ''),
-        xp: totalXp,
-        score: totalXp,
-        points: totalXp,
-        classId: cls.id,
-        classroom_id: cls.id,
-        completionRate: userSubs.length > 0 ? 100 : 0,
-        teacherGrade: realAvgGrade,
-        lessonsCompleted: userSubs.length
-      });
-    });
-  });
-
-  // 2. Add real student accounts from Supabase users table
-  liveUsers.forEach((u) => {
-    if (u.role !== 'student') return; // Only rank students
-    const key = u.id || u.username;
-    if (!key) return;
-
-    const userStreak = liveStreaks.find((s) => s.user_id === u.id);
-    const userSubs = liveSubmissions.filter(
-      (s) => s.student_id === u.id || s.student_name === u.full_name || s.student_name === u.name || s.student_name === u.username
-    );
-
-    const localStreakKey = `hanzify_streak_${u.id || u.username || 'student'}`;
-    let localStreakXp = 0;
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const raw = localStorage.getItem(localStreakKey);
-        if (raw) localStreakXp = Number(JSON.parse(raw)?.totalXp) || 0;
-      }
-    } catch (e) {}
-
-    const streakXp = Math.max(userStreak?.total_xp || 0, localStreakXp);
-    const subsXp = userSubs.reduce((acc, sub) => acc + getSubXp(sub), 0);
-    const calculatedXp = streakXp + subsXp;
-
-    const validGradeSubs = userSubs.filter((s) => s.total_score != null || s.score != null || s.answers_json?.autoGradedScore != null);
-    const realAvgGrade = validGradeSubs.length > 0
-      ? Number((validGradeSubs.reduce((sum, s) => sum + Number(s.total_score ?? s.score ?? s.answers_json?.autoGradedScore ?? 0), 0) / validGradeSubs.length).toFixed(1))
-      : null;
-
-    const existing = entryMap.get(key) || entryMap.get(u.full_name) || entryMap.get(u.username) || {};
-
-    let userClassId = u.class_id || u.classId || existing.classId;
-    if (!userClassId && liveClassrooms.length > 0) {
-      const matchedCls = liveClassrooms.find((cls) =>
-        Array.isArray(cls.students) && cls.students.some((st) => st.id === u.id || st.username === u.username)
-      );
-      if (matchedCls) userClassId = matchedCls.id;
-    }
-    if (!userClassId) userClassId = 'all';
-
-    const finalXp = Math.max(existing.xp || 0, calculatedXp);
-
-    entryMap.set(key, {
-      ...existing,
-      id: u.id,
-      name: u.full_name || u.name || u.username || 'Học viên',
-      user_name: u.full_name || u.name || u.username || 'Học viên',
-      chineseName: u.chinese_name || existing.chineseName || '',
-      avatar: u.avatar || (u.full_name ? u.full_name.slice(0, 1) : '学'),
-      avatarBg: existing.avatarBg || 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-      level: existing.level || 'HSK 1',
-      badge: existing.badge || 'Học viên',
-      xp: finalXp,
-      score: finalXp,
-      points: finalXp,
-      classId: userClassId,
-      classroom_id: userClassId,
-      completionRate: existing.completionRate || (userSubs.length > 0 ? 100 : 0),
-      teacherGrade: realAvgGrade || existing.teacherGrade || null,
-      lessonsCompleted: Math.max(existing.lessonsCompleted || 0, userSubs.length)
-    });
-  });
-
-  // 3. Add currently logged-in student user from localStorage
+function formatLeaderboardRows(rows) {
+  let currentUserId = null;
   try {
-    const rawUser = localStorage.getItem('hanzify_user');
-    if (rawUser) {
-      const localUser = JSON.parse(rawUser);
-      if (localUser && (localUser.role === 'student' || !localUser.role)) {
-        const localStreakKey = `hanzify_streak_${localUser.id || 'student'}`;
-        const localStreakRaw = localStorage.getItem(localStreakKey);
-        const localStreak = localStreakRaw ? JSON.parse(localStreakRaw) : null;
-        const streakXp = Number(localStreak?.totalXp || 0);
-
-        const key = localUser.id || localUser.username || 'current-user';
-        const existing = entryMap.get(key) || entryMap.get(localUser.name) || entryMap.get(localUser.full_name) || {};
-
-        const totalXp = Math.max(existing.xp || 0, streakXp);
-
-        let userClassId = localUser.classId || (Array.isArray(localUser.classIds) && localUser.classIds[0]) || existing.classId;
-        if (!userClassId && liveClassrooms.length > 0) {
-          const matchedCls = liveClassrooms.find((cls) =>
-            Array.isArray(cls.students) && cls.students.some((st) => st.id === localUser.id || st.username === localUser.username)
-          );
-          if (matchedCls) userClassId = matchedCls.id;
-        }
-        if (!userClassId) userClassId = 'all';
-
-        entryMap.set(key, {
-          ...existing,
-          id: localUser.id || 'current-user',
-          name: localUser.full_name || localUser.name || localUser.username || 'Bạn',
-          user_name: localUser.full_name || localUser.name || localUser.username || 'Bạn',
-          chineseName: localUser.chinese_name || localUser.chineseName || '',
-          avatar: localUser.avatar || (localUser.full_name ? localUser.full_name.slice(0, 1) : '学'),
-          avatarBg: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
-          level: localUser.level || existing.level || 'HSK 1',
-          badge: 'Học viên tích cực 🔥',
-          xp: totalXp,
-          score: totalXp,
-          points: totalXp,
-          classId: userClassId,
-          classroom_id: userClassId,
-          completionRate: existing.completionRate || (totalXp > 0 ? 100 : 0),
-          teacherGrade: existing.teacherGrade || null,
-          isCurrentUser: true
-        });
-      }
-    }
-  } catch (e) {
-    console.error('Error injecting local user into leaderboard:', e);
+    currentUserId = JSON.parse(localStorage.getItem('hanzify_user') || 'null')?.id || null;
+  } catch {
+    // The leaderboard remains usable when local profile cache is unavailable.
   }
 
-
-
-  // Sort descending by real XP
-  const resultList = Array.from(entryMap.values())
-    .sort((a, b) => (b.xp || 0) - (a.xp || 0))
-    .map((item, idx) => ({
-      ...item,
-      rank: idx + 1
+  const resultList = [...rows]
+    .sort((a, b) => (Number(b.total_xp) || 0) - (Number(a.total_xp) || 0)
+      || String(a.full_name || '').localeCompare(String(b.full_name || ''), 'vi'))
+    .map((item, index) => ({
+      id: item.user_id,
+      username: item.username,
+      name: item.full_name || item.username || 'Học viên',
+      user_name: item.full_name || item.username || 'Học viên',
+      chineseName: item.chinese_name || '',
+      avatar: item.avatar || (item.full_name ? item.full_name.slice(0, 1) : '学'),
+      avatarBg: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+      level: item.level || null,
+      badge: item.classroom_name ? `Lớp ${item.classroom_name}` : 'Chưa phân lớp',
+      xp: Number(item.total_xp) || 0,
+      score: Number(item.total_xp) || 0,
+      points: Number(item.total_xp) || 0,
+      activityXp: Number(item.activity_xp) || 0,
+      homeworkXp: Number(item.homework_xp) || 0,
+      examXp: Number(item.exam_xp) || 0,
+      classId: item.classroom_id || 'all',
+      classroom_id: item.classroom_id || 'all',
+      teacherGrade: item.teacher_grade == null ? null : Number(item.teacher_grade),
+      lessonsCompleted: Number(item.lessons_completed) || 0,
+      examsDone: Number(item.exams_done) || 0,
+      isCurrentUser: item.user_id === currentUserId,
+      rank: index + 1
     }));
 
-  return { data: resultList, isLiveDb: true };
+  return { data: resultList, isLiveDb: true, error: null };
 }
 
 // ==========================================

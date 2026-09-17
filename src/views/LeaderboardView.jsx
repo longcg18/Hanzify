@@ -6,7 +6,6 @@ import { getStudentClassrooms } from '../utils/classEnrollment';
 export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoading = false }) => {
   const { user } = useAuth();
   const [selectedClassId, setSelectedClassId] = useState('all'); // 'all' | 'hsk1-k02' | 'hsk1-k03' | 'hsk2-k01'
-  const [timeRange, setTimeRange] = useState('weekly'); // 'weekly' | 'monthly' | 'allTime'
   const [isXpRulesOpen, setIsXpRulesOpen] = useState(false);
   const [entries, setEntries] = useState([]);
   const [loadError, setLoadError] = useState('');
@@ -14,7 +13,8 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
   useEffect(() => {
     setIsLoading(true);
     fetchLeaderboard()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) throw new Error(error);
         const mapped = (data || []).map((item, index) => ({
           ...item,
           rank: index + 1,
@@ -37,7 +37,6 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
 
   const visibleClassrooms = getStudentClassrooms(classrooms, user);
   const classOptions = [{ id: 'all', name: 'Toàn hệ thống' }, ...visibleClassrooms];
-  const selectedClassInfo = classOptions.find((c) => c.id === selectedClassId);
 
   // Podium positions: 2nd (left), 1st (center), 3rd (right)
   const firstPlace = currentList[0];
@@ -133,7 +132,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
           </div>
         </div>
 
-        {/* Class Scope Selector & Time Range Tabs */}
+        {/* Class Scope Selector */}
         <div style={{
           marginTop: '1.75rem',
           display: 'flex',
@@ -178,106 +177,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
             </select>
           </div>
 
-          {/* Time Tabs Selector (Hiển thị khi chọn Toàn Hệ Thống) */}
-          {selectedClassId === 'all' && (
-            <div style={{
-              display: 'inline-flex',
-              background: 'rgba(15, 23, 42, 0.6)',
-              backdropFilter: 'blur(10px)',
-              padding: '0.35rem',
-              borderRadius: '14px',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              gap: '0.35rem'
-            }}>
-              <button
-                type="button"
-                onClick={() => setTimeRange('weekly')}
-                style={{
-                  padding: '0.55rem 1.25rem',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: timeRange === 'weekly' ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' : 'transparent',
-                  color: timeRange === 'weekly' ? '#ffffff' : '#94a3b8',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="fa-solid fa-calendar-week"></i>
-                <span>Top Tuần Này</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTimeRange('monthly')}
-                style={{
-                  padding: '0.55rem 1.25rem',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: timeRange === 'monthly' ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' : 'transparent',
-                  color: timeRange === 'monthly' ? '#ffffff' : '#94a3b8',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="fa-regular fa-calendar-days"></i>
-                <span>Top Tháng Này</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTimeRange('allTime')}
-                style={{
-                  padding: '0.55rem 1.25rem',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: timeRange === 'allTime' ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' : 'transparent',
-                  color: timeRange === 'allTime' ? '#ffffff' : '#94a3b8',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="fa-solid fa-globe"></i>
-                <span>Tổng Tích Lũy</span>
-              </button>
-            </div>
-          )}
         </div>
-
-        {/* Fairness note for Class-based Leaderboard */}
-        {selectedClassId !== 'all' && (
-          <div style={{
-            marginTop: '1.25rem',
-            padding: '0.75rem 1.15rem',
-            borderRadius: '14px',
-            background: 'rgba(245, 158, 11, 0.15)',
-            border: '1.5px solid rgba(245, 158, 11, 0.35)',
-            color: '#fef3c7',
-            fontSize: '0.84rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.65rem'
-          }}>
-            <i className="fa-solid fa-scale-balanced" style={{ color: '#fbbf24', fontSize: '1.15rem', flexShrink: 0 }}></i>
-            <span>
-              <strong>Bảng thi đua riêng của {selectedClassInfo?.name}:</strong> Toàn bộ học viên trong lớp có cùng số lượng bài học và bài tập bằng nhau ({selectedClassInfo?.totalLessons || 3} bài). So tài công bằng tuyệt đối 100%!
-            </span>
-          </div>
-        )}
       </section>
 
       {/* RANKING CONTENT OR EMPTY STATE */}
@@ -573,7 +473,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
             Top Học Viên Tranh Tài
           </h3>
           <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            Cập nhật theo thời gian thực
+            Tổng hợp từ hoạt động đã lưu
           </span>
         </div>
 
@@ -669,12 +569,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                       ⭐ {item.teacherGrade}đ cô chấm
                     </span>
                   )}
-                  {item.completionRate && (
-                    <span style={{ color: '#0284c7', fontWeight: 700, background: '#f0f9ff', padding: '2px 7px', borderRadius: '6px' }} title="Tỷ lệ hoàn thành bài tập được giao của lớp">
-                      🎯 {item.completionRate}% xong
-                    </span>
-                  )}
-                  <span title="Số bài học đã xong">
+                  <span title="Số bài tập đã được giáo viên chấm xong">
                     <i className="fa-regular fa-folder-open" style={{ color: '#0ea5e9' }}></i> {item.lessonsCompleted} bài
                   </span>
                   <span title="Số đề thi thử đã làm">
@@ -833,7 +728,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>Hoàn thành bài tập về nhà</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Nộp bài đúng hạn và đạt điểm chấm</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Chỉ tính khi giáo viên đã chấm xong</div>
                 </div>
                 <div style={{ fontWeight: 800, color: '#0284c7' }}>+100 XP</div>
               </div>
@@ -846,7 +741,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                   <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>Thi thử HSK chuẩn quốc tế</div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Điểm thi thực tế quy đổi trực tiếp sang XP</div>
                 </div>
-                <div style={{ fontWeight: 800, color: '#d97706' }}>+120 - 200 XP</div>
+                <div style={{ fontWeight: 800, color: '#d97706' }}>+điểm thi</div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '12px' }}>
@@ -865,21 +760,10 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                   <i className="fa-solid fa-gamepad"></i>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>Thắng Mini-game ôn bài</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Ghép từ, Luyện Pinyin, Thẻ nhớ Flashcard</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>Luyện tập và Mini-game</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Điểm thưởng thực tế hiển thị khi hoàn thành lượt chơi</div>
                 </div>
-                <div style={{ fontWeight: 800, color: '#a855f7' }}>+30 XP / ván</div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className="fa-regular fa-comments"></i>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>Đóng góp trên diễn đàn</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Báo lỗi web hữu ích hoặc giải đáp bài khó</div>
-                </div>
-                <div style={{ fontWeight: 800, color: '#16a34a' }}>+20 XP</div>
+                <div style={{ fontWeight: 800, color: '#a855f7' }}>Theo kết quả</div>
               </div>
             </div>
           </div>

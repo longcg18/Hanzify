@@ -584,19 +584,21 @@ export const HomeView = ({
                 >
                   <div>
                     {/* Top Bar: Code & Level */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="class-card-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flex: '1 1 auto', flexWrap: 'nowrap' }}>
                         <span
                           style={{
                             fontFamily: 'monospace',
                             fontWeight: 800,
-                            fontSize: '0.95rem',
+                            fontSize: '0.88rem',
                             letterSpacing: '0.05em',
                             color: '#991b1b',
                             background: '#fef2f2',
                             border: '1px solid #fee2e2',
-                            padding: '0.25rem 0.65rem',
-                            borderRadius: '8px'
+                            padding: '0.25rem 0.55rem',
+                            borderRadius: '8px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                           }}
                         >
                           {cls.code}
@@ -605,6 +607,7 @@ export const HomeView = ({
                           type="button"
                           title="Sao chép mã lớp"
                           onClick={(e) => handleCopyClassCode(cls.code, cls.id, e)}
+                          className="class-card-action class-card-copy-action"
                           style={{
                             border: 'none',
                             background: isCopied ? '#22c55e' : '#f1f5f9',
@@ -616,8 +619,11 @@ export const HomeView = ({
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: '0.3rem',
-                            transition: 'all 0.15s'
+                            transition: 'all 0.15s',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                           }}
                         >
                           <i className={`fa-solid ${isCopied ? 'fa-check' : 'fa-copy'}`}></i>
@@ -625,7 +631,7 @@ export const HomeView = ({
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0, flexWrap: 'nowrap' }}>
                         <span
                           style={{
                             fontSize: '0.75rem',
@@ -633,7 +639,9 @@ export const HomeView = ({
                             background: '#f1f5f9',
                             color: '#334155',
                             padding: '0.2rem 0.6rem',
-                            borderRadius: '6px'
+                            borderRadius: '6px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                           }}
                         >
                           {cls.level}
@@ -647,6 +655,7 @@ export const HomeView = ({
                               e.stopPropagation();
                               onOpenEditClass(cls);
                             }}
+                            className="class-card-action class-card-edit-action"
                             style={{
                               border: 'none',
                               background: '#f1f5f9',
@@ -658,8 +667,11 @@ export const HomeView = ({
                               fontWeight: 700,
                               display: 'flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
                               gap: '0.3rem',
-                              transition: 'all 0.15s'
+                              transition: 'all 0.15s',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0
                             }}
                           >
                             <i className="fa-solid fa-pen"></i>
@@ -677,6 +689,7 @@ export const HomeView = ({
                                 onDeleteClassroom(cls.id);
                               }
                             }}
+                            className="class-card-action class-card-delete-action"
                             style={{
                               border: 'none',
                               background: '#fef2f2',
@@ -684,7 +697,11 @@ export const HomeView = ({
                               padding: '0.25rem 0.5rem',
                               borderRadius: '6px',
                               cursor: 'pointer',
-                              fontSize: '0.75rem'
+                              fontSize: '0.75rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
                             }}
                           >
                             <i className="fa-solid fa-trash-can"></i>
