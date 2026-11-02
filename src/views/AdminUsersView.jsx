@@ -303,8 +303,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             gap: '0.4rem',
             whiteSpace: 'nowrap'
           }}>
-            <i className="fa-solid fa-database"></i>
-            {dbStatus.connected ? '🟢 Supabase DB: Đã Kết Nối' : '🟡 Supabase DB: Đang Kết Nối'}
+            <i className="fa-solid fa-circle" style={{ color: dbStatus.connected ? 'var(--positive)' : 'var(--warning)', fontSize: '8px' }}></i>
+            <span>Supabase DB: {dbStatus.connected ? 'Đã Kết Nối' : 'Đang Kết Nối'}</span>
           </span>
 
           <button

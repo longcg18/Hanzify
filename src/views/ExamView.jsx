@@ -361,10 +361,8 @@ export const ExamView = ({
   return (
     <main className="main-content">
       {isTeacherOrAdmin && <div style={{
-        background: isTeacherOrAdmin
-          ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
-        border: isTeacherOrAdmin ? '1px solid #334155' : '1px solid #fee2e2',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
         borderRadius: '16px',
         padding: '1.1rem 1.4rem',
         marginBottom: '1.5rem',
@@ -372,30 +370,28 @@ export const ExamView = ({
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '0.85rem',
-        boxShadow: isTeacherOrAdmin ? '0 4px 20px rgba(0, 0, 0, 0.2)' : '0 4px 16px rgba(161, 29, 36, 0.04)',
-        color: isTeacherOrAdmin ? '#f8fafc' : undefined
+        gap: '0.85rem'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <span style={{
-              background: isTeacherOrAdmin ? 'rgba(254, 202, 202, 0.15)' : '#fef2f2',
-              color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24',
+              background: 'var(--accent-light)',
+              color: 'var(--accent)',
               padding: '2px 8px',
               borderRadius: '8px',
               fontSize: '0.74rem',
               fontWeight: 700,
-              border: isTeacherOrAdmin ? '1px solid rgba(254, 202, 202, 0.25)' : '1px solid #fecaca'
+              border: 'none'
             }}>
               {user?.role === 'admin' 
-                ? '👑 Quản Trị Khảo Thí' 
+                ? 'Quản Trị Khảo Thí' 
                 : isTeacherOrAdmin 
-                ? '👩‍🏫 Quản Lý Đề Thi' 
-                : '🎯 Luyện Thi HSK'}
+                ? 'Quản Lý Đề Thi' 
+                : 'Luyện Thi HSK'}
             </span>
             <span style={{
               fontSize: '0.85rem',
-              color: isTeacherOrAdmin ? '#fca5a5' : '#A11D24',
+              color: 'var(--accent)',
               fontFamily: 'Noto Serif SC, serif',
               fontWeight: 600
             }}>
@@ -406,16 +402,16 @@ export const ExamView = ({
             margin: '0 0 0.2rem 0',
             fontSize: '1.25rem',
             fontWeight: 800,
-            color: isTeacherOrAdmin ? '#f8fafc' : '#0f172a'
+            color: 'var(--text)'
           }}>
             {isTeacherOrAdmin ? 'Quản Lý Ngân Hàng Đề Thi HSK' : 'Luyện Thi & Thi Thử HSK'}
           </h1>
           {isTeacherOrAdmin && <p style={{
             margin: 0,
             fontSize: '0.82rem',
-            color: isTeacherOrAdmin ? '#94a3b8' : '#64748b'
+            color: 'var(--muted)'
           }}>
-            Tạo mới, quản lý cấu trúc đề thi 4 tầng (Đề ➔ Kỹ năng ➔ Phần ➔ Câu hỏi) và nhập đề Excel.
+            Tạo mới, quản lý cấu trúc đề thi 4 tầng (Đề - Kỹ năng - Phần - Câu hỏi) và nhập đề Excel.
           </p>}
         </div>
 
@@ -423,46 +419,20 @@ export const ExamView = ({
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
+              className="btn-primary"
               onClick={handleOpenCreateExam}
-              style={{
-                padding: '0.45rem 0.9rem',
-                borderRadius: '10px',
-                background: '#A11D24',
-                border: 'none',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: '0 2px 8px rgba(161, 29, 36, 0.3)',
-                transition: 'all 0.15s ease'
-              }}
             >
-              <i className="fa-solid fa-plus-circle"></i> Tạo Đề Mới
+              <i className="fa-solid fa-plus"></i>
+              <span>Tạo Đề Mới</span>
             </button>
 
             <button
               type="button"
+              className="btn-secondary"
               onClick={handleOpenExcelCreate}
-              style={{
-                padding: '0.45rem 0.9rem',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #166534 0%, #15803d 100%)',
-                border: 'none',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: '0 2px 8px rgba(22, 101, 52, 0.3)',
-                transition: 'all 0.15s ease'
-              }}
             >
-              <i className="fa-solid fa-file-excel"></i> Nhập Excel
+              <i className="fa-solid fa-file-excel"></i>
+              <span>Nhập Excel</span>
             </button>
 
             <span style={{

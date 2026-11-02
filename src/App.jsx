@@ -145,7 +145,8 @@ export function AppContent() {
     setIsCreateClassModalOpen,
     isJoinClassModalOpen,
     setIsJoinClassModalOpen,
-    dismissWelcomeNotification
+    dismissWelcomeNotification,
+    updateProfile
   } = useAuth();
 
   const getInitialView = () => {
@@ -580,6 +581,9 @@ export function AppContent() {
 
   // Role Switch Handler with Smart Auto-Redirection
   const handleRoleSwitched = (newRole) => {
+    if (updateProfile) {
+      updateProfile({ role: newRole });
+    }
     let roleLabel = 'Học Viên';
     if (newRole === 'admin') roleLabel = '👑 Quản Trị Viên (Admin)';
     if (newRole === 'teacher') roleLabel = '👩‍🏫 Giáo Viên Phụ Trách';
@@ -746,12 +750,8 @@ export function AppContent() {
   };
 
   return (
-    <div className="app-shell">
-      {/* Decorative Ambient Glow Orbs */}
-      <div className="ambient-glow glow-1"></div>
-      <div className="ambient-glow glow-2"></div>
-
-      {/* Top Bar Navigation */}
+    <div className="app-shell-outer">
+      {/* Sidebar Navigation */}
       <Navbar
         currentView={currentView}
         onNavigate={handleNavigate}
@@ -763,6 +763,9 @@ export function AppContent() {
         onOpenStreakModal={handleOpenStreakModal}
         classrooms={classrooms}
       />
+
+      {/* Main Canvas */}
+      <main className="app-canvas">
 
       {/* Main View Switcher */}
       {currentView === 'home' && (
@@ -1179,6 +1182,7 @@ export function AppContent() {
 
       {/* Global Auth Modal */}
       <AuthModal />
+      </main>
     </div>
   );
 }

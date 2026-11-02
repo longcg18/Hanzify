@@ -1,0 +1,768 @@
+/* Hanzify Design System â€” editorial-greeting Â· tasteskill v2 */
+/* Import Instrument Sans + Instrument Serif */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap');
+
+:root {
+  /* === tasteskill editorial-greeting tokens === */
+  --ground: #ffffff;
+  --surface: #f9f9f9;
+  --raised: #ffffff;
+  --border: #eaeaea;
+  --rule: #f3f3f3;
+  --control: #d9d9d6;
+  --text: #1f201d;
+  --muted: #636361;
+  --accent: #1b6e66;
+  --accent-light: #e6f4f2;
+  --positive: #2e7d32;
+  --negative: #b42318;
+  --warning: #92400e;
+  --chart-1: #1f201d;
+  --chart-2: #1b6e66;
+  --chart-3: #8c8c88;
+  --pill-positive-bg: #dcfae5; --pill-positive-ink: #04250e;
+  --pill-negative-bg: #fdecea; --pill-negative-ink: #7a1d14;
+  --pill-warning-bg: #fffbeb; --pill-warning-ink: #92400e;
+  --pill-neutral-bg: #f3f3f3; --pill-neutral-ink: #3d3d3a;
+
+  /* Layout */
+  --sidebar-width: 224px;
+  --gap: 16px;
+  --pad: 20px;
+  --control-height: 38px;
+  --row-height: 63px;
+
+  /* Type */
+  --font-ui: 'Be Vietnam Pro', 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  /* Keep Hanzi fonts for Chinese characters */
+  --font-hanzi: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
+  --font-hanzi-sans: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-calligraphy: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive, serif;
+
+  --fs-title: 32px;
+  --fs-section: 14px;
+  --fs-kpi: 32px;
+  --fs-body: 14px;
+  --fs-small: 12px;
+
+  /* Radius */
+  --radius-card: 22px;
+  --radius-control: 999px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Remap old vars to new tokens for backward compat */
+  --primary-700: var(--accent);
+  --primary-500: var(--accent);
+  --primary-100: var(--accent-light);
+  --primary-50: #f0faf9;
+  --ink-900: var(--text);
+  --ink-800: #2d2e2b;
+  --ink-700: #3d3e3a;
+  --ink-600: var(--muted);
+  --ink-500: var(--muted);
+  --ink-400: #8c8c88;
+  --ink-300: #c9c9c5;
+  --ink-200: var(--border);
+  --ink-100: var(--rule);
+  --ink-50: var(--surface);
+  --white: var(--ground);
+
+  /* Override old shadow vars â€” no shadows at rest */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  /* Only for floating elements */
+  --shadow-float: 0 4px 16px rgba(0,0,0,0.10);
+
+  /* Old transition kept */
+  --transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+  --max-width: 100%;
+  --max-width-homework: 900px;
+}
+
+/* === Base resets === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+body {
+  font-family: var(--font-ui);
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.55;
+  min-height: 100vh;
+  overflow-x: clip;
+}
+button, input, select, textarea { font-family: inherit; }
+#root { display: flex; min-height: 100vh; }
+
+/* Remove ambient glow orbs */
+.ambient-glow { display: none !important; }
+
+/* === App Shell â€” sidebar layout === */
+.app-shell-outer {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Sidebar — Clean White Background with Vibrant Crimson Red Active Tabs */
+.app-sidebar {
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
+  background: #ffffff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 50;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 8px;
+}
+
+.sidebar-logo {
+  width: 36px;
+  height: 36px;
+  background: #fee2e2;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b91c1c;
+  flex: 0 0 36px;
+}
+
+.sidebar-logo .chinese-char {
+  font-family: var(--font-calligraphy);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.sidebar-brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.14s ease, color 0.14s ease, transform 0.08s ease;
+}
+
+.sidebar-nav-item:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Active tab turns solid vibrant crimson red with crisp white text */
+.sidebar-nav-item.is-active {
+  background: #b91c1c;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.sidebar-nav-item i {
+  font-size: 14px;
+  width: 18px;
+  flex: 0 0 18px;
+  text-align: center;
+  color: #64748b;
+  transition: color 0.14s ease;
+}
+
+.sidebar-nav-item:hover i {
+  color: #b91c1c;
+}
+
+.sidebar-nav-item.is-active i {
+  color: #ffffff;
+}
+
+.sidebar-nav-group-label {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 16px 12px 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sidebar-bottom {
+  padding: 10px 8px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar-user-row:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.sidebar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex: 0 0 32px;
+}
+
+.sidebar-user-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user-role {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.sidebar-more-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sidebar-more-btn:hover {
+  background: #e2e8f0;
+  color: var(--text);
+}
+
+/* Mobile top bar */
+.mobile-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.mobile-top-bar .sidebar-brand-name {
+  color: var(--text);
+}
+
+.mobile-top-bar .sidebar-menu-btn {
+  color: var(--text) !important;
+}
+
+/* Canvas â€” main content area */
+.app-canvas {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 40px 80px;
+  overflow-x: clip;
+}
+
+/* Legacy .app-shell inside canvas */
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Hide old top-nav backdrop blur glass effect */
+.top-nav {
+  background: var(--ground) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  display: none; /* sidebar replaces top-nav on desktop */
+}
+
+/* === Buttons â€” flat, no gradients === */
+.btn-primary,
+.btn-login-trigger {
+  background: var(--text) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  padding: 9px 16px !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover, .btn-login-trigger:hover {
+  opacity: 0.85;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-secondary:hover {
+  background: #eaeaea !important;
+  border-color: #d4d4d4 !important;
+}
+
+/* Remove gradient from brand logo */
+.brand-logo {
+  background: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+/* Remove gradient from student avatar */
+.student-avatar {
+  background: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+/* Remove gradient from progress bars */
+.progress-bar-fill,
+.course-progress-fill {
+  background: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+/* Remove gradient from feature-page-header */
+.feature-page-header {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Remove glow from question cards */
+.question-card {
+  border-radius: var(--radius-card) !important;
+  box-shadow: none !important;
+  border-color: var(--border) !important;
+}
+.question-card:hover {
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.question-card.answered {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Remove gradient from audio player */
+.custom-audio-player {
+  background: var(--text) !important;
+  box-shadow: none !important;
+}
+.btn-audio-play {
+  background: var(--accent) !important;
+  box-shadow: none !important;
+}
+.btn-audio-play:hover {
+  background: #155f58 !important;
+  transform: none !important;
+}
+
+/* Remove gradient from welcome banner */
+.welcome-banner {
+  background: var(--ground) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Remove gradient from assignment-header-card */
+.assignment-header-card {
+  background: var(--ground) !important;
+  box-shadow: none !important;
+}
+
+/* Course cards â€” no hover transform */
+.course-card {
+  box-shadow: none !important;
+  border-color: var(--border) !important;
+  border-radius: var(--radius-card) !important;
+}
+.course-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: var(--accent) !important;
+}
+
+/* Remove gradient from btn-login-trigger */
+.btn-login-trigger {
+  box-shadow: none !important;
+}
+
+/* Stat cards */
+.stat-card {
+  box-shadow: none !important;
+  border-color: var(--border) !important;
+}
+.stat-card.highlight {
+  background: var(--accent-light) !important;
+  border-color: var(--accent) !important;
+}
+.stat-card.highlight .stat-num {
+  color: var(--accent) !important;
+}
+
+/* Remove gradient from nav pills */
+.primary-nav {
+  background: var(--surface) !important;
+  border: none !important;
+}
+
+/* Make nav active item flat */
+.primary-nav-button.is-active {
+  background: #ebebeb !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+}
+
+/* Modals get shadow (they truly float) */
+.modal-overlay + .modal-box,
+[class*="modal"][class*="content"],
+[class*="modal-box"],
+[class*="profile-dropdown"],
+.profile-dropdown-panel {
+  box-shadow: var(--shadow-float) !important;
+}
+
+/* === Greeting (HomeView) — Clean Modern Sans-Serif === */
+.home-greeting {
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 750;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.home-greeting-sub {
+  font-size: 14.5px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+/* Count tiles â€” 4 on a row, no icons in circles */
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+  margin-bottom: 32px;
+}
+
+.home-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--pad);
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.home-tile-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.home-tile-value {
+  font-size: var(--fs-kpi);
+  font-weight: 400;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.home-tile-caption {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* Section panels */
+.home-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+.home-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--pad);
+}
+
+.home-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-panel-viewall {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  padding: 0;
+}
+
+.home-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--row-height);
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0;
+}
+.home-panel-row:last-child { border-bottom: none; }
+
+.home-panel-row-title {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-panel-row-meta {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Mobile â€” sidebar collapses */
+@media (max-width: 768px) {
+  .app-sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    transition: left 0.2s ease;
+    z-index: 200;
+  }
+  .app-sidebar.is-open {
+    left: 0;
+    box-shadow: var(--shadow-float);
+  }
+
+  .app-canvas {
+    padding: 16px 20px 80px;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+
+  /* Mobile top bar */
+  .mobile-top-bar {
+    display: flex;
+    align-items: center;
+    height: 52px;
+    padding: 0 16px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .mobile-top-bar .sidebar-brand-name {
+    color: var(--text) !important;
+  }
+
+  .mobile-top-bar .sidebar-menu-btn {
+    color: var(--text) !important;
+  }
+
+  .home-tiles {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .home-tile {
+    padding: 12px 14px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .home-tile-label {
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .home-tile-value {
+    font-size: 22px;
+  }
+  .home-tile-caption {
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .home-panels {
+    grid-template-columns: 1fr;
+  }
+  .home-greeting {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-top-bar { display: none !important; }
+  .sidebar-menu-btn { display: none !important; }
+}
+
+/* === Profile Dropdown Responsive Positioning === */
+.profile-dropdown-menu {
+  position: fixed !important;
+  width: 360px !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: min(85vh, 640px) !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1.5px solid rgba(161, 29, 36, 0.16) !important;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.32), 0 8px 25px rgba(0, 0, 0, 0.16) !important;
+  z-index: 10000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+@keyframes dropdownSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dropdownSlideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* On desktop: anchors above user card in left sidebar */
+@media (min-width: 769px) {
+  .profile-dropdown-menu {
+    left: 14px !important;
+    bottom: 68px !important;
+    top: auto !important;
+    right: auto !important;
+    animation: dropdownSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+}
+
+/* On mobile: anchors below avatar in top mobile bar */
+@media (max-width: 768px) {
+  .profile-dropdown-menu {
+    top: 56px !important;
+    right: 12px !important;
+    left: auto !important;
+    bottom: auto !important;
+    animation: dropdownSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+}
+

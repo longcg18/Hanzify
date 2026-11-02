@@ -134,7 +134,7 @@ export const ForumView = () => {
         badge: user.role === 'admin' 
           ? 'Quản trị viên tối cao' 
           : user.role === 'teacher' 
-          ? 'Giáo viên phụ trách 🌸' 
+          ? 'Giáo viên phụ trách' 
           : user.badge || 'Học viên Hanzify'
       },
       createdAt: 'Vừa xong',

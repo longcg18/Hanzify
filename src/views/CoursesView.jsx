@@ -3,12 +3,21 @@ import { useAuth } from '../context/AuthContext';
 import { isCourseAssignedToStudent } from '../utils/classEnrollment';
 import { fetchStudentSubmissions } from '../services/supabaseService';
 
+const getCourseTone = (course) => {
+  if (course?.level?.includes('1')) return '#243b53';
+  if (course?.level?.includes('2')) return '#334155';
+  if (course?.level?.includes('3')) return '#1b4d44';
+  if (course?.level?.includes('4')) return '#4c1d24';
+  if (course?.level?.includes('5')) return '#3f2c52';
+  return '#1e293b';
+};
+
 const GRADIENT_PRESETS = [
-  { label: 'Đỏ Imperial', value: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', color: '#b91c1c' },
-  { label: 'Đỏ Mận Sang Trọng', value: 'linear-gradient(135deg, #450a0a 0%, #831843 100%)', color: '#831843' },
-  { label: 'Xanh Đen Huyền Bí', value: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#1e293b' },
-  { label: 'Xanh Ngọc Cổ Kính', value: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', color: '#047857' },
-  { label: 'Tím Hoàng Gia', value: 'linear-gradient(135deg, #3b0764 0%, #6b21a8 100%)', color: '#6b21a8' }
+  { label: 'Ngọc Bích Tối', value: '#1b4d44', color: '#1b4d44' },
+  { label: 'Xanh Chàm Trầm', value: '#243b53', color: '#243b53' },
+  { label: 'Mực Đen Trầm', value: '#1e293b', color: '#1e293b' },
+  { label: 'Đỏ Mận Cổ Điển', value: '#4c1d24', color: '#4c1d24' },
+  { label: 'Tím Trầm', value: '#3f2c52', color: '#3f2c52' }
 ];
 
 export const CoursesView = ({ 
@@ -51,6 +60,7 @@ export const CoursesView = ({
   // Modal State for Create / Edit Course
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState(null); // null means creating new
+  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all' | 'hsk3' | 'other'
   const [formTitle, setFormTitle] = useState('');
   const [formChineseTitle, setFormChineseTitle] = useState('');
   const [formLevel, setFormLevel] = useState('HSK 2');
@@ -167,31 +177,33 @@ export const CoursesView = ({
     <div className="courses-view-container">
       {/* Motivational / Admin Banner */}
       {isTeacherOrAdmin && <section className="welcome-banner" style={{
-        background: isTeacherOrAdmin ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : undefined,
-        border: isTeacherOrAdmin ? '1.5px solid #334155' : undefined
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        boxShadow: 'none'
       }}>
         <div className="banner-content">
           <div className="banner-tag" style={{
-            background: isTeacherOrAdmin ? 'rgba(254, 202, 202, 0.15)' : undefined,
-            color: isTeacherOrAdmin ? '#fca5a5' : undefined
+            background: 'var(--accent-light)',
+            color: 'var(--accent)',
+            border: 'none'
           }}>
-            <i className={isTeacherOrAdmin ? "fa-solid fa-chalkboard-user" : "fa-solid fa-sparkles"}></i>
+            <i className={isTeacherOrAdmin ? "fa-solid fa-chalkboard-user" : "fa-solid fa-book-open"}></i>
             <span>
               {user?.role === 'admin' 
-                ? '👑 Trung Tâm Quản Trị Đào Tạo & Khóa Học (Admin)' 
+                ? 'Trung Tâm Quản Trị Đào Tạo & Khóa Học (Admin)' 
                 : user?.role === 'teacher'
-                ? '👩‍🏫 Không Gian Quản Lý Khóa Học Của Cô Hoài'
+                ? 'Không Gian Quản Lý Khóa Học'
                 : 'Không Gian Học Tập Hoa Ngữ'}
             </span>
           </div>
-          <h1 className="banner-greeting" style={{ color: isTeacherOrAdmin ? '#f8fafc' : undefined }}>
+          <h1 className="banner-greeting" style={{ color: 'var(--text)' }}>
             {user?.role === 'admin'
               ? 'Bảng Điều Hành Khóa Học Hanzify'
               : user?.role === 'teacher'
-              ? 'Chào Cô Hoài! Quản Lý & Cập Nhật Khóa Học 🌸'
-              : user ? `Chào mừng trở lại, ${user.name}! 👋` : 'Chào mừng bạn đến với Hanzify!'}
+              ? 'Quản Lý & Cập Nhật Khóa Học'
+              : user ? `Chào mừng trở lại, ${user.name}` : 'Khóa Học Hanzify'}
           </h1>
-          <p className="banner-proverb" style={{ color: isTeacherOrAdmin ? '#94a3b8' : undefined }}>
+          <p className="banner-proverb" style={{ color: 'var(--muted)' }}>
             {isTeacherOrAdmin
               ? 'Toàn quyền thêm, chỉnh sửa hoặc xóa khóa học; cấu hình lộ trình các bài giảng và bài tập về nhà cho học sinh.'
               : '"千里之行，始于足下" — Hành trình vạn dặm bắt đầu từ những bước chân đầu tiên.'}
@@ -202,24 +214,10 @@ export const CoursesView = ({
             <div style={{ display: 'flex', gap: '10px', marginTop: '1rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
+                className="btn-primary"
                 onClick={handleOpenCreate}
-                style={{
-                  padding: '0.65rem 1.25rem',
-                  borderRadius: '12px',
-                  background: '#A11D24',
-                  border: 'none',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(161, 29, 36, 0.4)',
-                  transition: 'all 0.2s'
-                }}
               >
-                <i className="fa-solid fa-plus-circle"></i>
+                <i className="fa-solid fa-plus"></i>
                 <span>Thêm Khóa Học Mới</span>
               </button>
             </div>
@@ -229,44 +227,44 @@ export const CoursesView = ({
         {isTeacherOrAdmin && <div className="banner-stats">
           {user?.role === 'admin' ? (
             <>
-              <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
-                <span className="stat-num" style={{ color: '#f8fafc' }}>
+              <div className="stat-card">
+                <span className="stat-num">
                   {isLoading ? '…' : (courses.length < 10 ? `0${courses.length}` : courses.length)}
                 </span>
-                <span className="stat-label" style={{ color: '#94a3b8' }}>Khóa Hệ Thống</span>
+                <span className="stat-label">Khóa Hệ Thống</span>
               </div>
-              <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
-                <span className="stat-num" style={{ color: '#f8fafc' }}>
+              <div className="stat-card">
+                <span className="stat-num">
                   {isLoading ? '…' : (totalStudents < 10 ? `0${totalStudents}` : totalStudents)}
                 </span>
-                <span className="stat-label" style={{ color: '#94a3b8' }}>Tổng Học Viên</span>
+                <span className="stat-label">Tổng Học Viên</span>
               </div>
-              <div className="stat-card highlight" style={{ background: 'rgba(161, 29, 36, 0.2)', borderColor: '#A11D24' }}>
-                <span className="stat-num" style={{ color: '#fca5a5' }}>
+              <div className="stat-card highlight">
+                <span className="stat-num">
                   {isLoading ? '…' : (totalLessons < 10 ? `0${totalLessons}` : totalLessons)}
                 </span>
-                <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Tập Thiết Lập</span>
+                <span className="stat-label">Bài Tập Thiết Lập</span>
               </div>
             </>
           ) : user?.role === 'teacher' ? (
             <>
-              <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
-                <span className="stat-num" style={{ color: '#f8fafc' }}>
+              <div className="stat-card">
+                <span className="stat-num">
                   {isLoading ? '…' : (courses.length < 10 ? `0${courses.length}` : courses.length)}
                 </span>
-                <span className="stat-label" style={{ color: '#94a3b8' }}>Khóa Đang Dạy</span>
+                <span className="stat-label">Khóa Đang Dạy</span>
               </div>
-              <div className="stat-card" style={{ background: 'rgba(255,255,255,0.06)', borderColor: '#334155' }}>
-                <span className="stat-num" style={{ color: '#f8fafc' }}>
+              <div className="stat-card">
+                <span className="stat-num">
                   {isLoading ? '…' : (totalStudents < 10 ? `0${totalStudents}` : totalStudents)}
                 </span>
-                <span className="stat-label" style={{ color: '#94a3b8' }}>Tổng Học Viên</span>
+                <span className="stat-label">Tổng Học Viên</span>
               </div>
-              <div className="stat-card highlight" style={{ background: 'rgba(161, 29, 36, 0.2)', borderColor: '#A11D24' }}>
-                <span className="stat-num" style={{ color: '#fca5a5' }}>
+              <div className="stat-card highlight">
+                <span className="stat-num">
                   {isLoading ? '…' : (totalLessons < 10 ? `0${totalLessons}` : totalLessons)}
                 </span>
-                <span className="stat-label" style={{ color: '#fca5a5' }}>Bài Đang Phụ Trách</span>
+                <span className="stat-label">Bài Đang Phụ Trách</span>
               </div>
             </>
           ) : null}
@@ -300,72 +298,101 @@ export const CoursesView = ({
             <>
               <button
                 type="button"
+                className="btn-secondary"
                 onClick={onOpenCreateClass}
-                style={{
-                  padding: '0.65rem 1.15rem',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)'
-                }}
               >
-                <i className="fa-solid fa-plus-circle"></i>
+                <i className="fa-solid fa-plus" />
                 <span>Mở Lớp Học Mới</span>
               </button>
 
               <button
                 type="button"
+                className="btn-primary"
                 onClick={handleOpenCreate}
-                style={{
-                  padding: '0.65rem 1.15rem',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  boxShadow: '0 4px 12px rgba(185, 28, 28, 0.25)'
-                }}
               >
-                <i className="fa-solid fa-book-medical"></i>
+                <i className="fa-solid fa-book-medical" />
                 <span>Tạo Khóa Học</span>
               </button>
             </>
           ) : !user ? (
             <button
               type="button"
+              className="btn-secondary"
               onClick={onOpenJoinClass}
-              style={{
-                padding: '0.65rem 1.15rem',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                boxShadow: '0 4px 12px rgba(185, 28, 28, 0.25)'
-              }}
             >
-              <i className="fa-solid fa-ticket"></i>
+              <i className="fa-solid fa-ticket" />
               <span>Tham Gia Lớp Bằng Mã</span>
             </button>
           ) : null}
         </div>
+      </div>
+
+      {/* Category Tabs: All vs HSK 3.0 Mới vs Khóa Hiện Tại */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => setCategoryFilter('all')}
+          style={{
+            background: categoryFilter === 'all' ? '#b91c1c' : '#ffffff',
+            color: categoryFilter === 'all' ? '#ffffff' : '#475569',
+            border: categoryFilter === 'all' ? '1px solid #b91c1c' : '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '7px 14px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          Tất Cả Khóa Học ({courses.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setCategoryFilter('hsk3')}
+          style={{
+            background: categoryFilter === 'hsk3' ? '#b91c1c' : '#ffffff',
+            color: categoryFilter === 'hsk3' ? '#ffffff' : '#475569',
+            border: categoryFilter === 'hsk3' ? '1px solid #b91c1c' : '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '7px 14px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span style={{
+            background: categoryFilter === 'hsk3' ? 'rgba(255,255,255,0.25)' : '#fee2e2',
+            color: categoryFilter === 'hsk3' ? '#ffffff' : '#b91c1c',
+            fontSize: '10px',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontWeight: 800
+          }}>
+            MỚI
+          </span>
+          <span>Giáo Trình HSK 3.0 (Kèm PPT)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setCategoryFilter('other')}
+          style={{
+            background: categoryFilter === 'other' ? '#b91c1c' : '#ffffff',
+            color: categoryFilter === 'other' ? '#ffffff' : '#475569',
+            border: categoryFilter === 'other' ? '1px solid #b91c1c' : '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '7px 14px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          Khóa Học Khác / Chuyên Đề
+        </button>
       </div>
 
       {/* Courses Grid */}
@@ -376,7 +403,14 @@ export const CoursesView = ({
             Đang tải khóa học…
           </div>
         )}
-        {!isLoading && !areSubmissionsLoading && courses.map((course) => {
+        {!isLoading && !areSubmissionsLoading && courses
+          .filter((c) => {
+            const isHsk3 = c.id?.startsWith('course-hsk3') || c.badge?.includes('HSK 3.0') || c.title?.includes('HSK 3.0');
+            if (categoryFilter === 'hsk3') return isHsk3;
+            if (categoryFilter === 'other') return !isHsk3;
+            return true;
+          })
+          .map((course) => {
           const totalL = course.lessons?.length || course.totalLessons || 1;
           const completedL = user?.role === 'student'
             ? (course.lessons || []).filter((lesson) => submittedLessonIds.has(String(lesson.id))).length
@@ -397,16 +431,16 @@ export const CoursesView = ({
                 opacity: !user || isTeacherOrAdmin || isEnrolled ? 1 : 0.85
               }}
             >
-              {/* Header Gradient with Chinese Calligraphy Watermark */}
+              {/* Header with Chinese Calligraphy Watermark */}
               <div 
                 className="course-card-cover" 
-                style={{ background: course.coverGradient || 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)' }}
+                style={{ background: getCourseTone(course) }}
               >
                 <span className="cover-watermark">{course.charWatermark || '学'}</span>
                 <div className="cover-tags">
                   <span className="course-level-badge">{course.level}</span>
                   <span className="course-status-badge">
-                    {!user ? 'Xem trước khóa học' : isEnrolled ? (isTeacherOrAdmin ? course.badge : '✓ Lớp của bạn') : '🔒 Chưa được mở cho bạn'}
+                    {!user ? 'Xem trước khóa học' : isEnrolled ? (isTeacherOrAdmin ? course.badge : 'Lớp của bạn') : 'Chưa mở cho bạn'}
                   </span>
                 </div>
                 <div className="cover-chinese-sub">{course.chineseTitle}</div>
@@ -506,7 +540,7 @@ export const CoursesView = ({
                         width: isTeacherOrAdmin 
                           ? `${courseStudentsCount > 0 ? '100%' : '0%'}` 
                           : `${percent}%`,
-                        background: isTeacherOrAdmin ? 'linear-gradient(90deg, #1e293b 0%, #A11D24 100%)' : undefined
+                        background: 'var(--accent)'
                       }}
                     ></div>
                   </div>}
@@ -521,11 +555,20 @@ export const CoursesView = ({
                     type="button"
                     className="btn-enter-course"
                     style={{
-                      background: isTeacherOrAdmin ? '#0f172a' : !isEnrolled && user ? '#64748b' : undefined
+                      background: 'var(--text)',
+                      color: '#ffffff',
+                      borderRadius: '6px',
+                      border: 'none',
+                      padding: '7px 14px',
+                      fontWeight: 500,
+                      fontSize: '13px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
                     <span>{isTeacherOrAdmin ? 'Quản Trị Bài Học' : isEnrolled ? 'Vào Lớp Học' : 'Khóa Ngoài Lớp'}</span>
-                    <i className={isTeacherOrAdmin ? "fa-solid fa-pen-to-square" : isEnrolled ? "fa-solid fa-chevron-right" : "fa-solid fa-lock"}></i>
+                    <i className={isTeacherOrAdmin ? "fa-solid fa-arrow-right" : isEnrolled ? "fa-solid fa-chevron-right" : "fa-solid fa-lock"} style={{ fontSize: '11px' }}></i>
                   </button>
                 </div>
               </div>

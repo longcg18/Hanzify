@@ -61,7 +61,13 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        !e.target.closest?.('.sidebar-user-row') &&
+        !e.target.closest?.('.sidebar-avatar') &&
+        !e.target.closest?.('.sidebar-more-btn')
+      ) {
         onClose();
       }
     };
@@ -88,22 +94,8 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   return (
     <div
       ref={dropdownRef}
-      style={{
-        position: 'absolute',
-        top: 'calc(100% + 10px)',
-        right: 0,
-        width: '360px',
-        maxHeight: '85vh',
-        background: '#ffffff',
-        borderRadius: '20px',
-        border: '1.5px solid #fee2e2',
-        boxShadow: '0 20px 45px -10px rgba(161, 29, 36, 0.18), 0 8px 25px rgba(0, 0, 0, 0.08)',
-        zIndex: 1000,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        animation: 'fadeInSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
-      }}
+      className="profile-dropdown-menu"
+      onClick={(e) => e.stopPropagation()}
     >
       {/* 1. Header User Overview Card */}
       <div style={{
@@ -402,6 +394,81 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                 </div>
               </div>
             </div>
+
+            {/* Quick Role Switcher for Testing & Inspection */}
+            {onRoleSwitched && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <div style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: '#64748b',
+                  letterSpacing: '0.5px',
+                  marginBottom: '0.45rem'
+                }}>
+                  Chuyển vai trò xem giao diện:
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRoleSwitched('student');
+                      onClose();
+                    }}
+                    style={{
+                      padding: '6px 4px',
+                      borderRadius: '8px',
+                      border: user.role === 'student' ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
+                      background: user.role === 'student' ? '#eff6ff' : '#ffffff',
+                      color: user.role === 'student' ? '#1d4ed8' : '#64748b',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Học Viên
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRoleSwitched('teacher');
+                      onClose();
+                    }}
+                    style={{
+                      padding: '6px 4px',
+                      borderRadius: '8px',
+                      border: user.role === 'teacher' ? '1.5px solid #16a34a' : '1px solid #e2e8f0',
+                      background: user.role === 'teacher' ? '#f0fdf4' : '#ffffff',
+                      color: user.role === 'teacher' ? '#15803d' : '#64748b',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Giáo Viên
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRoleSwitched('admin');
+                      onClose();
+                    }}
+                    style={{
+                      padding: '6px 4px',
+                      borderRadius: '8px',
+                      border: user.role === 'admin' ? '1.5px solid #b91c1c' : '1px solid #e2e8f0',
+                      background: user.role === 'admin' ? '#fef2f2' : '#ffffff',
+                      color: user.role === 'admin' ? '#b91c1c' : '#64748b',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

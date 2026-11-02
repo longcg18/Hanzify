@@ -21,3 +21,8 @@ dist/
 *.db-shm
 *.db-wal
 server/uploads/
+
+# Local raw course assets & taste inspector artifacts
+.taste-skill/
+DẠY THEO FORMAT MỚI/
+

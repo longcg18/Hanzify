@@ -195,6 +195,20 @@ export const HomeView = ({
   // Latest forum posts for Home preview
   const previewForumPosts = (forumPosts || []).slice(0, 2);
 
+  // Clean user display name for greeting (e.g. "Cô Hoài (Giáo Viên 01)" -> "Cô Hoài")
+  const getCleanGreetingName = () => {
+    if (!user) return '';
+    let raw = (user.name || user.displayName || '').replace(/\([^)]*\)/g, '').replace(/[()[\]{}.,]/g, '').trim();
+    if (!raw) return user.role === 'teacher' ? 'Cô Hoài' : 'bạn';
+    if (/^(cô|thầy)\s+/i.test(raw)) return raw;
+    if (user.role === 'teacher') {
+      if (/^(giáo viên|gv|\d+)/i.test(raw)) return 'Cô Hoài';
+      return `Cô ${raw.split(/\s+/).pop()}`;
+    }
+    raw = raw.replace(/^học sinh\s+/i, '').trim();
+    return raw || 'bạn';
+  };
+
   if (isCoreDataLoading || isHomeDataLoading || isLeaderboardLoading || isStreakLoading) {
     return (
       <main className="main-content" style={{ padding: '4rem 1rem', textAlign: 'center', color: '#64748b' }}>
@@ -205,179 +219,119 @@ export const HomeView = ({
   }
 
   return (
-    <div className="home-view-container" style={{ maxWidth: '1180px', margin: '0 auto', padding: '1.5rem 1rem 3.5rem' }}>
-      
-      {/* ========================================================================= */}
-      {/* 1. HERO BANNER: NÂNG CAO MỖI NGÀY - TIẾN BỘ KHÔNG NGỪNG */}
-      {/* ========================================================================= */}
-      <section style={{
-        background: 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%)',
-        borderRadius: '26px',
-        padding: '2.5rem 2.25rem',
-        color: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden',
-        boxShadow: '0 20px 45px -12px rgba(127, 29, 29, 0.35)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        marginBottom: '2rem'
-      }}>
-        {/* Background Chinese Calligraphy Watermark */}
-        <span style={{
-          position: 'absolute',
-          right: '25px',
-          top: '-35px',
-          fontSize: '12rem',
-          fontFamily: 'Noto Serif SC, serif',
-          color: 'rgba(255, 255, 255, 0.04)',
-          pointerEvents: 'none',
-          userSelect: 'none'
-        }}>
-          学
-        </span>
+    <div className="home-view-container" style={{ maxWidth: '1180px', margin: '0 auto', padding: '0 0 3.5rem' }}>
 
-        <div style={{ position: 'relative', zIndex: 2, maxWidth: '640px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(8px)',
-            padding: '0.35rem 0.85rem',
-            borderRadius: '999px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            color: '#fde68a',
-            marginBottom: '0.85rem'
-          }}>
-            <i className="fa-solid fa-sparkles"></i>
-            <span>Trung Tâm Hoa Ngữ Trực Tuyến Hanzify</span>
+      {/* ========================================================================= */}
+      {/* 1. EDITORIAL GREETING HEADER */}
+      {/* ========================================================================= */}
+      <section style={{ marginBottom: '2rem' }}>
+        <h1 className="home-greeting">
+          {user?.role === 'teacher'
+            ? `Chào ${getCleanGreetingName()}`
+            : user?.role === 'admin'
+            ? 'Bảng Điều Hành'
+            : user
+            ? `Chào ${getCleanGreetingName()}`
+            : 'Học Tiếng Trung'}
+        </h1>
+        <p className="home-greeting-sub">
+          {user?.role === 'teacher'
+            ? (pendingCount > 0 ? `Có ${pendingCount} bài tập mới cần chấm điểm hôm nay.` : 'Hôm nay chưa có bài tập mới cần chấm.')
+            : user?.role === 'admin'
+            ? `Hệ thống gồm ${courses.length} khóa học và ${examsCount} đề thi HSK.`
+            : user
+            ? (nextLesson ? `Tiếp tục: ${nextLesson.title || 'bài học tiếp theo'}.` : 'Khám phá khóa học và bắt đầu hành trình.')
+            : 'Đăng nhập để bắt đầu hành trình Hoa ngữ cùng Hanzify.'}
+        </p>
+
+        {/* 4-tile count row */}
+        <div className="home-tiles">
+          {/* Tile 1: Streak / Bài chờ chấm */}
+          <div className="home-tile">
+            <div className="home-tile-label">
+              {user?.role === 'teacher' ? 'Bài chờ chấm' : 'Streak'}
+            </div>
+            <div className="home-tile-value">
+              {user?.role === 'teacher' ? pendingCount : (streakData?.currentStreak ?? 0)}
+            </div>
+            <div className="home-tile-caption">
+              {user?.role === 'teacher' ? 'bài tập' : 'ngày liên tiếp'}
+            </div>
           </div>
+          {/* Tile 2: Courses */}
+          <div className="home-tile">
+            <div className="home-tile-label">Khóa học</div>
+            <div className="home-tile-value">
+              {isTeacherOrAdmin ? courses.length : (studentCourses?.length ?? 0)}
+            </div>
+            <div className="home-tile-caption">khóa học</div>
+          </div>
+          {/* Tile 3: Exams */}
+          <div className="home-tile">
+            <div className="home-tile-label">Đề thi HSK</div>
+            <div className="home-tile-value">{examsCount}</div>
+            <div className="home-tile-caption">đề thi có sẵn</div>
+          </div>
+          {/* Tile 4: XP / Students */}
+          <div className="home-tile">
+            <div className="home-tile-label">
+              {isTeacherOrAdmin ? 'Học viên' : 'XP tích lũy'}
+            </div>
+            <div className="home-tile-value">
+              {isTeacherOrAdmin ? totalEnrolledStudents : (streakData?.totalXp ?? 0)}
+            </div>
+            <div className="home-tile-caption">
+              {isTeacherOrAdmin ? 'học viên' : 'điểm kinh nghiệm'}
+            </div>
+          </div>
+        </div>
 
-          <h1 style={{ margin: '0 0 0.5rem', fontSize: '2.4rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-            {user?.role === 'teacher' ? (
-              <>Chào Cô Hoài! 🌸<br/><span style={{ color: '#fed7aa', fontSize: '1.9rem' }}>Chúc cô một ngày giảng dạy tràn ngập niềm vui</span></>
-            ) : user?.role === 'admin' ? (
-              <>Bảng Điều Hành Hệ Thống 👑<br/><span style={{ color: '#fed7aa', fontSize: '1.9rem' }}>Giám sát toàn diện học viên & đề thi</span></>
-            ) : (
-              <>Nâng cao mỗi ngày,<br/><span style={{ color: '#fde68a' }}>Tiến bộ không ngừng!</span></>
-            )}
-          </h1>
-
-          {(user?.role === 'teacher' || user?.role === 'admin') && <p style={{ margin: '0 0 1.5rem', fontSize: '0.96rem', color: '#fee2e2', lineHeight: 1.6, opacity: 0.95 }}>
-            {user?.role === 'teacher'
-              ? (pendingCount > 0 ? `Hôm nay có ${pendingCount} bài tập mới cần chấm điểm từ học viên.` : 'Hôm nay chưa có bài tập mới cần chấm. Hệ thống sẵn sàng cho buổi học tiếp theo!')
-              : `Hệ thống vận hành mượt mà, gồm ${courses.length} khóa học và ${examsCount} đề thi HSK đã sẵn sàng.`}
-          </p>}
-
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              if (!user) { setIsAuthModalOpen(true); return; }
+              if (nextLesson && onOpenLesson) { onOpenLesson(nextLesson); } else { onNavigate('courses'); }
+            }}
+          >
+            <i className={`fa-solid ${!user ? 'fa-lock' : 'fa-play'}`} />
+            <span>{user?.role === 'teacher' ? 'Quản Lý Bài Học' : user ? 'Tiếp Tục Bài Học' : 'Đăng Nhập Để Học'}</span>
+          </button>
+          {isTeacherOrAdmin ? (
+            <button type="button" className="btn-secondary" onClick={onOpenCreateClass}>
+              <i className="fa-solid fa-plus" />
+              <span>Mở Lớp Học Mới</span>
+            </button>
+          ) : !user ? (
+            <button type="button" className="btn-secondary" onClick={onOpenJoinClass}>
+              <i className="fa-solid fa-ticket" />
+              <span>Tham Gia Lớp Bằng Mã</span>
+            </button>
+          ) : null}
+          {!['teacher', 'admin'].includes(user?.role) && (
             <button
               type="button"
-              onClick={() => {
-                if (!user) {
-                  setIsAuthModalOpen(true);
-                  return;
-                }
-                if (nextLesson && onOpenLesson) {
-                  onOpenLesson(nextLesson);
-                } else {
-                  onNavigate('courses');
-                }
-              }}
+              onClick={() => onNavigate('exam')}
               style={{
-                padding: '0.8rem 1.6rem',
-                borderRadius: '14px',
-                background: '#ffffff',
-                color: '#991b1b',
-                border: 'none',
-                fontWeight: 800,
-                fontSize: '0.95rem',
+                padding: '9px 16px',
+                borderRadius: 6,
+                background: 'transparent',
+                color: 'var(--accent)',
+                border: '1px solid var(--accent)',
+                fontWeight: 500,
+                fontSize: 14,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.25)',
-                transition: 'all 0.2s'
+                gap: 8,
               }}
             >
-              <i className={`fa-solid ${!user ? 'fa-lock' : 'fa-play'}`}></i>
-              <span>{user?.role === 'teacher' ? 'Quản Lý Bài Học' : user ? 'Tiếp Tục Bài Học Ngay' : 'Đăng Nhập Để Bắt Đầu Học'}</span>
+              <i className="fa-solid fa-flag-checkered" />
+              <span>Thi Thử HSK</span>
             </button>
-
-            {/* Mở lớp mới (Teacher/Admin) HOẶC Nhập mã tham gia (Student/Guest) */}
-            {isTeacherOrAdmin ? (
-              <button
-                type="button"
-                onClick={onOpenCreateClass}
-                style={{
-                  padding: '0.8rem 1.4rem',
-                  borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.92rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  boxShadow: '0 6px 20px rgba(217, 119, 6, 0.35)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="fa-solid fa-plus-circle"></i>
-                <span>Mở Lớp Học Mới</span>
-              </button>
-            ) : !user ? (
-              <button
-                type="button"
-                onClick={onOpenJoinClass}
-                style={{
-                  padding: '0.8rem 1.4rem',
-                  borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 800,
-                  fontSize: '0.92rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  boxShadow: '0 6px 20px rgba(217, 119, 6, 0.35)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="fa-solid fa-ticket"></i>
-                <span>Tham Gia Lớp Bằng Mã</span>
-              </button>
-            ) : null}
-
-            {/* Vào phòng thi chỉ hiển thị cho học sinh và khách, ẩn đối với giáo viên và admin */}
-            {!['teacher', 'admin'].includes(user?.role) && (
-              <button
-                type="button"
-                onClick={() => onNavigate('exam')}
-                style={{
-                  padding: '0.8rem 1.4rem',
-                  borderRadius: '14px',
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  backdropFilter: 'blur(8px)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="fa-solid fa-flag-checkered"></i>
-                <span>Vào Phòng Thi Thử HSK</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </section>
 
@@ -386,33 +340,33 @@ export const HomeView = ({
           <section style={{ marginBottom: '2rem' }}>
             <div style={{ marginBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>
-                🏫 Các Lớp Đang Mở
+                Các Lớp Đang Mở
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
                 Xem lịch học và giáo viên phụ trách. Đăng nhập hoặc nhập mã lớp để xem thông tin của bạn.
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1rem', width: '100%', boxSizing: 'border-box' }}>
               {classrooms.map((cls) => (
-                <article key={cls.id} style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '1.25rem', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.8rem' }}>
-                    <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 800 }}>{cls.name}</h3>
+                <article key={cls.id} style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid #e2e8f0', padding: '1rem 1.15rem', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.8rem', minWidth: 0 }}>
+                    <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 800, minWidth: 0, wordBreak: 'break-word' }}>{cls.name}</h3>
                     <span style={{ flexShrink: 0, background: '#fef2f2', color: '#991b1b', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>{cls.level}</span>
                   </div>
-                  <div style={{ color: '#475569', fontSize: '0.83rem', lineHeight: 1.8 }}>
-                    <div><i className="fa-solid fa-chalkboard-user" style={{ width: 20, color: '#A11D24' }}></i> {cls.teacher || cls.teacherName || 'Cô Hoài'}</div>
-                    <div><i className="fa-regular fa-calendar" style={{ width: 20, color: '#A11D24' }}></i> {(cls.schedule?.days || []).join(', ') || 'Lịch đang cập nhật'}{cls.schedule?.timeNote ? ` • ${cls.schedule.timeNote}` : ''}</div>
+                  <div style={{ color: '#475569', fontSize: '0.83rem', lineHeight: 1.8, minWidth: 0, wordBreak: 'break-word' }}>
+                    <div style={{ wordBreak: 'break-word' }}><i className="fa-solid fa-chalkboard-user" style={{ width: 20, color: '#A11D24' }}></i> {cls.teacher || cls.teacherName || 'Cô Hoài'}</div>
+                    <div style={{ wordBreak: 'break-word' }}><i className="fa-regular fa-calendar" style={{ width: 20, color: '#A11D24' }}></i> {(cls.schedule?.days || []).join(', ') || 'Lịch đang cập nhật'}{cls.schedule?.timeNote ? ` • ${cls.schedule.timeNote}` : ''}</div>
                   </div>
                 </article>
               ))}
             </div>
           </section>
 
-          <section style={{ background: '#ffffff', borderRadius: '22px', border: '1px solid #fee2e2', padding: '1.5rem', marginBottom: '2rem', boxShadow: '0 4px 20px rgba(185, 28, 28, 0.06)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          <section style={{ background: '#ffffff', borderRadius: '18px', border: '1px solid var(--border)', padding: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>🏆 Bảng Xếp Hạng Học Tập</h2>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem' }}>Bảng Xếp Hạng Học Tập</h2>
                 <p style={{ color: '#64748b', fontSize: '0.82rem', margin: 0 }}>Thành tích nổi bật trên toàn hệ thống</p>
               </div>
               <button
@@ -450,7 +404,7 @@ export const HomeView = ({
               </div>
             ))}
 
-            {leaderboard.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center', margin: '1rem 0 0' }}>Chưa có thành tích được ghi nhận.</p>}
+            {leaderboard.length === 0 && <p style={{ color: '#52525b', textAlign: 'center', margin: '1rem 0 0' }}>Chưa có thành tích được ghi nhận.</p>}
           </section>
         </>
       )}
@@ -472,7 +426,6 @@ export const HomeView = ({
         }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>🏫</span>
               <span>{isTeacherOrAdmin ? 'Danh Sách Lớp Học Đang Giảng Dạy' : 'Lớp Học & Lịch Học Của Bạn'}</span>
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
@@ -560,7 +513,7 @@ export const HomeView = ({
             </button>}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem', width: '100%', boxSizing: 'border-box' }}>
             {visibleClassrooms.map((cls) => {
               const activatedCount = (cls.students || []).filter((s) => s.isActivated).length;
               const totalStudents = (cls.students || []).length;
@@ -1050,8 +1003,8 @@ export const HomeView = ({
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#c2410c', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '1.2rem' }}>🔥</span> Chuỗi Ngày Học
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <i className="fa-solid fa-fire" style={{ color: 'var(--warning)' }} /> Chuỗi Ngày Học
                 </span>
                 <span style={{
                   background: streakData?.checkedInToday ? '#ecfdf5' : '#fff7ed',
@@ -1211,7 +1164,7 @@ export const HomeView = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.9rem' }}>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, width: 18, color: 'var(--muted)' }}>{idx + 1}</span>
                       <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#1e293b' }}>{item.name}</span>
                       <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#e2e8f0', padding: '1px 5px', borderRadius: '4px' }}>
                         {item.level || 'HSK'}

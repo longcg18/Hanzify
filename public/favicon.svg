@@ -1,14 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="red" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#c91f2a"/>
-      <stop offset="1" stop-color="#ef3340"/>
-    </linearGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
-      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#991b1b" flood-opacity=".28"/>
-    </filter>
-  </defs>
-  <rect x="8" y="10" width="46" height="44" rx="12" fill="url(#red)" filter="url(#shadow)"/>
-  <text x="31" y="42" fill="#fff" font-family="'Noto Sans SC','Microsoft YaHei',sans-serif" font-size="27" font-weight="700" text-anchor="middle">刘</text>
-  <circle cx="53.5" cy="9.5" r="4" fill="#e11d48" stroke="#fff" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background rounded squircle -->
+  <rect x="2" y="2" width="96" height="96" rx="24" fill="#1b4d44"/>
+  
+  <!-- Avocado Body (Outer skin) -->
+  <path d="M50 18 C36 18 30 32 28 48 C25 64 34 82 50 82 C66 82 75 64 72 48 C70 32 64 18 50 18 Z" fill="#2d6a4f"/>
+  
+  <!-- Avocado Flesh -->
+  <path d="M50 22 C38 22 33 34 31 48 C29 62 36 78 50 78 C64 78 71 62 69 48 C67 34 62 22 50 22 Z" fill="#c7f9cc"/>
+  
+  <!-- Avocado Seed (Belly Pit) -->
+  <circle cx="50" cy="56" r="14" fill="#6f4e37"/>
+  <circle cx="47" cy="53" r="12" fill="#8d5b4c"/>
+  
+  <!-- Cute Eyes -->
+  <circle cx="43" cy="38" r="2.5" fill="#1f201d"/>
+  <circle cx="57" cy="38" r="2.5" fill="#1f201d"/>
+  <circle cx="44" cy="37" r="0.8" fill="#ffffff"/>
+  <circle cx="58" cy="37" r="0.8" fill="#ffffff"/>
+  
+  <!-- Cute Rosy Cheeks -->
+  <ellipse cx="38" cy="42" rx="2.5" ry="1.5" fill="#f87171" opacity="0.6"/>
+  <ellipse cx="62" cy="42" rx="2.5" ry="1.5" fill="#f87171" opacity="0.6"/>
+  
+  <!-- Cute Smile -->
+  <path d="M48 42 Q50 44 52 42" stroke="#1f201d" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+  
+  <!-- Little Hands holding Book -->
+  <!-- Left Page -->
+  <path d="M50 70 L34 65 L36 53 L50 57 Z" fill="#ffffff" stroke="#2d6a4f" stroke-width="1.2"/>
+  <!-- Right Page -->
+  <path d="M50 70 L66 65 L64 53 L50 57 Z" fill="#f8fafc" stroke="#2d6a4f" stroke-width="1.2"/>
+  <!-- Book Spine / Cover -->
+  <path d="M50 56 L50 71" stroke="#1b4d44" stroke-width="1.8"/>
+  
+  <!-- Tiny Book text / Hanzi symbol on book -->
+  <text x="42" y="62" font-size="5" font-family="'Noto Serif SC', serif" font-weight="700" fill="#1b4d44" text-anchor="middle">汉</text>
+  <text x="58" y="62" font-size="5" font-family="'Noto Serif SC', serif" font-weight="700" fill="#1b4d44" text-anchor="middle">字</text>
 </svg>

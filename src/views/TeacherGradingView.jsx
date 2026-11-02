@@ -221,8 +221,8 @@ export const TeacherGradingView = () => {
       {/* Header Banner */}
       <section className="courses-header" style={{ marginBottom: '2rem' }}>
         <div className="header-meta">
-          <span className="meta-badge" style={{ background: 'rgba(161, 29, 36, 0.1)', color: '#A11D24' }}>
-            👩‍🏫 Bàn Chấm Bài Của Cô Giáo (Speed Grading)
+          <span className="meta-badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)', border: 'none' }}>
+            <i className="fa-solid fa-stamp" style={{ marginRight: 6 }}></i> Bàn Chấm Bài Của Cô Giáo
           </span>
           <span className="meta-class">Quyền Giáo Viên & Quản Trị Viên</span>
         </div>

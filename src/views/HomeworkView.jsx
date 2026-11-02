@@ -8,10 +8,12 @@ import {
   saveHomeworkDraft
 } from '../services/supabaseService';
 import { useAuth } from '../context/AuthContext';
+import { SlidePresentationViewer } from '../components/SlidePresentationViewer';
 
 export const HomeworkView = ({ lesson, onBack }) => {
   const { user, setIsAuthModalOpen } = useAuth();
   const [dbQuestions, setDbQuestions] = useState([]);
+  const [isPptViewerOpen, setIsPptViewerOpen] = useState(false);
 
   useEffect(() => {
     if (lesson?.id) {
@@ -538,6 +540,31 @@ export const HomeworkView = ({ lesson, onBack }) => {
           <span className="hw-timer-pill">
             <i className="fa-regular fa-clock"></i> {formatTimer(timeLeft)}
           </span>
+
+          {lesson?.pptUrl && (
+            <button
+              type="button"
+              onClick={() => setIsPptViewerOpen(true)}
+              style={{
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+                color: '#c2410c',
+                fontWeight: 650,
+                fontSize: '0.82rem',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginLeft: 'auto'
+              }}
+              title="Mở Slide PPT bài giảng của bài này"
+            >
+              <i className="fa-solid fa-file-powerpoint" style={{ color: '#ea580c' }} />
+              <span>Xem Slide Bài Giảng</span>
+            </button>
+          )}
         </div>
 
         <div className="hw-course-kicker">
@@ -1291,6 +1318,13 @@ export const HomeworkView = ({ lesson, onBack }) => {
           </div>
         </div>
       )}
+
+      {/* Slide Presentation Viewer Modal */}
+      <SlidePresentationViewer
+        isOpen={isPptViewerOpen}
+        lesson={lesson}
+        onClose={() => setIsPptViewerOpen(false)}
+      />
     </div>
   );
 };

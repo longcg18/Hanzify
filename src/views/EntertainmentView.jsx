@@ -880,8 +880,8 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
       {/* Compact Modern Header Banner (chỉ hiển thị ở danh mục game) */}
       {!activeGame && (
         <div style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
-          border: '1px solid #fee2e2',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           borderRadius: '16px',
           padding: '1.1rem 1.4rem',
           marginBottom: '1.5rem',
@@ -889,30 +889,29 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '0.85rem',
-          boxShadow: '0 4px 16px rgba(161, 29, 36, 0.04)'
+          gap: '0.85rem'
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
               <span style={{
-                background: '#fef2f2',
-                color: '#A11D24',
+                background: 'var(--accent-light)',
+                color: 'var(--accent)',
                 padding: '2px 8px',
                 borderRadius: '8px',
                 fontSize: '0.74rem',
                 fontWeight: 700,
-                border: '1px solid #fecaca'
+                border: 'none'
               }}>
-                🎮 Mini-Games
+                <i className="fa-solid fa-gamepad" style={{ marginRight: 6 }}></i> Trò Chơi Ôn Tập
               </span>
-              <span style={{ fontSize: '0.85rem', color: '#A11D24', fontFamily: 'Noto Serif SC, serif', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontFamily: 'Noto Serif SC, serif', fontWeight: 600 }}>
                 趣味学汉语
               </span>
             </div>
-            <h1 style={{ margin: '0 0 0.2rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+            <h1 style={{ margin: '0 0 0.2rem 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>
               Góc Giải Trí & Ôn Bài
             </h1>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--muted)' }}>
               Vừa học vừa chơi, củng cố phản xạ chữ Hán, thanh điệu và nhận điểm XP đua top.
             </p>
           </div>

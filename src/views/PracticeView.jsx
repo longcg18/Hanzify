@@ -259,11 +259,8 @@ export const PracticeView = () => {
       {!activeTopic && (
         <div
           style={{
-            background:
-              user?.role === 'admin'
-                ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
-                : 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
-            border: user?.role === 'admin' ? '1px solid #334155' : '1px solid #fee2e2',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
             borderRadius: '16px',
             padding: '1.1rem 1.4rem',
             marginBottom: '1.25rem',
@@ -271,33 +268,28 @@ export const PracticeView = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: '0.85rem',
-            boxShadow:
-              user?.role === 'admin'
-                ? '0 4px 20px rgba(0, 0, 0, 0.2)'
-                : '0 4px 16px rgba(161, 29, 36, 0.04)',
-            color: user?.role === 'admin' ? '#f8fafc' : undefined
+            gap: '0.85rem'
           }}
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
               <span
                 style={{
-                  background: user?.role === 'admin' ? 'rgba(254, 202, 202, 0.15)' : '#fef2f2',
-                  color: user?.role === 'admin' ? '#fca5a5' : '#A11D24',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
                   padding: '2px 8px',
                   borderRadius: '8px',
                   fontSize: '0.74rem',
                   fontWeight: 700,
-                  border: user?.role === 'admin' ? '1px solid rgba(254, 202, 202, 0.25)' : '1px solid #fecaca'
+                  border: 'none'
                 }}
               >
-                {user?.role === 'admin' ? '👑 Quản Trị Kỹ Năng' : '🎯 Luyện Kỹ Năng'}
+                {user?.role === 'admin' ? 'Quản Trị Kỹ Năng' : 'Luyện Kỹ Năng'}
               </span>
               <span
                 style={{
                   fontSize: '0.85rem',
-                  color: user?.role === 'admin' ? '#fca5a5' : '#A11D24',
+                  color: 'var(--accent)',
                   fontFamily: 'Noto Serif SC, serif',
                   fontWeight: 600
                 }}
@@ -310,7 +302,7 @@ export const PracticeView = () => {
                 margin: '0 0 0.2rem 0',
                 fontSize: '1.25rem',
                 fontWeight: 800,
-                color: user?.role === 'admin' ? '#f8fafc' : '#0f172a'
+                color: 'var(--text)'
               }}
             >
               {user?.role === 'admin' ? 'Quản Trị Ngân Hàng Kỹ Năng' : 'Luyện Tập Kỹ Năng Tiếng Trung'}
@@ -319,7 +311,7 @@ export const PracticeView = () => {
               style={{
                 margin: 0,
                 fontSize: '0.82rem',
-                color: user?.role === 'admin' ? '#94a3b8' : '#64748b'
+                color: 'var(--muted)'
               }}
             >
               {user?.role === 'admin'

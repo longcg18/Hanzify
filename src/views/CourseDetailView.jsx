@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { isStudentInClassroom } from '../utils/classEnrollment';
 import { fetchStudentSubmissions, getLocalDraft } from '../services/supabaseService';
+import { SlidePresentationViewer } from '../components/SlidePresentationViewer';
 
 export const CourseDetailView = ({ 
   course, 
@@ -27,6 +28,7 @@ export const CourseDetailView = ({
 
   const [studentSubmissions, setStudentSubmissions] = useState([]);
   const [areSubmissionsLoading, setAreSubmissionsLoading] = useState(user?.role === 'student');
+  const [selectedPptLesson, setSelectedPptLesson] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -503,6 +505,35 @@ export const CourseDetailView = ({
                       >
                         <i className="fa-solid fa-pen"></i>
                       </button>
+
+                      {/* Nút Xem Slide PPT cho Giáo Viên */}
+                      {lesson.pptUrl && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPptLesson(lesson);
+                          }}
+                          title="Xem trình chiếu Slide PPT bài giảng"
+                          style={{
+                            background: '#fff7ed',
+                            border: '1px solid #fed7aa',
+                            color: '#c2410c',
+                            borderRadius: '8px',
+                            padding: '0.55rem 0.85rem',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                            fontWeight: 650,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <i className="fa-solid fa-file-powerpoint" style={{ color: '#ea580c' }} />
+                          <span>Xem Slide PPT</span>
+                        </button>
+                      )}
                       
                       {/* Nút Soạn & Live Preview bài tập cho Giáo viên và Admin */}
                       <button
@@ -556,7 +587,36 @@ export const CourseDetailView = ({
                       </button>
                     </div>
                   ) : (
-                    <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Nút Xem Slide PPT cho Học Viên */}
+                      {lesson.pptUrl && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPptLesson(lesson);
+                          }}
+                          title="Xem trình chiếu Slide PPT bài giảng"
+                          style={{
+                            background: '#fff7ed',
+                            border: '1px solid #fed7aa',
+                            color: '#c2410c',
+                            borderRadius: '8px',
+                            padding: '0.55rem 0.85rem',
+                            cursor: 'pointer',
+                            fontSize: '0.82rem',
+                            fontWeight: 650,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <i className="fa-solid fa-file-powerpoint" style={{ color: '#ea580c' }} />
+                          <span>Xem Slide PPT</span>
+                        </button>
+                      )}
+
                       {isLocked ? (
                         <div className="locked-badge">
                           <i className="fa-solid fa-lock"></i>
@@ -647,7 +707,7 @@ export const CourseDetailView = ({
                           <i className="fa-solid fa-arrow-right"></i>
                         </button>
                       ) : null}
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1283,6 +1343,13 @@ export const CourseDetailView = ({
           </div>
         </div>
       )}
+
+      {/* Slide Presentation Viewer Modal */}
+      <SlidePresentationViewer
+        isOpen={Boolean(selectedPptLesson)}
+        lesson={selectedPptLesson}
+        onClose={() => setSelectedPptLesson(null)}
+      />
     </div>
   );
 };

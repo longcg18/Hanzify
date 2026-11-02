@@ -56,14 +56,13 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
     <div className="leaderboard-view-container" style={{ maxWidth: '1080px', margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
       {/* Header Banner */}
       <section style={{
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #450a0a 100%)',
-        borderRadius: '24px',
-        padding: '2.25rem 2rem',
-        color: '#ffffff',
+        background: 'var(--surface)',
+        borderRadius: '16px',
+        padding: '2rem',
+        color: 'var(--text)',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 20px 40px -15px rgba(49, 16, 66, 0.4)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        border: '1px solid var(--border)',
         marginBottom: '2rem'
       }}>
         {/* Background decorative watermark */}
@@ -73,7 +72,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
           top: '-30px',
           fontSize: '11rem',
           fontFamily: 'Noto Serif SC, serif',
-          color: 'rgba(255, 255, 255, 0.04)',
+          color: 'rgba(0, 0, 0, 0.03)',
           pointerEvents: 'none',
           userSelect: 'none'
         }}>
@@ -86,22 +85,21 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem',
-              background: 'rgba(245, 158, 11, 0.18)',
-              color: '#fde68a',
-              padding: '0.4rem 0.85rem',
+              background: 'var(--accent-light)',
+              color: 'var(--accent)',
+              padding: '0.35rem 0.8rem',
               borderRadius: '999px',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               fontWeight: 700,
-              marginBottom: '0.75rem',
-              border: '1px solid rgba(245, 158, 11, 0.3)'
+              marginBottom: '0.75rem'
             }}>
-              <i className="fa-solid fa-crown" style={{ color: '#fbbf24' }}></i>
+              <i className="fa-solid fa-crown" style={{ color: 'var(--accent)' }}></i>
               <span>Vinh Danh Học Viên Xuất Sắc Hanzify</span>
             </div>
-            <h1 style={{ margin: '0 0 0.5rem', fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <h1 style={{ margin: '0 0 0.5rem', fontSize: '1.6rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text)' }}>
               Bảng Xếp Hạng Tranh Tài
             </h1>
-            <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', maxWidth: '620px', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--muted)', maxWidth: '620px', lineHeight: 1.5 }}>
               Tích lũy điểm XP thông qua hoàn thành bài tập, thi thử HSK bấm giờ thật, duy trì chuỗi Streak và rèn luyện từ vựng mỗi ngày!
             </p>
           </div>
@@ -109,24 +107,10 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               type="button"
+              className="btn-secondary"
               onClick={() => setIsXpRulesOpen(true)}
-              style={{
-                padding: '0.65rem 1.15rem',
-                borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.12)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                transition: 'all 0.2s'
-              }}
             >
-              <i className="fa-solid fa-circle-question" style={{ color: '#fde68a' }}></i>
+              <i className="fa-solid fa-circle-question" style={{ color: 'var(--accent)' }}></i>
               <span>Quy Tắc Tính XP</span>
             </button>
           </div>

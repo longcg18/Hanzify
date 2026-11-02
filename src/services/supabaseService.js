@@ -272,7 +272,9 @@ export async function fetchCoursesWithLessons() {
           hskLevel: l.hsk_level || c.level,
           deadline: l.description || '23:59 Chủ Nhật',
           status: l.is_unlocked ? 'active' : 'locked',
-          questionsCount: 5
+          questionsCount: 5,
+          pptUrl: l.ppt_url || null,
+          pptFilename: l.ppt_filename || null
         }))
     }));
   } catch (err) {
@@ -323,8 +325,10 @@ export async function syncLessonToSupabase(lesson, courseId) {
     title: lesson.title,
     chinese_title: lesson.chineseTitle || '',
     description: lesson.deadline || '23:59 Chủ Nhật',
-    hsk_level: 'HSK 2',
-    is_unlocked: lesson.status !== 'locked'
+    hsk_level: lesson.hskLevel || 'HSK 2',
+    is_unlocked: lesson.status !== 'locked',
+    ppt_url: lesson.pptUrl || null,
+    ppt_filename: lesson.pptFilename || null
   };
   try {
     const { data, error } = await supabase
