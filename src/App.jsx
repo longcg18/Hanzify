@@ -594,7 +594,7 @@ export function AppContent() {
       setCurrentView('courses');
       redirectNote = ' • Tự động chuyển về trang Khóa Học vì không đủ quyền Quản Trị';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (currentView === 'grading' && !['admin', 'teacher'].includes(newRole)) {
+    } else if (['grading', 'student-progress', 'homework-editor'].includes(currentView) && !['admin', 'teacher'].includes(newRole)) {
       setCurrentView('courses');
       redirectNote = ' • Tự động chuyển về trang Khóa Học vì chỉ dành cho Giáo Viên và Admin';
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -619,11 +619,9 @@ export function AppContent() {
     if (user && currentView === 'admin-users' && user.role !== 'admin') {
       setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (user && currentView === 'grading' && !['admin', 'teacher'].includes(user.role)) {
+    } else if (user && ['grading', 'student-progress', 'homework-editor'].includes(currentView) && !['admin', 'teacher'].includes(user.role)) {
       setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (currentView === 'student-progress' && !['admin', 'teacher'].includes(user?.role)) {
-      setCurrentView('home');
     }
   }, [user, user?.role, currentView]);
 
@@ -633,6 +631,16 @@ export function AppContent() {
       setIsAuthModalOpen(true);
       setRoleToast('Vui lòng đăng nhập để truy cập tính năng này!');
       setTimeout(() => setRoleToast(null), 4000);
+      return;
+    }
+    if (view === 'admin-users' && user?.role !== 'admin') {
+      setRoleToast('Bạn không có quyền truy cập khu vực Quản Trị Hệ Thống!');
+      setTimeout(() => setRoleToast(null), 3500);
+      return;
+    }
+    if (['grading', 'student-progress', 'homework-editor'].includes(view) && !['admin', 'teacher'].includes(user?.role)) {
+      setRoleToast('Tính năng này chỉ dành cho Giáo Viên và Quản Trị Viên!');
+      setTimeout(() => setRoleToast(null), 3500);
       return;
     }
     setCurrentView(view);
@@ -972,36 +980,26 @@ export function AppContent() {
         ) : (
           <main className="main-content" style={{ padding: '3rem 1rem' }}>
             <div style={{
-              maxWidth: '560px',
+              maxWidth: '520px',
               margin: '2rem auto',
               padding: '2.5rem',
               background: '#ffffff',
-              borderRadius: '24px',
-              border: '1.5px solid #fee2e2',
-              textAlign: 'center',
-              boxShadow: '0 12px 35px rgba(161, 29, 36, 0.08)'
+              borderRadius: '16px',
+              border: '1px solid var(--border)',
+              textAlign: 'center'
             }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👩‍🏫</div>
-              <h2 style={{ color: '#A11D24', marginBottom: '0.5rem', fontSize: '1.35rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>👩‍🏫</div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: 750 }}>
                 Quyền Truy Cập Bị Hạn Chế
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-                Bàn Chấm Bài chỉ dành cho Giáo viên và Quản trị viên.
+                Bàn Chấm Bài chỉ dành cho Giáo viên phụ trách và Quản trị viên.
               </p>
               <button
                 type="button"
+                className="btn-primary"
                 onClick={() => setCurrentView('home')}
-                style={{
-                  background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '0.75rem 1.6rem',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
-                }}
+                style={{ justifyContent: 'center' }}
               >
                 Quay Về Trang Chủ
               </button>
@@ -1020,17 +1018,16 @@ export function AppContent() {
         ) : (
           <main className="main-content" style={{ padding: '3rem 1rem' }}>
             <div style={{
-              maxWidth: '560px',
+              maxWidth: '520px',
               margin: '2rem auto',
               padding: '2.5rem',
               background: '#ffffff',
-              borderRadius: '24px',
-              border: '1.5px solid #fee2e2',
-              textAlign: 'center',
-              boxShadow: '0 12px 35px rgba(161, 29, 36, 0.08)'
+              borderRadius: '16px',
+              border: '1px solid var(--border)',
+              textAlign: 'center'
             }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛡️</div>
-              <h2 style={{ color: '#A11D24', marginBottom: '0.5rem', fontSize: '1.35rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🛡️</div>
+              <h2 style={{ color: '#0f172a', marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: 750 }}>
                 Quyền Truy Cập Bị Hạn Chế
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.92rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
@@ -1038,18 +1035,9 @@ export function AppContent() {
               </p>
               <button
                 type="button"
+                className="btn-primary"
                 onClick={() => setCurrentView('home')}
-                style={{
-                  background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '0.75rem 1.6rem',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
-                }}
+                style={{ justifyContent: 'center' }}
               >
                 Quay Về Trang Chủ
               </button>

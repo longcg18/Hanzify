@@ -880,15 +880,95 @@ export const HomeView = ({
         marginBottom: '2.5rem'
       }}>
         
-        {/* THẺ 1: HỌC VIÊN HIỂN THỊ CHUỖI STREAK - GIÁO VIÊN HIỂN THỊ BÀN CHẤM BÀI */}
-        {user?.role === 'teacher' ? (
+        {/* THẺ 1: HỌC VIÊN HIỂN THỊ CHUỖI STREAK - GIÁO VIÊN HIỂN THỊ BÀN CHẤM BÀI - ADMIN HIỂN THỊ ĐIỀU HÀNH */}
+        {user?.role === 'admin' ? (
+          /* THẺ DÀNH CHO ADMIN: BẢNG ĐIỀU HÀNH HỆ THỐNG */
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <i className="fa-solid fa-users-gear" style={{ color: '#b91c1c' }}></i> Quản Trị Hệ Thống
+                </span>
+                <span style={{
+                  background: '#fef2f2',
+                  color: '#b91c1c',
+                  border: '1px solid #fee2e2',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700
+                }}>
+                  Admin Control
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '1.25rem' }}>
+                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Khóa học</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{courses.length}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Đề thi HSK</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{examsCount}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Lớp học</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{classrooms.length}</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Bài chờ chấm</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#b91c1c' }}>{pendingCount}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => onNavigate('admin-users')}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <i className="fa-solid fa-users-gear"></i>
+                <span>Quản Trị Người Dùng & Dữ Liệu</span>
+              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => onNavigate('grading')}
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '12.5px' }}
+                >
+                  <i className="fa-solid fa-stamp"></i>
+                  <span>Chấm Bài ({pendingCount})</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => onNavigate('student-progress')}
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '12.5px' }}
+                >
+                  <i className="fa-solid fa-chart-line"></i>
+                  <span>Theo Dõi</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : user?.role === 'teacher' ? (
           /* THẺ DÀNH CHO GIÁO VIÊN: BÀN CHẤM BÀI TẬP */
           <div style={{
             background: '#ffffff',
-            borderRadius: '22px',
-            border: '1.5px solid #fecaca',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
             padding: '1.5rem',
-            boxShadow: '0 4px 20px rgba(185, 28, 28, 0.08)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between'
@@ -962,24 +1042,9 @@ export const HomeView = ({
 
             <button
               type="button"
+              className="btn-primary"
               onClick={() => onNavigate('grading')}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: 800,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.45rem',
-                boxShadow: '0 4px 14px rgba(185, 28, 28, 0.25)',
-                transition: 'all 0.15s'
-              }}
+              style={{ width: '100%', justifyContent: 'center' }}
             >
               <i className="fa-solid fa-pen-to-square"></i>
               <span>Vào Bàn Chấm Bài Của Cô Giáo</span>

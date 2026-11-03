@@ -45,6 +45,9 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   const currentStreak = streakData?.currentStreak ?? localStreak?.currentStreak ?? 0;
   const currentTotalXp = streakData?.totalXp ?? localStreak?.totalXp ?? user?.xp ?? 0;
   const isStaff = user?.role === 'teacher' || user?.role === 'admin';
+  const cleanDisplayName = user?.role === 'teacher'
+    ? 'Cô Hoài'
+    : (user?.name || user?.full_name || user?.username || '').replace(/\([^)]*\)/g, '').trim();
 
   // Resolve user's classroom code
   const userClass = classrooms.find((c) =>
@@ -155,7 +158,7 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}>
-              {user.name}
+              {cleanDisplayName}
             </span>
             <span style={{
               fontSize: '0.68rem',
