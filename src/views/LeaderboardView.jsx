@@ -129,13 +129,9 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(10px)',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '14px',
-            border: '1px solid rgba(255, 255, 255, 0.15)'
+            background: '#f8fafc', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0'
           }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fde68a', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
               <i className="fa-solid fa-chalkboard-user"></i> Xếp Hạng:
             </span>
             <select
@@ -145,8 +141,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                 padding: '0.45rem 0.75rem',
                 borderRadius: '10px',
                 border: '1px solid rgba(255, 255, 255, 0.25)',
-                background: '#0f172a',
-                color: '#ffffff',
+                background: '#ffffff', color: '#1e293b',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 outline: 'none',
@@ -154,7 +149,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               }}
             >
               {classOptions.map((c) => (
-                <option key={c.id} value={c.id} style={{ background: '#0f172a', color: '#ffffff' }}>
+                <option key={c.id} value={c.id} style={{ background: '#ffffff', color: '#1e293b' }}>
                   {c.name}
                 </option>
               ))}
@@ -173,7 +168,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
       ) : currentList.length === 0 ? (
         <section style={{
           background: '#ffffff',
-          borderRadius: '24px',
+          borderRadius: '16px',
           border: '1.5px dashed #cbd5e1',
           padding: '3.5rem 2rem',
           textAlign: 'center',
@@ -194,7 +189,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
             style={{
               padding: '0.65rem 1.35rem',
               borderRadius: '12px',
-              background: '#A11D24',
+              background: '#b91c1c',
               color: '#ffffff',
               border: 'none',
               fontWeight: 700,
@@ -221,11 +216,11 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               {secondPlace && (
                 <div style={{
                   background: '#ffffff',
-                  borderRadius: '20px',
-                  border: '2px solid #cbd5e1',
+                  borderRadius: '14px',
+                  border: '1.5px solid #cbd5e1',
                   padding: '1.5rem 1rem 1.25rem',
                   textAlign: 'center',
-                  boxShadow: '0 10px 25px -5px rgba(100, 116, 139, 0.15)',
+                  boxShadow: 'none',
                   position: 'relative'
                 }}>
             <div style={{
@@ -233,7 +228,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               top: '-16px',
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+              background: '#64748b',
               color: '#ffffff',
               borderRadius: '999px',
               padding: '0.25rem 0.85rem',
@@ -242,7 +237,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               display: 'flex',
               alignItems: 'center',
               gap: '0.3rem',
-              boxShadow: '0 4px 10px rgba(100, 116, 139, 0.3)'
+              boxShadow: 'none'
             }}>
               <span>🥈 HẠNG 2</span>
             </div>
@@ -261,7 +256,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               fontFamily: 'Noto Serif SC, serif',
               margin: '0.75rem auto 0.65rem',
               border: '3px solid #e2e8f0',
-              boxShadow: '0 6px 16px rgba(0,0,0,0.1)'
+              boxShadow: 'none'
             }}>
               {secondPlace.avatar}
             </div>
@@ -292,12 +287,12 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
       <div style={{ gridColumn: 2 }}>
         {firstPlace && (
           <div style={{
-            background: 'linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)',
-            borderRadius: '24px',
-            border: '2.5px solid #f59e0b',
+            background: '#fffdf5',
+            borderRadius: '16px',
+            border: '1.5px solid #f59e0b',
             padding: '2rem 1.25rem 1.5rem',
             textAlign: 'center',
-            boxShadow: '0 15px 35px -5px rgba(245, 158, 11, 0.25)',
+            boxShadow: 'none',
             position: 'relative',
             transform: 'scale(1.05)',
             zIndex: 3
@@ -307,7 +302,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               top: '-20px',
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              background: '#d97706',
               color: '#ffffff',
               borderRadius: '999px',
               padding: '0.35rem 1.15rem',
@@ -368,7 +363,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               {thirdPlace && (
                 <div style={{
                   background: '#ffffff',
-                  borderRadius: '20px',
+                  borderRadius: '14px',
                   border: '2px solid #fed7aa',
                   padding: '1.5rem 1rem 1.25rem',
                   textAlign: 'center',
@@ -408,7 +403,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               fontFamily: 'Noto Serif SC, serif',
               margin: '0.75rem auto 0.65rem',
               border: '3px solid #ffedd5',
-              boxShadow: '0 6px 16px rgba(0,0,0,0.1)'
+              boxShadow: 'none'
             }}>
               {thirdPlace.avatar}
             </div>
@@ -439,8 +434,8 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
       {/* DANH SÁCH CHI TIẾT CÁC HẠNG TIẾP THEO */}
       <section style={{
         background: '#ffffff',
-        borderRadius: '20px',
-        border: '1px solid #fee2e2',
+        borderRadius: '14px',
+        border: '1px solid var(--border)',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
         overflow: 'hidden'
       }}>
@@ -520,7 +515,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                     </span>
                     {isUser && (
                       <span style={{
-                        background: '#fee2e2',
+                        background: 'var(--border)',
                         color: '#991b1b',
                         padding: '1px 6px',
                         borderRadius: '6px',
@@ -580,7 +575,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
           bottom: '16px',
           marginTop: '1.5rem',
           background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          borderRadius: '18px',
+          borderRadius: '12px',
           padding: '1rem 1.5rem',
           color: '#ffffff',
           boxShadow: '0 12px 30px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(255,255,255,0.1)',
@@ -622,7 +617,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fde68a' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#475569' }}>
                 {currentUserEntry.xp.toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>XP</span>
               </div>
             </div>
@@ -632,7 +627,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               style={{
                 padding: '0.55rem 1.15rem',
                 borderRadius: '10px',
-                background: '#A11D24',
+                background: '#b91c1c',
                 border: 'none',
                 color: '#ffffff',
                 fontWeight: 700,
@@ -641,7 +636,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                boxShadow: '0 4px 12px rgba(161, 29, 36, 0.4)'
+                boxShadow: 'none'
               }}
             >
               <i className="fa-solid fa-bolt"></i> Cày Thêm XP Ngay
@@ -676,7 +671,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
             onClick={(e) => e.stopPropagation()}
             style={{
               background: '#ffffff',
-              borderRadius: '20px',
+              borderRadius: '14px',
               maxWidth: '500px',
               width: '100%',
               padding: '1.75rem',
@@ -729,7 +724,7 @@ export const LeaderboardView = ({ onNavigate, classrooms = [], areClassroomsLoad
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--border)', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <i className="fa-solid fa-fire"></i>
                 </div>
                 <div style={{ flex: 1 }}>

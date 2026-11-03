@@ -766,3 +766,264 @@ button, input, select, textarea { font-family: inherit; }
   }
 }
 
+/* ==========================================================================
+   APP-WIDE EDITORIAL DESIGN SYSTEM (tasteskill v2 across ALL views)
+   ========================================================================== */
+
+/* 1. Universal Page & Section Headers */
+.courses-header,
+.feature-page-header,
+.welcome-banner,
+.page-header-editorial {
+  background: #ffffff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  padding: 22px 24px !important;
+  margin-bottom: 24px !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+.header-meta,
+.banner-tag,
+.page-meta-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 3px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-bottom: 10px !important;
+}
+
+.header-title,
+.banner-greeting,
+.page-title {
+  font-family: var(--font-ui) !important;
+  font-size: 24px !important;
+  font-weight: 750 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 0 6px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.header-desc,
+.banner-proverb,
+.page-desc {
+  font-family: var(--font-ui) !important;
+  font-size: 13.5px !important;
+  color: var(--muted) !important;
+  margin: 0 !important;
+  line-height: 1.55 !important;
+  max-width: 720px !important;
+}
+
+/* 2. Course Hero Banner */
+.course-header-banner,
+.course-hero-banner {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  border-radius: 16px !important;
+  padding: 26px 28px !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  margin-bottom: 24px !important;
+}
+
+.course-hero-title {
+  font-family: var(--font-ui) !important;
+  font-size: 26px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 4px !important;
+}
+
+.hero-stats-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding-top: 16px !important;
+  margin-top: 18px !important;
+}
+
+/* 3. Universal Filter Tabs & Pills */
+.filter-tab-pill,
+.category-tab-btn,
+.sub-nav-btn {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.filter-tab-pill:hover,
+.category-tab-btn:hover,
+.sub-nav-btn:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: var(--text) !important;
+}
+
+.filter-tab-pill.is-active,
+.category-tab-btn.is-active,
+.sub-nav-btn.is-active {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+/* 4. Lesson Cards & Roadmaps */
+.lesson-card {
+  background: #ffffff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease !important;
+}
+
+.lesson-card:hover {
+  border-color: #cbd5e1 !important;
+  transform: none !important;
+}
+
+.lesson-card.active {
+  border-color: #b91c1c !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.lesson-num-badge {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+}
+
+/* 5. Course Cards */
+.course-card {
+  background: #ffffff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease !important;
+}
+
+.course-card:hover {
+  border-color: #94a3b8 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.course-card-cover {
+  padding: 18px 20px !important;
+  min-height: 110px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.cover-watermark {
+  opacity: 0.08 !important;
+}
+
+.course-card-body {
+  padding: 18px 20px !important;
+}
+
+.course-title {
+  font-family: var(--font-ui) !important;
+  font-size: 15.5px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  line-height: 1.4 !important;
+  margin-bottom: 6px !important;
+}
+
+.course-desc {
+  font-size: 13px !important;
+  color: var(--muted) !important;
+  line-height: 1.5 !important;
+}
+
+.btn-enter-course {
+  background: var(--text) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 7px 14px !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+}
+
+.btn-enter-course:hover {
+  background: #334155 !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+/* 6. Form Inputs & Modals */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+select,
+textarea {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  font-family: var(--font-ui) !important;
+  font-size: 13.5px !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: border-color 0.15s ease !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #b91c1c !important;
+}
+
+/* 7. Tables across views */
+.admin-table,
+.leaderboard-table,
+table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 10px 14px !important;
+}
+
+td {
+  border-bottom: 1px solid var(--rule) !important;
+  font-size: 13.5px !important;
+  padding: 12px 14px !important;
+}
+
+

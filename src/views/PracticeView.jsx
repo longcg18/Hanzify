@@ -331,7 +331,7 @@ export const PracticeView = () => {
                 style={{
                   padding: '0.45rem 0.9rem',
                   borderRadius: '10px',
-                  background: '#A11D24',
+                  background: '#b91c1c',
                   border: 'none',
                   color: '#ffffff',
                   fontWeight: 700,
@@ -340,7 +340,7 @@ export const PracticeView = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  boxShadow: '0 2px 8px rgba(161, 29, 36, 0.3)'
+                  boxShadow: 'none'
                 }}
               >
                 <i className="fa-solid fa-plus"></i> Thêm Chuyên Đề
@@ -413,10 +413,10 @@ export const PracticeView = () => {
             maxWidth: '740px',
             margin: '0 auto',
             background: '#fff',
-            border: '1.5px solid #fee2e2',
-            borderRadius: '18px',
+            border: '1.5px solid var(--border)',
+            borderRadius: '12px',
             padding: '1.25rem 1.5rem',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.03)'
+            boxShadow: 'none'
           }}
         >
           {/* TRƯỜNG HỢP 1: ĐÃ HOÀN THÀNH LƯỢT 10 CÂU -> BẢNG TỔNG KẾT & ÔN TẬP */}
@@ -590,7 +590,7 @@ export const PracticeView = () => {
                     padding: '0.6rem 1.4rem',
                     borderRadius: '10px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                    background: '#b91c1c',
                     color: '#fff',
                     fontWeight: 700,
                     fontSize: '0.85rem',
@@ -598,7 +598,7 @@ export const PracticeView = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.45rem',
-                    boxShadow: '0 2px 8px rgba(161, 29, 36, 0.25)'
+                    boxShadow: 'none'
                   }}
                 >
                   <i className="fa-solid fa-rotate-right"></i> Làm tiếp lượt mới (10 câu mới)
@@ -707,7 +707,7 @@ export const PracticeView = () => {
                   style={{
                     width: `${((currentQIdx + 1) / (activeQuestions.length || 1)) * 100}%`,
                     height: '100%',
-                    background: '#A11D24',
+                    background: '#b91c1c',
                     transition: 'width 0.25s ease'
                   }}
                 ></div>
@@ -879,7 +879,7 @@ export const PracticeView = () => {
                           type="button"
                           onClick={handleNextQ}
                           style={{
-                            background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                            background: '#b91c1c',
                             color: '#fff',
                             border: 'none',
                             padding: '0.55rem 1.4rem',
@@ -890,7 +890,7 @@ export const PracticeView = () => {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.4rem',
-                            boxShadow: '0 2px 8px rgba(161, 29, 36, 0.25)',
+                            boxShadow: 'none',
                             whiteSpace: 'nowrap'
                           }}
                         >
@@ -925,8 +925,7 @@ export const PracticeView = () => {
                 type="button"
                 onClick={() => setSelectedSkill(s.id)}
                 style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '12px',
+                  padding: '0.45rem 0.9rem', borderRadius: '8px',
                   border: selectedSkill === s.id ? '1.5px solid #A11D24' : '1px solid #e2e8f0',
                   background: selectedSkill === s.id ? '#A11D24' : '#fff',
                   color: selectedSkill === s.id ? '#fff' : '#475569',
@@ -973,7 +972,7 @@ export const PracticeView = () => {
                       padding: '0.35rem 0.8rem',
                       borderRadius: '8px',
                       border: isSelected ? '1px solid #fca5a5' : '1px solid #e2e8f0',
-                      background: isSelected ? '#fee2e2' : '#ffffff',
+                      background: isSelected ? 'var(--border)' : '#ffffff',
                       color: isSelected ? '#A11D24' : '#64748b',
                       fontWeight: isSelected ? 700 : 500,
                       fontSize: '0.8rem',
@@ -1083,7 +1082,7 @@ export const PracticeView = () => {
                   marginTop: '1rem',
                   padding: '0.45rem 1rem',
                   borderRadius: '8px',
-                  background: '#A11D24',
+                  background: '#b91c1c',
                   color: '#fff',
                   border: 'none',
                   fontWeight: 600,
@@ -1107,10 +1106,9 @@ export const PracticeView = () => {
                   key={item.id}
                   style={{
                     background: '#fff',
-                    border: '1px solid #fee2e2',
-                    borderRadius: '18px',
-                    padding: '1.5rem',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.02)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px', padding: '1.25rem',
+                    boxShadow: 'none',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -1180,7 +1178,7 @@ export const PracticeView = () => {
                       type="button"
                       onClick={() => handleStartPractice(item)}
                       style={{
-                        background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                        background: '#b91c1c',
                         color: '#fff',
                         border: 'none',
                         padding: '0.55rem 1.25rem',
@@ -1191,7 +1189,7 @@ export const PracticeView = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.45rem',
-                        boxShadow: '0 2px 8px rgba(161, 29, 36, 0.25)'
+                        boxShadow: 'none'
                       }}
                     >
                       {!user && <i className="fa-solid fa-lock" style={{ fontSize: '0.75rem' }}></i>}

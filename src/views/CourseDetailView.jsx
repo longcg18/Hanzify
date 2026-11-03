@@ -75,7 +75,7 @@ export const CourseDetailView = ({
   if (areSubmissionsLoading) {
     return (
       <main className="main-content" style={{ padding: '4rem 1rem', textAlign: 'center', color: '#64748b' }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#A11D24' }}></i>
+        <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#b91c1c' }}></i>
         Đang tải tiến độ khóa học…
       </main>
     );
@@ -195,7 +195,7 @@ export const CourseDetailView = ({
   return (
     <div className="course-detail-container">
       {/* Back button & Course Header */}
-      <div className="course-header-banner" style={{ background: course.coverGradient || 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)' }}>
+      <div className="course-header-banner" style={{ background: course.coverGradient || '#b91c1c' }}>
         <button type="button" className="btn-back-pill" onClick={onBack}>
           <i className="fa-solid fa-arrow-left"></i>
           <span>Danh sách khóa học</span>
@@ -251,9 +251,9 @@ export const CourseDetailView = ({
               onClick={handleOpenAddLesson}
               style={{
                 padding: '0.6rem 1.15rem',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 background: '#ffffff',
-                color: '#A11D24',
+                color: '#b91c1c',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 border: 'none',
@@ -261,7 +261,7 @@ export const CourseDetailView = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                boxShadow: 'none',
                 transition: 'all 0.2s ease'
               }}
             >
@@ -273,7 +273,7 @@ export const CourseDetailView = ({
               onClick={handleOpenEditCourse}
               style={{
                 padding: '0.6rem 1.15rem',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 background: 'rgba(255,255,255,0.2)',
                 color: '#ffffff',
                 fontWeight: 700,
@@ -297,7 +297,7 @@ export const CourseDetailView = ({
               }}
               style={{
                 padding: '0.6rem 1.15rem',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 background: 'rgba(239, 68, 68, 0.35)',
                 color: '#fecaca',
                 fontWeight: 700,
@@ -345,7 +345,7 @@ export const CourseDetailView = ({
                 alignItems: 'center',
                 gap: '0.45rem',
                 padding: '0.55rem 1rem',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 background: '#f8fafc',
                 border: '1.5px solid #cbd5e1',
                 color: '#334155',
@@ -736,7 +736,7 @@ export const CourseDetailView = ({
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '20px',
+            borderRadius: '14px',
             width: '100%',
             maxWidth: '520px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
@@ -793,7 +793,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.9rem',
                     fontWeight: 600,
@@ -816,7 +816,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.9rem',
                     outline: 'none',
@@ -838,7 +838,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       outline: 'none',
@@ -859,7 +859,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       outline: 'none',
@@ -875,7 +875,7 @@ export const CourseDetailView = ({
                   onClick={() => setIsAddLessonModalOpen(false)}
                   style={{
                     padding: '0.65rem 1.25rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     background: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     color: '#475569',
@@ -889,8 +889,8 @@ export const CourseDetailView = ({
                   type="submit"
                   style={{
                     padding: '0.65rem 1.5rem',
-                    borderRadius: '10px',
-                    background: '#A11D24',
+                    borderRadius: '8px',
+                    background: '#b91c1c',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
@@ -898,7 +898,7 @@ export const CourseDetailView = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: '0 4px 12px rgba(161, 29, 36, 0.3)'
+                    boxShadow: 'none'
                   }}
                 >
                   <i className="fa-solid fa-check"></i> Lưu Bài Học
@@ -929,7 +929,7 @@ export const CourseDetailView = ({
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '20px',
+            borderRadius: '14px',
             width: '100%',
             maxWidth: '520px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
@@ -986,7 +986,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.9rem',
                     fontWeight: 600,
@@ -1009,7 +1009,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.9rem',
                     outline: 'none',
@@ -1030,7 +1030,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.9rem',
                     outline: 'none',
@@ -1052,7 +1052,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       outline: 'none',
@@ -1073,7 +1073,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       outline: 'none',
@@ -1089,7 +1089,7 @@ export const CourseDetailView = ({
                   onClick={() => setIsEditLessonModalOpen(false)}
                   style={{
                     padding: '0.65rem 1.25rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     background: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     color: '#475569',
@@ -1103,7 +1103,7 @@ export const CourseDetailView = ({
                   type="submit"
                   style={{
                     padding: '0.65rem 1.5rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     background: '#0f172a',
                     border: 'none',
                     color: '#ffffff',
@@ -1143,7 +1143,7 @@ export const CourseDetailView = ({
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '20px',
+            borderRadius: '14px',
             width: '100%',
             maxWidth: '560px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
@@ -1195,7 +1195,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.9rem',
                     boxSizing: 'border-box'
@@ -1215,7 +1215,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       boxSizing: 'border-box'
@@ -1232,7 +1232,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       boxSizing: 'border-box'
@@ -1261,7 +1261,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       boxSizing: 'border-box'
@@ -1279,7 +1279,7 @@ export const CourseDetailView = ({
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       border: '1.5px solid #cbd5e1',
                       fontSize: '0.9rem',
                       boxSizing: 'border-box'
@@ -1299,7 +1299,7 @@ export const CourseDetailView = ({
                   style={{
                     width: '100%',
                     padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     border: '1.5px solid #cbd5e1',
                     fontSize: '0.88rem',
                     fontFamily: 'inherit',
@@ -1314,7 +1314,7 @@ export const CourseDetailView = ({
                   onClick={() => setIsEditCourseModalOpen(false)}
                   style={{
                     padding: '0.65rem 1.25rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     background: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     color: '#475569',
@@ -1328,7 +1328,7 @@ export const CourseDetailView = ({
                   type="submit"
                   style={{
                     padding: '0.65rem 1.5rem',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     background: '#0f172a',
                     border: 'none',
                     color: '#ffffff',

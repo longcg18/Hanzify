@@ -244,8 +244,7 @@ export const TeacherGradingView = () => {
             background: activeTab === 'queue' ? '#A11D24' : '#f8fafc',
             color: activeTab === 'queue' ? '#ffffff' : '#475569',
             border: activeTab === 'queue' ? '1.5px solid #A11D24' : '1px solid #e2e8f0',
-            padding: '0.65rem 1.4rem',
-            borderRadius: '12px',
+            padding: '0.55rem 1.25rem', borderRadius: '8px',
             fontWeight: 700,
             fontSize: '0.92rem',
             cursor: 'pointer',
@@ -259,7 +258,7 @@ export const TeacherGradingView = () => {
           <i className="fa-solid fa-inbox"></i>
           <span>Bài Đã Nộp Cần Chấm</span>
           <span style={{
-            background: activeTab === 'queue' ? 'rgba(255,255,255,0.25)' : '#fee2e2',
+            background: activeTab === 'queue' ? 'rgba(255,255,255,0.25)' : 'var(--border)',
             color: activeTab === 'queue' ? '#fff' : '#A11D24',
             fontSize: '0.75rem',
             padding: '0.15rem 0.5rem',
@@ -277,8 +276,7 @@ export const TeacherGradingView = () => {
             background: activeTab === 'unsubmitted' ? '#A11D24' : '#f8fafc',
             color: activeTab === 'unsubmitted' ? '#ffffff' : '#475569',
             border: activeTab === 'unsubmitted' ? '1.5px solid #A11D24' : '1px solid #e2e8f0',
-            padding: '0.65rem 1.4rem',
-            borderRadius: '12px',
+            padding: '0.55rem 1.25rem', borderRadius: '8px',
             fontWeight: 700,
             fontSize: '0.92rem',
             cursor: 'pointer',
@@ -304,7 +302,7 @@ export const TeacherGradingView = () => {
         ) : submissions.length === 0 ? (
           <div style={{
             background: '#ffffff',
-            borderRadius: '24px',
+            borderRadius: '16px',
             border: '1.5px dashed #cbd5e1',
             padding: '3.5rem 2rem',
             textAlign: 'center',
@@ -322,7 +320,7 @@ export const TeacherGradingView = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.75rem', alignItems: 'start' }}>
             {/* Left: Queue of Submissions */}
-            <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
               <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Danh Sách Nộp Bài</span>
                 <span style={{ background: '#fef2f2', color: '#A11D24', fontSize: '0.8rem', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
@@ -353,7 +351,7 @@ export const TeacherGradingView = () => {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#A11D24', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
+                          <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#b91c1c', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700 }}>
                             {sub.studentAvatar}
                           </span>
                           <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{sub.studentName}</strong>
@@ -379,7 +377,7 @@ export const TeacherGradingView = () => {
 
             {/* Right: Detailed Student Submission & Grading Form */}
             {selectedSub && (
-              <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', padding: '2rem', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.5rem', boxShadow: 'none' }}>
                 {/* Header of selected submission */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div>
@@ -403,7 +401,7 @@ export const TeacherGradingView = () => {
                           ? '#16a34a'
                           : '#ea580c',
                       padding: '0.4rem 1rem',
-                      borderRadius: '20px',
+                      borderRadius: '14px',
                       fontWeight: 700,
                       fontSize: '0.85rem'
                     }}>
@@ -432,7 +430,7 @@ export const TeacherGradingView = () => {
                   </div>
 
                   {/* Speaking Recording Review */}
-                  <div style={{ border: '1px solid #fee2e2', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ fontWeight: 700, color: '#A11D24', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <i className="fa-solid fa-microphone"></i>
@@ -464,7 +462,7 @@ export const TeacherGradingView = () => {
                   </div>
 
                   {/* Handwriting Photo 7A */}
-                  <div style={{ border: '1px solid #fee2e2', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
                     <div style={{ fontWeight: 700, color: '#A11D24', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <i className="fa-solid fa-pen-nib"></i>
                       Câu 6 (Dạng 7A): Ảnh Chụp Vở Tập Viết Chữ Hán
@@ -490,7 +488,7 @@ export const TeacherGradingView = () => {
                   </div>
 
                   {/* Essay Text 7B */}
-                  <div style={{ border: '1px solid #fee2e2', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                       <div style={{ fontWeight: 700, color: '#A11D24', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <i className="fa-solid fa-keyboard"></i>
@@ -619,7 +617,7 @@ export const TeacherGradingView = () => {
                       disabled={gradingLocked}
                       onClick={handleSaveGrade}
                       style={{
-                        background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                        background: '#b91c1c',
                         color: '#fff',
                         border: 'none',
                         padding: '0.8rem 2rem',
@@ -647,7 +645,7 @@ export const TeacherGradingView = () => {
 
       {/* TAB 2: UNREPORTED & DIRECT GRADING BY CLASSROOM */}
       {activeTab === 'unsubmitted' && (
-        <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #fee2e2', padding: '2rem', boxShadow: '0 4px 25px rgba(0,0,0,0.03)' }}>
+        <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid var(--border)', padding: '2rem', boxShadow: '0 4px 25px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
             <div>
               <h2 style={{ fontSize: '1.25rem', color: '#0f172a', margin: '0 0 0.35rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -766,7 +764,7 @@ export const TeacherGradingView = () => {
                         <tr key={studentId} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#fee2e2', color: '#A11D24', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem' }}>
+                              <span style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--border)', color: '#A11D24', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem' }}>
                                 {student.name?.slice(0, 1) || '学'}
                               </span>
                               <div>
@@ -796,7 +794,7 @@ export const TeacherGradingView = () => {
                                 <i className="fa-regular fa-floppy-disk"></i> Đang lưu nháp
                               </span>
                             ) : (
-                              <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.3rem 0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                              <span style={{ background: 'var(--border)', color: '#b91c1c', padding: '0.3rem 0.75rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                                 <i className="fa-solid fa-circle-xmark"></i> Chưa làm / Chưa nộp
                               </span>
                             )}
@@ -863,7 +861,7 @@ export const TeacherGradingView = () => {
           padding: '1rem',
           backdropFilter: 'blur(4px)'
         }}>
-          <div style={{ background: '#fff', borderRadius: '20px', padding: '2rem', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#b45309', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '1.5rem' }}>🔄</span>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Yêu Cầu Làm Lại Bài Tập</h3>
@@ -946,7 +944,7 @@ export const TeacherGradingView = () => {
           padding: '1rem',
           backdropFilter: 'blur(4px)'
         }}>
-          <div style={{ background: '#fff', borderRadius: '20px', padding: '2rem', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', maxWidth: '480px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#A11D24', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '1.5rem' }}>✍️</span>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Cho Điểm Trực Tiếp Cho Học Viên</h3>
@@ -1033,7 +1031,7 @@ export const TeacherGradingView = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
+                  boxShadow: 'none'
                 }}
               >
                 <i className="fa-solid fa-check"></i>

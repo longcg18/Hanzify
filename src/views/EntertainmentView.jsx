@@ -84,7 +84,7 @@ const GameRewardCard = ({
     <div style={{
       background: 'linear-gradient(145deg, #ffffff 0%, #fefce8 100%)',
       border: '2px solid #fef08a',
-      borderRadius: '20px',
+      borderRadius: '14px',
       padding: '2rem 1.5rem',
       textAlign: 'center',
       boxShadow: '0 12px 35px rgba(202, 138, 4, 0.12)',
@@ -882,7 +882,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
         <div style={{
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: '16px',
+          borderRadius: '12px',
           padding: '1.1rem 1.4rem',
           marginBottom: '1.5rem',
           display: 'flex',
@@ -973,8 +973,8 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
           {/* Runner Navigation Bar */}
           <div style={{
             background: '#fff',
-            border: '1.5px solid #fee2e2',
-            borderRadius: '16px',
+            border: '1.5px solid var(--border)',
+            borderRadius: '12px',
             padding: '0.75rem 1.25rem',
             marginBottom: '1rem',
             boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
@@ -1087,7 +1087,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
           {/* ================= RUNNER: GAME 1 MEMORY MATCH ================= */}
           {activeGame === 'match' && (
-            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
               {/* Game Stats */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                 <div>
@@ -1141,12 +1141,11 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           width: '100%',
                           height: '100%',
                           backfaceVisibility: 'hidden',
-                          background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
-                          borderRadius: '16px',
+                          background: '#1e293b', borderRadius: '12px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          boxShadow: '0 6px 15px rgba(161, 29, 36, 0.25)',
+                          boxShadow: 'none',
                           border: '2px solid #fff'
                         }}>
                           <i
@@ -1164,8 +1163,8 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           backfaceVisibility: 'hidden',
                           transform: 'rotateY(180deg)',
                           background: isMatched ? '#f0fdf4' : '#ffffff',
-                          border: isMatched ? '2px solid #22c55e' : '2px solid #fee2e2',
-                          borderRadius: '16px',
+                          border: isMatched ? '2px solid #22c55e' : '2px solid var(--border)',
+                          borderRadius: '12px',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -1209,7 +1208,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
           {/* ================= RUNNER: GAME 2 TONE BLITZ ================= */}
           {activeGame === 'tone' && (
-            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
               {isToneFinished ? (
                 <GameRewardCard
                   rewardResult={rewardResult}
@@ -1249,7 +1248,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     padding: '2.5rem 1rem',
                     background: toneFeedback === 'correct' ? '#f0fdf4' : toneFeedback === 'wrong' ? '#fef2f2' : '#f8fafc',
                     border: toneFeedback === 'correct' ? '2px solid #22c55e' : toneFeedback === 'wrong' ? '2px solid #ef4444' : '1px solid #e2e8f0',
-                    borderRadius: '20px',
+                    borderRadius: '14px',
                     marginBottom: '2rem',
                     transition: 'all 0.25s ease'
                   }}>
@@ -1275,7 +1274,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                         onClick={() => handleToneAnswer(item.tone)}
                         style={{
                           padding: '1.1rem 0.5rem',
-                          borderRadius: '16px',
+                          borderRadius: '12px',
                           border: '1.5px solid #cbd5e1',
                           background: '#ffffff',
                           cursor: 'pointer',
@@ -1300,7 +1299,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
           {/* ================= RUNNER: GAME 3 SPEED WORD MATCH ================= */}
           {activeGame === 'speed-match' && (
-            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '18px', padding: '1.1rem 1.4rem', boxShadow: '0 8px 25px rgba(0,0,0,0.03)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '1.1rem 1.4rem', boxShadow: '0 8px 25px rgba(0,0,0,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.65rem' }}>
                 <div>
                   <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Điểm số ({currentGameLevel}):</div>
@@ -1494,7 +1493,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
 
           {/* ================= RUNNER: GAME 4 HANZI RIDDLE ================= */}
           {activeGame === 'hanzi-riddle' && (
-            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '24px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '2rem', boxShadow: '0 12px 35px rgba(0,0,0,0.04)' }}>
               {isRiddleFinished ? (
                 <GameRewardCard
                   rewardResult={rewardResult}
@@ -1514,7 +1513,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     </span>
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '6px', fontWeight: 600 }}>Gợi ý chữ Hán:</div>
                     <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 700, lineHeight: 1.5 }}>
                       {currentRiddle?.prompt}
@@ -1546,7 +1545,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                           onClick={() => handleRiddleChoose(opt)}
                           style={{
                             padding: '1.25rem',
-                            borderRadius: '16px',
+                            borderRadius: '12px',
                             background: btnBg,
                             border: btnBorder,
                             color: btnColor,
@@ -1606,8 +1605,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
                 style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '12px',
+                  padding: '0.45rem 0.9rem', borderRadius: '8px',
                   border: selectedCategory === cat.id ? '1.5px solid #A11D24' : '1px solid #e2e8f0',
                   background: selectedCategory === cat.id ? '#A11D24' : '#fff',
                   color: selectedCategory === cat.id ? '#fff' : '#475569',
@@ -1635,7 +1633,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                   padding: '0.3rem 0.8rem',
                   borderRadius: '8px',
                   border: 'none',
-                  background: selectedLevel === lvl ? '#fee2e2' : '#f1f5f9',
+                  background: selectedLevel === lvl ? 'var(--border)' : '#f1f5f9',
                   color: selectedLevel === lvl ? '#A11D24' : '#64748b',
                   fontWeight: selectedLevel === lvl ? 700 : 500,
                   fontSize: '0.8rem',
@@ -1654,10 +1652,9 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                 key={game.id}
                 style={{
                   background: '#fff',
-                  border: '1px solid #fee2e2',
-                  borderRadius: '20px',
-                  padding: '1.5rem',
-                  boxShadow: '0 6px 20px rgba(0,0,0,0.02)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px', padding: '1.25rem',
+                  boxShadow: 'none',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -1723,7 +1720,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                     onClick={() => handleSelectGame(game.id, selectedLevel !== 'all' ? selectedLevel : 'HSK 1')}
                     style={{
                       width: '100%',
-                      background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                      background: '#b91c1c',
                       color: '#fff',
                       border: 'none',
                       padding: '0.65rem 1.25rem',
@@ -1735,7 +1732,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)',
+                      boxShadow: 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
@@ -1750,8 +1747,8 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
           {/* Leaderboard Summary Banner */}
           <div style={{
             background: 'linear-gradient(135deg, #fff5f5 0%, #ffffff 100%)',
-            border: '1.5px solid #fee2e2',
-            borderRadius: '20px',
+            border: '1.5px solid var(--border)',
+            borderRadius: '14px',
             padding: '1.5rem 2rem',
             display: 'flex',
             alignItems: 'center',
@@ -1782,7 +1779,7 @@ export const EntertainmentView = ({ streakData, onRewardXp, onOpenAuth }) => {
               onClick={() => handleSelectGame('tone')}
               style={{
                 background: '#ffffff',
-                border: '1.5px solid #fee2e2',
+                border: '1.5px solid var(--border)',
                 color: '#A11D24',
                 padding: '0.55rem 1.2rem',
                 borderRadius: '10px',

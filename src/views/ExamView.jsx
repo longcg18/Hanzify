@@ -455,7 +455,7 @@ export const ExamView = ({
       </div>}
 
       {user?.role === 'student' && (
-        <section style={{ marginBottom: '1.75rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem' }}>
+        <section style={{ marginBottom: '1.75rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: examHistory.length ? '1rem' : 0 }}>
             <div>
               <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.05rem' }}>
@@ -508,8 +508,8 @@ export const ExamView = ({
               key={exam.id}
               style={{
                 background: '#ffffff',
-                borderRadius: '20px',
-                border: '1px solid #fee2e2',
+                borderRadius: '14px',
+                border: '1px solid var(--border)',
                 padding: '1.75rem',
                 boxShadow: '0 8px 25px rgba(0,0,0,0.03)',
                 display: 'flex',
@@ -691,7 +691,7 @@ export const ExamView = ({
                     padding: '0.85rem',
                     borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                    background: '#b91c1c',
                     color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.95rem',
@@ -734,7 +734,7 @@ export const ExamView = ({
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '24px',
+            borderRadius: '16px',
             width: '100%',
             maxWidth: '920px',
             maxHeight: '90vh',
@@ -1117,7 +1117,7 @@ export const ExamView = ({
                               style={{
                                 padding: '0.4rem 0.75rem',
                                 borderRadius: '8px',
-                                background: '#A11D24',
+                                background: '#b91c1c',
                                 border: 'none',
                                 color: '#ffffff',
                                 fontSize: '0.75rem',
@@ -1133,7 +1133,7 @@ export const ExamView = ({
                               style={{
                                 padding: '0.4rem 0.65rem',
                                 borderRadius: '8px',
-                                background: '#fee2e2',
+                                background: 'var(--border)',
                                 border: 'none',
                                 color: '#dc2626',
                                 fontSize: '0.75rem',
@@ -1225,7 +1225,7 @@ export const ExamView = ({
                                   style={{
                                     padding: '0.45rem 0.65rem',
                                     borderRadius: '8px',
-                                    background: '#fee2e2',
+                                    background: 'var(--border)',
                                     border: 'none',
                                     color: '#dc2626',
                                     fontSize: '0.75rem',
@@ -1314,7 +1314,7 @@ export const ExamView = ({
                       style={{
                         padding: '0.65rem 1.15rem',
                         borderRadius: '10px',
-                        background: '#A11D24',
+                        background: '#b91c1c',
                         border: 'none',
                         color: '#ffffff',
                         fontWeight: 700,
@@ -1357,7 +1357,7 @@ export const ExamView = ({
                             style={{
                               padding: '0.5rem 1rem',
                               borderRadius: '8px',
-                              background: '#A11D24',
+                              background: '#b91c1c',
                               border: 'none',
                               color: '#ffffff',
                               fontWeight: 700,
@@ -1457,7 +1457,7 @@ export const ExamView = ({
                                   style={{
                                     padding: '0.4rem 0.65rem',
                                     borderRadius: '6px',
-                                    background: '#fee2e2',
+                                    background: 'var(--border)',
                                     border: '1px solid #fecaca',
                                     color: '#dc2626',
                                     fontSize: '0.78rem',
@@ -1517,7 +1517,7 @@ export const ExamView = ({
                   style={{
                     padding: '0.65rem 1.75rem',
                     borderRadius: '10px',
-                    background: '#A11D24',
+                    background: '#b91c1c',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
@@ -1525,7 +1525,7 @@ export const ExamView = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: '0 4px 12px rgba(161, 29, 36, 0.3)'
+                    boxShadow: 'none'
                   }}
                 >
                   <i className="fa-solid fa-check"></i>
@@ -1557,7 +1557,7 @@ export const ExamView = ({
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '20px',
+            borderRadius: '14px',
             width: '100%',
             maxWidth: '560px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
@@ -1766,7 +1766,7 @@ export const ExamView = ({
                   style={{
                     padding: '0.6rem 1.35rem',
                     borderRadius: '8px',
-                    background: '#A11D24',
+                    background: '#b91c1c',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,

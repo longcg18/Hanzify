@@ -312,7 +312,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             onClick={() => setShowSqlModal(true)}
             style={{
               background: '#f8fafc',
-              border: '1px solid #fee2e2',
+              border: '1px solid var(--border)',
               color: '#A11D24',
               padding: '0.25rem 0.75rem',
               borderRadius: '999px',
@@ -359,18 +359,15 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           marginTop: '1.5rem',
           background: '#f8fafc',
           padding: '0.4rem',
-          borderRadius: '16px',
-          border: '1px solid #fee2e2',
-          width: 'fit-content',
+          borderRadius: '10px', border: '1px solid var(--border)', width: 'fit-content',
           flexWrap: 'wrap'
         }}>
           <button
             type="button"
             onClick={() => setAdminSection('users')}
             style={{
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              border: 'none',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '8px', border: 'none',
               background: adminSection === 'users' ? '#A11D24' : 'transparent',
               color: adminSection === 'users' ? '#ffffff' : '#64748b',
               fontWeight: 700,
@@ -391,9 +388,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             type="button"
             onClick={() => setAdminSection('classrooms')}
             style={{
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              border: 'none',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '8px', border: 'none',
               background: adminSection === 'classrooms' ? '#A11D24' : 'transparent',
               color: adminSection === 'classrooms' ? '#ffffff' : '#64748b',
               fontWeight: 700,
@@ -414,9 +410,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             type="button"
             onClick={() => setAdminSection('entertainment')}
             style={{
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              border: 'none',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '8px', border: 'none',
               background: adminSection === 'entertainment' ? '#A11D24' : 'transparent',
               color: adminSection === 'entertainment' ? '#ffffff' : '#64748b',
               fontWeight: 700,
@@ -448,7 +443,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             <button
               onClick={() => setShowAddModal(true)}
               style={{
-                background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                background: '#b91c1c',
                 color: '#fff',
                 border: 'none',
                 padding: '0.7rem 1.35rem',
@@ -468,7 +463,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           </div>
 
           {/* Password reset requests */}
-          <div style={{ background: '#fff', border: '1px solid #fed7aa', borderRadius: '18px', padding: '1.15rem', marginBottom: '1.25rem', boxShadow: '0 6px 24px rgba(154, 52, 18, 0.05)' }}>
+          <div style={{ background: '#fff', border: '1px solid #fed7aa', borderRadius: '12px', padding: '1.15rem', marginBottom: '1.25rem', boxShadow: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
               <div>
                 <div style={{ color: '#9a3412', fontWeight: 800 }}>
@@ -528,7 +523,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           </div>
 
           {/* Users Table */}
-          <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', overflowX: 'auto', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '12px', overflowX: 'auto', boxShadow: 'none' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -697,21 +692,21 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             gap: '1rem',
             marginBottom: '1.75rem'
           }}>
-            <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(161, 29, 36, 0.04)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(161, 29, 36, 0.04)' }}>
               <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Tổng số lớp học</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#A11D24', marginTop: '0.25rem' }}>
                 {classrooms.length} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>lớp</span>
               </div>
             </div>
 
-            <div style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Tổng học sinh trong các lớp</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', marginTop: '0.25rem' }}>
                 {classrooms.reduce((sum, c) => sum + (c.students?.length || 0), 0)} <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>bạn</span>
               </div>
             </div>
 
-            <div style={{ background: '#fff', border: '1.5px solid #bbf7d0', borderRadius: '18px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(22, 101, 52, 0.04)' }}>
+            <div style={{ background: '#fff', border: '1.5px solid #bbf7d0', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 15px rgba(22, 101, 52, 0.04)' }}>
               <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>Đã kích hoạt tài khoản</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#15803d', marginTop: '0.25rem' }}>
                 {classrooms.reduce((sum, c) => sum + (c.students?.filter((s) => s.isActivated)?.length || 0), 0)} <span style={{ fontSize: '0.9rem', color: '#86efac', fontWeight: 500 }}>bạn</span>
@@ -745,7 +740,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             <div style={{
               background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
               border: '2px solid #fdba74',
-              borderRadius: '20px',
+              borderRadius: '14px',
               padding: '1.25rem 1.5rem',
               marginBottom: '1.5rem',
               boxShadow: '0 8px 24px rgba(194, 65, 12, 0.12)'
@@ -840,8 +835,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           {/* Filter Bar */}
           <div style={{
             background: '#ffffff',
-            border: '1px solid #fee2e2',
-            borderRadius: '18px',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
             padding: '1.1rem 1.35rem',
             marginBottom: '1.5rem',
             display: 'flex',
@@ -915,8 +910,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                     key={cls.id}
                     style={{
                       background: '#ffffff',
-                      border: '1.5px solid #fee2e2',
-                      borderRadius: '20px',
+                      border: '1.5px solid var(--border)',
+                      borderRadius: '14px',
                       overflow: 'hidden',
                       boxShadow: '0 8px 30px rgba(161, 29, 36, 0.03)'
                     }}
@@ -925,7 +920,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                     <div style={{
                       padding: '1.1rem 1.5rem',
                       background: 'linear-gradient(135deg, #fffbfb 0%, #fef2f2 100%)',
-                      borderBottom: '1px solid #fee2e2',
+                      borderBottom: '1px solid var(--border)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -1047,7 +1042,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             gap: '1rem',
             marginBottom: '1.75rem'
           }}>
-            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid #fee2e2', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
                 🃏 Cặp Thẻ Ghép Đôi
               </div>
@@ -1057,7 +1052,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
               <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '4px' }}>✓ Đang hoạt động trên app</div>
             </div>
 
-            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid #fee2e2', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
                 ⚡ Câu Đố Thanh Điệu
               </div>
@@ -1067,7 +1062,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
               <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '4px' }}>✓ Tích hợp Web Speech Audio</div>
             </div>
 
-            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid #fee2e2', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
                 👥 Lượt Học Viên Chơi
               </div>
@@ -1077,7 +1072,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Tăng 28% so với tuần trước</div>
             </div>
 
-            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid #fee2e2', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
                 🏆 Kỷ Lục Điểm Cao Nhất
               </div>
@@ -1092,7 +1087,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           <div style={{
             display: 'flex',
             gap: '0.5rem',
-            borderBottom: '2px solid #fee2e2',
+            borderBottom: '2px solid var(--border)',
             marginBottom: '1.5rem',
             paddingBottom: '0.5rem'
           }}>
@@ -1161,7 +1156,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           {gameSubTab === 'match' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1.5rem', alignItems: 'flex-start' }}>
               {/* Word Pairs List */}
-              <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.5rem', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>
                     Kho Cặp Thẻ Từ Vựng ({matchPairs.length} cặp)
@@ -1191,7 +1186,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                         {/* Hanzi Card Preview */}
                         <div style={{
                           background: '#fff',
-                          border: '1.5px solid #fee2e2',
+                          border: '1.5px solid var(--border)',
                           borderRadius: '8px',
                           padding: '4px 12px',
                           fontSize: '1.2rem',
@@ -1236,7 +1231,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                           onClick={() => handleDeleteMatchPair(pair.id)}
                           title="Xóa cặp thẻ này"
                           style={{
-                            background: '#fee2e2',
+                            background: 'var(--border)',
                             border: 'none',
                             width: '32px',
                             height: '32px',
@@ -1254,7 +1249,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
               </div>
 
               {/* Add New Pair Card */}
-              <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+              <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '1.5rem', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>➕</span>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>Thêm Cặp Thẻ Mới</h3>
@@ -1355,9 +1350,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                     style={{
                       marginTop: '0.5rem',
                       padding: '0.75rem',
-                      borderRadius: '12px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                      borderRadius: '8px', border: 'none',
+                      background: '#b91c1c',
                       color: '#fff',
                       fontWeight: 700,
                       fontSize: '0.9rem',
@@ -1366,7 +1360,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.4rem',
-                      boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
+                      boxShadow: 'none'
                     }}
                   >
                     <i className="fa-solid fa-plus"></i>
@@ -1381,7 +1375,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
           {gameSubTab === 'tone' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1.5rem', alignItems: 'flex-start' }}>
               {/* Tone Question List */}
-              <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.5rem', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>
                     Kho Câu Đố Thanh Điệu ({toneItems.length} chữ)
@@ -1411,7 +1405,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                         {/* Hanzi */}
                         <div style={{
                           background: '#fff',
-                          border: '1.5px solid #fee2e2',
+                          border: '1.5px solid var(--border)',
                           borderRadius: '8px',
                           width: '40px',
                           height: '40px',
@@ -1470,7 +1464,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                           onClick={() => handleDeleteToneItem(item.id)}
                           title="Xóa câu hỏi này"
                           style={{
-                            background: '#fee2e2',
+                            background: 'var(--border)',
                             border: 'none',
                             width: '32px',
                             height: '32px',
@@ -1488,7 +1482,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
               </div>
 
               {/* Add New Tone Item Card */}
-              <div style={{ background: '#fff', border: '1.5px solid #fee2e2', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
+              <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '1.5rem', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '1.2rem' }}>⚡</span>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>Thêm Câu Đố Thanh Điệu</h3>
@@ -1592,8 +1586,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                     style={{
                       marginTop: '0.5rem',
                       padding: '0.75rem',
-                      borderRadius: '12px',
-                      border: 'none',
+                      borderRadius: '8px', border: 'none',
                       background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                       color: '#fff',
                       fontWeight: 700,
@@ -1616,8 +1609,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
 
           {/* ================= GAME SUB-TAB 3: LEADERBOARD ================= */}
           {gameSubTab === 'leaderboard' && (
-            <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #fee2e2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '14px', overflow: 'hidden', boxShadow: 'none' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Bảng Xếp Hạng Mini-Games Tuần Này</h3>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>Vinh danh học viên đạt điểm cao và chuỗi trả lời liên tiếp</div>
@@ -1782,9 +1775,8 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
                 style={{
                   marginTop: '0.75rem',
                   padding: '0.85rem',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                  borderRadius: '8px', border: 'none',
+                  background: '#b91c1c',
                   color: '#fff',
                   fontWeight: 700,
                   fontSize: '0.95rem',
@@ -1816,7 +1808,7 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '24px',
+            borderRadius: '16px',
             width: '100%',
             maxWidth: '780px',
             maxHeight: '90vh',
@@ -1824,12 +1816,12 @@ export const AdminUsersView = ({ classrooms = [], areClassroomsLoading = false, 
             flexDirection: 'column',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
             overflow: 'hidden',
-            border: '1.5px solid #fee2e2'
+            border: '1.5px solid var(--border)'
           }}>
             {/* Header */}
             <div style={{
               padding: '1.25rem 1.75rem',
-              borderBottom: '1px solid #fee2e2',
+              borderBottom: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1993,7 +1985,7 @@ CREATE POLICY "Public Leaderboard" ON public.game_leaderboard FOR ALL USING (tru
             {/* Footer Buttons */}
             <div style={{
               padding: '1rem 1.75rem',
-              borderTop: '1px solid #fee2e2',
+              borderTop: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -2019,7 +2011,7 @@ CREATE POLICY "Public Leaderboard" ON public.game_leaderboard FOR ALL USING (tru
                       });
                   }}
                   style={{
-                    background: copiedSql ? '#16a34a' : 'linear-gradient(135deg, #A11D24 0%, #7f1d1d 100%)',
+                    background: copiedSql ? '#16a34a' : '#b91c1c',
                     color: '#fff',
                     border: 'none',
                     padding: '0.65rem 1.3rem',
@@ -2030,7 +2022,7 @@ CREATE POLICY "Public Leaderboard" ON public.game_leaderboard FOR ALL USING (tru
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: '0 4px 12px rgba(161, 29, 36, 0.25)'
+                    boxShadow: 'none'
                   }}
                 >
                   <i className={copiedSql ? 'fa-solid fa-check' : 'fa-solid fa-copy'}></i>

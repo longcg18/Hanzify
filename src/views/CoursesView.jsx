@@ -365,7 +365,7 @@ export const CoursesView = ({
           }}
         >
           <span style={{
-            background: categoryFilter === 'hsk3' ? 'rgba(255,255,255,0.25)' : '#fee2e2',
+            background: categoryFilter === 'hsk3' ? 'rgba(255,255,255,0.25)' : 'var(--border)',
             color: categoryFilter === 'hsk3' ? '#ffffff' : '#b91c1c',
             fontSize: '10px',
             padding: '2px 6px',
@@ -597,7 +597,7 @@ export const CoursesView = ({
         }}>
           <div style={{
             background: '#ffffff',
-            borderRadius: '20px',
+            borderRadius: '14px',
             width: '100%',
             maxWidth: '580px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
@@ -879,7 +879,7 @@ export const CoursesView = ({
                   style={{
                     padding: '0.65rem 1.5rem',
                     borderRadius: '10px',
-                    background: '#A11D24',
+                    background: '#b91c1c',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
@@ -887,7 +887,7 @@ export const CoursesView = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: '0 4px 12px rgba(161, 29, 36, 0.3)'
+                    boxShadow: 'none'
                   }}
                 >
                   <i className="fa-solid fa-check"></i>

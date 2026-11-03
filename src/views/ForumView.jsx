@@ -422,7 +422,7 @@ export const ForumView = () => {
             key={index}
             style={{
               color: isStaff ? '#991b1b' : '#0369a1',
-              background: isStaff ? '#fee2e2' : '#e0f2fe',
+              background: isStaff ? 'var(--border)' : '#e0f2fe',
               padding: '1px 7px',
               borderRadius: '6px',
               fontWeight: 700,
@@ -469,7 +469,7 @@ export const ForumView = () => {
       {/* Header Banner */}
       <section style={{
         background: 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #450a0a 100%)',
-        borderRadius: '24px',
+        borderRadius: '16px',
         padding: '2rem 2.25rem',
         color: '#ffffff',
         position: 'relative',
@@ -546,8 +546,8 @@ export const ForumView = () => {
         {/* Left Sidebar: Categories */}
         <aside style={{
           background: '#ffffff',
-          borderRadius: '20px',
-          border: '1px solid #fee2e2',
+          borderRadius: '14px',
+          border: '1px solid var(--border)',
           padding: '1.25rem',
           boxShadow: '0 4px 14px rgba(0, 0, 0, 0.03)',
           position: 'sticky',
@@ -587,7 +587,7 @@ export const ForumView = () => {
                   </div>
                   <span style={{
                     fontSize: '0.75rem',
-                    background: isActive ? '#fee2e2' : '#f1f5f9',
+                    background: isActive ? 'var(--border)' : '#f1f5f9',
                     color: isActive ? '#A11D24' : '#64748b',
                     padding: '2px 8px',
                     borderRadius: '999px',
@@ -623,7 +623,7 @@ export const ForumView = () => {
           <div style={{
             background: '#ffffff',
             borderRadius: '16px',
-            border: '1px solid #fee2e2',
+            border: '1px solid var(--border)',
             padding: '0.65rem 1rem',
             display: 'flex',
             alignItems: 'center',
@@ -665,10 +665,10 @@ export const ForumView = () => {
           ) : filteredPosts.length === 0 ? (
             <div style={{
               background: '#ffffff',
-              borderRadius: '20px',
+              borderRadius: '14px',
               padding: '3rem 2rem',
               textAlign: 'center',
-              border: '1px solid #fee2e2'
+              border: '1px solid var(--border)'
             }}>
               <i className="fa-solid fa-comments" style={{ fontSize: '3rem', color: '#fca5a5', marginBottom: '1rem' }}></i>
               <h3 style={{ margin: '0 0 0.5rem', color: '#1e293b' }}>Chưa có bài thảo luận nào trong mục này</h3>
@@ -681,7 +681,7 @@ export const ForumView = () => {
                 style={{
                   padding: '0.65rem 1.25rem',
                   borderRadius: '10px',
-                  background: '#A11D24',
+                  background: '#b91c1c',
                   color: '#ffffff',
                   border: 'none',
                   fontWeight: 700,
@@ -702,8 +702,8 @@ export const ForumView = () => {
                     key={post.id}
                     style={{
                       background: '#ffffff',
-                      borderRadius: '18px',
-                      border: post.status === 'pinned' ? '2px solid #f59e0b' : '1px solid #fee2e2',
+                      borderRadius: '12px',
+                      border: post.status === 'pinned' ? '2px solid #f59e0b' : '1px solid var(--border)',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
                       overflow: 'hidden',
                       transition: 'all 0.2s'
@@ -721,7 +721,7 @@ export const ForumView = () => {
                             background: post.author.role === 'admin' 
                               ? '#0f172a' 
                               : post.author.role === 'teacher' 
-                              ? 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)' 
+                              ? '#b91c1c' 
                               : '#e0f2fe',
                             color: post.author.role === 'student' ? '#0369a1' : '#ffffff',
                             display: 'flex',
@@ -740,7 +740,7 @@ export const ForumView = () => {
                               </span>
                               {post.author.role === 'teacher' && (
                                 <span style={{
-                                  background: '#fee2e2',
+                                  background: 'var(--border)',
                                   color: '#991b1b',
                                   padding: '1px 7px',
                                   borderRadius: '6px',
@@ -951,7 +951,7 @@ export const ForumView = () => {
                           type="button"
                           onClick={(e) => handleToggleLike(post.id, e)}
                           style={{
-                            background: post.isLiked ? '#fee2e2' : 'transparent',
+                            background: post.isLiked ? 'var(--border)' : 'transparent',
                             border: post.isLiked ? '1px solid #fca5a5' : '1px solid transparent',
                             color: post.isLiked ? '#dc2626' : '#64748b',
                             padding: '0.35rem 0.75rem',
@@ -1225,7 +1225,7 @@ export const ForumView = () => {
                                 title="Tag @nhắc tên người dùng"
                                 onClick={() => handleTriggerMention(post.id, post)}
                                 style={{
-                                  background: '#fee2e2',
+                                  background: 'var(--border)',
                                   border: 'none',
                                   color: '#991b1b',
                                   fontWeight: 800,
@@ -1249,7 +1249,7 @@ export const ForumView = () => {
                               style={{
                                 padding: '0.65rem 1.25rem',
                                 borderRadius: '12px',
-                                background: '#A11D24',
+                                background: '#b91c1c',
                                 color: '#ffffff',
                                 border: 'none',
                                 fontWeight: 700,
@@ -1259,7 +1259,7 @@ export const ForumView = () => {
                                 alignItems: 'center',
                                 gap: '0.4rem',
                                 whiteSpace: 'nowrap',
-                                boxShadow: '0 2px 8px rgba(161, 29, 36, 0.2)'
+                                boxShadow: 'none'
                               }}
                             >
                               <i className="fa-solid fa-paper-plane"></i>
@@ -1301,7 +1301,7 @@ export const ForumView = () => {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: '#ffffff',
-              borderRadius: '24px',
+              borderRadius: '16px',
               maxWidth: '580px',
               width: '100%',
               padding: '1.75rem',
@@ -1443,7 +1443,7 @@ export const ForumView = () => {
                   style={{
                     padding: '0.65rem 1.5rem',
                     borderRadius: '10px',
-                    background: '#A11D24',
+                    background: '#b91c1c',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
@@ -1451,7 +1451,7 @@ export const ForumView = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    boxShadow: '0 4px 12px rgba(161, 29, 36, 0.3)'
+                    boxShadow: 'none'
                   }}
                 >
                   <i className="fa-solid fa-paper-plane"></i>
