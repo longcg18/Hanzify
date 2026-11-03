@@ -118,3 +118,4 @@ import path from 'path';
 }
 
 console.log('All views successfully polished!');
+

@@ -33,7 +33,10 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
   };
 
   const roleLabel = user?.role === 'admin' ? 'Quản trị viên' : user?.role === 'teacher' ? 'Giáo viên' : 'Học viên';
-  const userInitials = user?.avatar || (user?.name ? user.name.charAt(0).toUpperCase() : '?');
+  const cleanUserName = user
+    ? (user.role === 'teacher' ? 'Cô Hoài' : (user.name || user.full_name || user.username || '').replace(/\([^)]*\)/g, '').trim())
+    : '';
+  const userInitials = user?.avatar || (user?.role === 'teacher' ? '怀' : user?.name ? user.name.charAt(0).toUpperCase() : '?');
 
   return (
     <>
@@ -190,10 +193,11 @@ export const Navbar = ({ currentView, onNavigate, activeCourse, onBack, onRoleSw
                   setProfileDropdownTab('profile');
                   setIsProfileDropdownOpen((prev) => !prev);
                 }}
+                title="Bấm để mở cài đặt tài khoản"
               >
                 <div className="sidebar-avatar">{userInitials}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="sidebar-user-name" title={user.name}>{user.name}</div>
+                  <div className="sidebar-user-name" title={user.name}>{cleanUserName}</div>
                   <div className="sidebar-user-role">{roleLabel}</div>
                 </div>
                 <button

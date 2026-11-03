@@ -195,18 +195,14 @@ export const HomeView = ({
   // Latest forum posts for Home preview
   const previewForumPosts = (forumPosts || []).slice(0, 2);
 
-  // Clean user display name for greeting (e.g. "Cô Hoài (Giáo Viên 01)" -> "Cô Hoài")
+  // Clean user display name for greeting
   const getCleanGreetingName = () => {
     if (!user) return '';
-    let raw = (user.name || user.displayName || '').replace(/\([^)]*\)/g, '').replace(/[()[\]{}.,]/g, '').trim();
-    if (!raw) return user.role === 'teacher' ? 'Cô Hoài' : 'bạn';
-    if (/^(cô|thầy)\s+/i.test(raw)) return raw;
-    if (user.role === 'teacher') {
-      if (/^(giáo viên|gv|\d+)/i.test(raw)) return 'Cô Hoài';
-      return `Cô ${raw.split(/\s+/).pop()}`;
-    }
+    if (user.role === 'teacher') return 'Cô Hoài';
+    if (user.role === 'admin') return 'Quản Trị Viên';
+    let raw = (user.name || user.full_name || user.displayName || user.username || '').replace(/\([^)]*\)/g, '').replace(/[()[\]{}.,]/g, '').trim();
     raw = raw.replace(/^học sinh\s+/i, '').trim();
-    return raw || 'bạn';
+    return raw || user.username || 'bạn';
   };
 
   if (isCoreDataLoading || isHomeDataLoading || isLeaderboardLoading || isStreakLoading) {

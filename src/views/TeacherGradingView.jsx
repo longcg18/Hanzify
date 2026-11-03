@@ -6,7 +6,8 @@ import {
   requestRedoSubmission,
   directGradeUnsubmittedLesson,
   fetchClassrooms,
-  fetchCoursesWithLessons
+  fetchCoursesWithLessons,
+  fetchLessonQuestions
 } from '../services/supabaseService';
 import { QUESTION_SCORE_LIMITS, calculateTotalScore, isSubmissionGradingLocked, normalizeQuestionScores } from '../utils/gradingUtils';
 
@@ -17,6 +18,8 @@ export const TeacherGradingView = () => {
     (submission) => submission.status === 'pending' && submission.submissionState !== 'redo_requested'
   ).length;
   const [selectedSub, setSelectedSub] = useState(null);
+  const [activeLessonQuestions, setActiveLessonQuestions] = useState([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [scoreInput, setScoreInput] = useState(9.0);
   const [questionScores, setQuestionScores] = useState({});
   const [commentInput, setCommentInput] = useState('');
@@ -81,6 +84,25 @@ export const TeacherGradingView = () => {
     setScoreInput(calculateTotalScore(normalized));
     setCommentInput(selectedSub.teacherComment || '');
   }, [selectedSub?.id]);
+
+  // Dynamically load real questions for the selected submission's lesson
+  useEffect(() => {
+    const lessonId = selectedSub?.lesson_id || selectedSub?.lessonId;
+    if (!lessonId) {
+      setActiveLessonQuestions([]);
+      return;
+    }
+    setIsLoadingQuestions(true);
+    fetchLessonQuestions(lessonId)
+      .then((questions) => {
+        setActiveLessonQuestions(questions || []);
+      })
+      .catch((err) => {
+        console.error('Error fetching lesson questions for grading:', err);
+        setActiveLessonQuestions([]);
+      })
+      .finally(() => setIsLoadingQuestions(false));
+  }, [selectedSub?.id, selectedSub?.lesson_id, selectedSub?.lessonId]);
 
   // Play synthetic reading sample for teacher review
   const handleReviewAudio = (text) => {
@@ -414,94 +436,182 @@ export const TeacherGradingView = () => {
                   </div>
                 </div>
 
-                {/* Answers Review Sections */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-                  {/* Auto-graded summary */}
-                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <i className="fa-solid fa-check-double"></i>
-                      Phần trắc nghiệm &amp; Ngữ pháp (Máy tự chấm):
+                {/* Answers Review Sections (100% Dynamic from Database) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+                  {isLoadingQuestions && (
+                    <div style={{ padding: '1.5rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '12px' }}>
+                      <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '0.5rem', color: '#b91c1c' }}></i>
+                      Đang nạp đề bài thực tế từ cơ sở dữ liệu…
                     </div>
-                    <div style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6 }}>
-                      <div>• <strong>Câu 1 (Nghe hiểu):</strong> Học viên chọn đáp án <strong>{selectedSub.answers.q1Answer || 'Chưa làm'}</strong></div>
-                      <div>• <strong>Câu 2 (Thanh điệu):</strong> Chọn <strong>{selectedSub.answers.q2Answer || 'Chưa làm'}</strong></div>
-                      <div>• <strong>Câu 3 (Sắp xếp câu):</strong> "{selectedSub.answers.q3Sentence || 'Chưa sắp xếp'}"</div>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Speaking Recording Review */}
-                  <div style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <div style={{ fontWeight: 700, color: '#A11D24', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <i className="fa-solid fa-microphone"></i>
-                        Câu 5: Bài Thu Âm Khẩu Ngữ Của Học Viên
-                      </div>
-                      {selectedSub.answers?.q5AudioUrl ? (
-                        <span style={{ fontSize: '0.8rem', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <i className="fa-solid fa-cloud"></i> File thu âm từ Cloud Storage
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.8rem', background: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.65rem', borderRadius: '8px', fontWeight: 600 }}>
-                          Học viên chưa ghi âm
-                        </span>
-                      )}
-                    </div>
+                  {/* 1. Dynamic Questions Rendered from DB */}
+                  {!isLoadingQuestions && activeLessonQuestions.length > 0 ? (
+                    activeLessonQuestions.map((q, idx) => {
+                      const studentAnswer = selectedSub.answers?.answersByQuestion?.[q.id] 
+                        ?? (idx === 0 ? selectedSub.answers?.q1Answer : idx === 1 ? selectedSub.answers?.q2Answer : idx === 2 ? selectedSub.answers?.q3Sentence : null);
 
-                    {selectedSub.answers?.q5AudioUrl && (
-                      <div style={{ margin: '0.75rem 0 0.5rem 0', background: '#fef2f2', padding: '0.75rem', borderRadius: '10px' }}>
-                        <div style={{ fontSize: '0.82rem', color: '#991b1b', marginBottom: '0.35rem', fontWeight: 600 }}>
-                          ▶ Bấm nghe giọng đọc thực tế của học viên:
+                      if (q.type === 'voice') {
+                        const audioUrl = (typeof studentAnswer === 'object' ? studentAnswer?.audioUrl : null) || selectedSub.answers?.q5AudioUrl;
+                        const audioPrompt = q.data?.audioText || q.prompt || selectedSub.answers?.q5AudioText || 'Đọc to câu bài tập';
+
+                        return (
+                          <div key={q.id || idx} style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '1.25rem', background: '#fff' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <div style={{ fontWeight: 700, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <i className="fa-solid fa-microphone"></i>
+                                Câu {idx + 1}: Luyện Nói &amp; Khẩu Ngữ
+                              </div>
+                              {audioUrl ? (
+                                <span style={{ fontSize: '0.8rem', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  <i className="fa-solid fa-cloud"></i> File thu âm từ Cloud Storage
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.8rem', background: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.65rem', borderRadius: '8px', fontWeight: 600 }}>
+                                  Học viên chưa ghi âm
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ fontSize: '0.92rem', color: '#334155', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: audioUrl ? '0.75rem' : 0 }}>
+                              <strong>Câu mẫu yêu cầu đọc:</strong> "{audioPrompt}"
+                            </div>
+
+                            {audioUrl && (
+                              <div style={{ background: '#fef2f2', padding: '0.75rem', borderRadius: '10px' }}>
+                                <div style={{ fontSize: '0.82rem', color: '#991b1b', marginBottom: '0.35rem', fontWeight: 600 }}>
+                                  ▶ Bấm nghe giọng đọc thực tế của học viên:
+                                </div>
+                                <audio controls src={audioUrl} style={{ width: '100%', height: '36px' }} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (q.type === 'writing') {
+                        const imgUrl = (typeof studentAnswer === 'object' ? studentAnswer?.imageUrl : null) 
+                          || selectedSub.answers?.q6HandwritingUrl 
+                          || selectedSub.answers?.q6HandwritingImage;
+                        const charsPrompt = q.data?.hanziToPractice || q.prompt || 'Chữ Hán theo bài học';
+
+                        return (
+                          <div key={q.id || idx} style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '1.25rem', background: '#fff' }}>
+                            <div style={{ fontWeight: 700, color: '#b91c1c', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <i className="fa-solid fa-pen-nib"></i>
+                              Câu {idx + 1}: Ảnh Chụp Vở Tập Viết Chữ Hán
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                              {imgUrl ? (
+                                <img
+                                  src={imgUrl}
+                                  alt="Bài viết của học viên"
+                                  style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                                  onClick={() => window.open(imgUrl, '_blank')}
+                                />
+                              ) : (
+                                <div style={{ width: '180px', height: '100px', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
+                                  Chưa đính kèm ảnh
+                                </div>
+                              )}
+                              <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                <div>• Chữ Hán cần luyện viết: <strong>{charsPrompt}</strong></div>
+                                {imgUrl && <div style={{ marginTop: '0.35rem', color: '#b91c1c' }}>* Bấm vào ảnh để phóng to xem chi tiết nét bút thuận.</div>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (q.type === 'essay') {
+                        const essayText = (typeof studentAnswer === 'object' ? studentAnswer?.text : studentAnswer) 
+                          || selectedSub.answers?.q7EssayText 
+                          || selectedSub.answers?.q7Essay;
+                        const topic = q.data?.topic || q.prompt || 'Chủ đề luyện viết tự do';
+
+                        return (
+                          <div key={q.id || idx} style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '1.25rem', background: '#fff' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <div style={{ fontWeight: 700, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <i className="fa-solid fa-keyboard"></i>
+                                Câu {idx + 1}: Đoạn Văn Tự Luận
+                              </div>
+                              <span style={{ fontSize: '0.8rem', background: '#f1f5f9', padding: '0.2rem 0.6rem', borderRadius: '6px', color: '#475569' }}>
+                                Đã viết: <strong>{essayText ? essayText.length : 0} chữ</strong>
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                              Đề bài: <strong>{topic}</strong>
+                            </div>
+                            <div style={{ fontSize: '0.95rem', color: '#1e293b', background: '#f8fafc', padding: '1rem', borderRadius: '10px', lineHeight: 1.7, border: '1px solid #e2e8f0' }}>
+                              {essayText || 'Học viên chưa nhập bài văn.'}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Objective questions: listening, pinyin, word_order, reading
+                      const expectedAns = q.data?.correctAnswer 
+                        || (q.data?.options && q.data.correctIndex !== undefined ? q.data.options[q.data.correctIndex] : null)
+                        || q.data?.correctSentence;
+
+                      return (
+                        <div key={q.id || idx} style={{ background: '#f8fafc', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                            <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
+                              Câu {idx + 1} ({q.tag || q.type}): {q.title || q.prompt}
+                            </span>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: '#ecfdf5',
+                              color: '#047857'
+                            }}>
+                              Trắc nghiệm máy chấm
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+                            <div>• Học viên chọn: <strong>{typeof studentAnswer === 'object' ? JSON.stringify(studentAnswer) : (studentAnswer || 'Chưa làm')}</strong></div>
+                            {expectedAns && <div style={{ color: '#059669' }}>• Đáp án chuẩn hệ thống: <strong>{expectedAns}</strong></div>}
+                          </div>
                         </div>
-                        <audio controls src={selectedSub.answers.q5AudioUrl} style={{ width: '100%', height: '36px' }} />
+                      );
+                    })
+                  ) : !isLoadingQuestions ? (
+                    /* Fallback when no questions in DB: render submission answers safely without mock strings */
+                    <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: '0.5rem' }}>
+                        Bài làm của học viên:
                       </div>
-                    )}
-
-                    <div style={{ fontSize: '0.92rem', color: '#334155', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px' }}>
-                      "{selectedSub.answers?.q5AudioText || '老板，这件红色的衣服太贵了，便宜一点儿吧！'}"
-                    </div>
-                  </div>
-
-                  {/* Handwriting Photo 7A */}
-                  <div style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
-                    <div style={{ fontWeight: 700, color: '#A11D24', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <i className="fa-solid fa-pen-nib"></i>
-                      Câu 6 (Dạng 7A): Ảnh Chụp Vở Tập Viết Chữ Hán
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {(selectedSub.answers?.q6HandwritingUrl || selectedSub.answers?.q6HandwritingImage) ? (
-                        <img
-                          src={selectedSub.answers.q6HandwritingUrl || selectedSub.answers.q6HandwritingImage}
-                          alt="Bài viết của học viên"
-                          style={{ width: '180px', height: '120px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                          onClick={() => window.open(selectedSub.answers.q6HandwritingUrl || selectedSub.answers.q6HandwritingImage, '_blank')}
-                        />
-                      ) : (
-                        <div style={{ width: '180px', height: '100px', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
-                          Chưa đính kèm ảnh
-                        </div>
-                      )}
-                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                        <div>• Học viên luyện viết 4 chữ Hán: <strong>买, 卖, 贵, 钱</strong> vào ô điền tự cách.</div>
-                        <div style={{ marginTop: '0.35rem', color: '#A11D24' }}>* Bấm vào ảnh để phóng to xem chi tiết nét bút thuận.</div>
+                      <div style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6 }}>
+                        {selectedSub.answers?.q1Answer && <div>• Câu 1: {selectedSub.answers.q1Answer}</div>}
+                        {selectedSub.answers?.q2Answer && <div>• Câu 2: {selectedSub.answers.q2Answer}</div>}
+                        {selectedSub.answers?.q3Sentence && <div>• Câu 3: "{selectedSub.answers.q3Sentence}"</div>}
+                        {selectedSub.answers?.q5AudioUrl && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <div>• Ghi âm khẩu ngữ:</div>
+                            <audio controls src={selectedSub.answers.q5AudioUrl} style={{ width: '100%', height: '36px', marginTop: '4px' }} />
+                          </div>
+                        )}
+                        {selectedSub.answers?.q6HandwritingUrl && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <div>• Vở tập viết:</div>
+                            <img src={selectedSub.answers.q6HandwritingUrl} alt="Bài viết" style={{ width: '150px', height: '100px', objectFit: 'cover', borderRadius: '8px', marginTop: '4px' }} />
+                          </div>
+                        )}
+                        {selectedSub.answers?.q7EssayText && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <div>• Đoạn văn tự luận:</div>
+                            <div style={{ background: '#fff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '4px' }}>
+                              {selectedSub.answers.q7EssayText}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Essay Text 7B */}
-                  <div style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', background: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <div style={{ fontWeight: 700, color: '#A11D24', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <i className="fa-solid fa-keyboard"></i>
-                        Câu 7 (Dạng 7B): Đoạn Văn Học Viên Nhập Trực Tiếp
-                      </div>
-                      <span style={{ fontSize: '0.8rem', background: '#f1f5f9', padding: '0.2rem 0.6rem', borderRadius: '6px', color: '#475569' }}>
-                        Đã viết: <strong>{selectedSub.answers.q7CharCount || 0} chữ</strong> (Yêu cầu: ≥ 50)
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.95rem', color: '#1e293b', background: '#f8fafc', padding: '1rem', borderRadius: '10px', lineHeight: 1.7, border: '1px solid #e2e8f0' }}>
-                      {selectedSub.answers.q7EssayText || selectedSub.answers.q7Essay || 'Học viên chưa nhập bài văn.'}
-                    </div>
-                  </div>
+                  ) : null}
                 </div>
 
                 {/* Teacher Scoring & Feedback Action Box */}

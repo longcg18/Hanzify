@@ -3,6 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import { isCourseAssignedToStudent } from '../utils/classEnrollment';
 import { fetchStudentSubmissions } from '../services/supabaseService';
 
+const getLevelBadgeTheme = (level = '') => {
+  const l = String(level).toLowerCase();
+  if (l.includes('1')) return { bg: '#eff6ff', color: '#1d4ed8', border: '#dbeafe' };
+  if (l.includes('2')) return { bg: '#fef2f2', color: '#b91c1c', border: '#fee2e2' };
+  if (l.includes('3')) return { bg: '#ecfdf5', color: '#047857', border: '#d1fae5' };
+  if (l.includes('4')) return { bg: '#faf5ff', color: '#6d28d9', border: '#ede9fe' };
+  if (l.includes('5')) return { bg: '#fffbeb', color: '#b45309', border: '#fef3c7' };
+  return { bg: '#f1f5f9', color: '#334155', border: '#e2e8f0' };
+};
+
 const getCourseTone = (course) => {
   if (course?.level?.includes('1')) return '#243b53';
   if (course?.level?.includes('2')) return '#334155';
@@ -301,7 +311,7 @@ export const CoursesView = ({
                 className="btn-secondary"
                 onClick={onOpenCreateClass}
               >
-                <i className="fa-solid fa-plus" />
+                <i className="fa-solid fa-chalkboard-user" style={{ marginRight: '6px' }} />
                 <span>Mở Lớp Học Mới</span>
               </button>
 
@@ -310,7 +320,7 @@ export const CoursesView = ({
                 className="btn-primary"
                 onClick={handleOpenCreate}
               >
-                <i className="fa-solid fa-book-medical" />
+                <i className="fa-solid fa-plus" style={{ marginRight: '6px' }} />
                 <span>Tạo Khóa Học</span>
               </button>
             </>
@@ -320,7 +330,7 @@ export const CoursesView = ({
               className="btn-secondary"
               onClick={onOpenJoinClass}
             >
-              <i className="fa-solid fa-ticket" />
+              <i className="fa-solid fa-ticket" style={{ marginRight: '6px' }} />
               <span>Tham Gia Lớp Bằng Mã</span>
             </button>
           ) : null}
@@ -421,154 +431,156 @@ export const CoursesView = ({
             .filter((cls) => (cls.course_ids || cls.courseIds || []).includes(course.id))
             .reduce((acc, cls) => acc + (cls.students?.length || 0), 0);
 
+          const levelTheme = getLevelBadgeTheme(course.level);
+
           return (
             <article 
               key={course.id} 
               className="course-card"
               onClick={() => onSelectCourse(course)}
               style={{
-                position: 'relative',
-                opacity: !user || isTeacherOrAdmin || isEnrolled ? 1 : 0.85
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '14px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                cursor: 'pointer',
+                transition: 'all 0.16s ease',
+                opacity: !user || isTeacherOrAdmin || isEnrolled ? 1 : 0.88
               }}
             >
-              {/* Header with Chinese Calligraphy Watermark */}
+              {/* Refined Card Top Header */}
               <div 
-                className="course-card-cover" 
-                style={{ background: getCourseTone(course) }}
+                className="course-card-top-bar"
+                style={{
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  borderBottom: '1px solid #f1f5f9',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
               >
-                <span className="cover-watermark">{course.charWatermark || '学'}</span>
-                <div className="cover-tags">
-                  <span className="course-level-badge">{course.level}</span>
-                  <span className="course-status-badge">
-                    {!user ? 'Xem trước khóa học' : isEnrolled ? (isTeacherOrAdmin ? course.badge : 'Lớp của bạn') : 'Chưa mở cho bạn'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    background: levelTheme.bg,
+                    color: levelTheme.color,
+                    border: `1px solid ${levelTheme.border}`,
+                    letterSpacing: '0.03em'
+                  }}>
+                    {course.level || 'HSK'}
+                  </span>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    background: isEnrolled ? '#f0fdf4' : '#f8fafc',
+                    color: isEnrolled ? '#15803d' : '#64748b',
+                    border: isEnrolled ? '1px solid #bbf7d0' : '1px solid #e2e8f0'
+                  }}>
+                    {!user ? 'Xem trước' : isEnrolled ? (isTeacherOrAdmin ? course.badge : 'Lớp của bạn') : 'Chưa mở'}
                   </span>
                 </div>
-                <div className="cover-chinese-sub">{course.chineseTitle}</div>
 
-                {/* Teacher / Admin Action Overlay on Card Cover */}
-                {isTeacherOrAdmin && (
-                  <div 
-                    style={{
-                      position: 'absolute',
-                      top: '12px',
-                      right: '12px',
-                      display: 'flex',
-                      gap: '6px',
-                      zIndex: 3
-                    }}
-                  >
-                    <button
-                      type="button"
-                      title="Chỉnh sửa khóa học này"
-                      onClick={(e) => handleOpenEdit(course, e)}
-                      style={{
-                        background: 'rgba(15, 23, 42, 0.75)',
-                        backdropFilter: 'blur(4px)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        color: '#ffffff',
-                        borderRadius: '8px',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <i className="fa-solid fa-pen"></i>
-                    </button>
-                    <button
-                      type="button"
-                      title="Xóa khóa học này"
-                      onClick={(e) => handleDelete(course, e)}
-                      style={{
-                        background: 'rgba(239, 68, 68, 0.85)',
-                        backdropFilter: 'blur(4px)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        color: '#ffffff',
-                        borderRadius: '8px',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <i className="fa-solid fa-trash-can"></i>
-                    </button>
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {course.chineseTitle && (
+                    <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, fontFamily: 'var(--font-hanzi)' }}>
+                      {course.chineseTitle}
+                    </span>
+                  )}
+                  {isTeacherOrAdmin && (
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        title="Chỉnh sửa khóa học"
+                        onClick={(e) => handleOpenEdit(course, e)}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          color: '#475569',
+                          borderRadius: '6px',
+                          width: '28px',
+                          height: '28px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        <i className="fa-solid fa-pen"></i>
+                      </button>
+                      <button
+                        type="button"
+                        title="Xóa khóa học"
+                        onClick={(e) => handleDelete(course, e)}
+                        style={{
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#b91c1c',
+                          borderRadius: '6px',
+                          width: '28px',
+                          height: '28px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        <i className="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Body */}
-              <div className="course-card-body">
-                <div className="course-teacher">
+              <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#b91c1c', marginBottom: '8px' }}>
                   <i className="fa-solid fa-chalkboard-user"></i>
-                  <span>{course.teacher}</span>
+                  <span>{course.teacher || 'Cô Hoài (Giảng viên)'}</span>
                 </div>
 
-                <h3 className="course-title">{course.title}</h3>
-                <p className="course-desc">{course.description}</p>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px', lineHeight: 1.35 }}>
+                  {course.title}
+                </h3>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px', lineHeight: 1.5, minHeight: '38px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {course.description}
+                </p>
 
-                {/* Progress or Admin Stats */}
-                <div className="course-progress-wrap">
-                  <div className="progress-info-row">
-                    <span className="progress-text">
-                      {isTeacherOrAdmin ? 'Quy mô học viên lớp:' : user ? 'Tiến độ bài tập:' : 'Nội dung khóa học:'}
+                {/* Progress / Stats wrap */}
+                <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px', color: '#475569', marginBottom: '12px' }}>
+                    <span>
+                      <i className="fa-regular fa-folder-open" style={{ marginRight: '6px', color: '#94a3b8' }}></i>
+                      <strong>{course.lessons?.length || totalL}</strong> bài học
                     </span>
-                    <span className="progress-num">
-                      {isTeacherOrAdmin ? (
-                        <strong>{courseStudentsCount} Học Viên</strong>
-                      ) : user ? (
-                        <>
-                          <strong>{completedL}</strong> / {totalL} bài ({percent}%)
-                        </>
-                      ) : (
-                        <strong>{totalL} bài học</strong>
-                      )}
+                    <span>
+                      <i className="fa-solid fa-users" style={{ marginRight: '6px', color: '#94a3b8' }}></i>
+                      <strong>{courseStudentsCount}</strong> học viên
                     </span>
                   </div>
-                  {user && <div className="course-progress-bar">
-                    <div 
-                      className="course-progress-fill" 
-                      style={{
-                        width: isTeacherOrAdmin 
-                          ? `${courseStudentsCount > 0 ? '100%' : '0%'}` 
-                          : `${percent}%`,
-                        background: 'var(--accent)'
-                      }}
-                    ></div>
-                  </div>}
-                </div>
 
-                {/* Footer Action */}
-                <div className="course-card-footer">
-                  <span className="footer-meta">
-                    <i className="fa-regular fa-folder-open"></i> {course.lessons?.length || totalL} bài tập {isTeacherOrAdmin ? 'thiết lập' : 'có sẵn'}
-                  </span>
                   <button
                     type="button"
-                    className="btn-enter-course"
+                    className="btn-primary"
                     style={{
-                      background: 'var(--text)',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      border: 'none',
-                      padding: '7px 14px',
-                      fontWeight: 500,
-                      fontSize: '13px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px'
+                      width: '100%',
+                      justifyContent: 'center',
+                      height: '38px',
+                      fontSize: '13.5px',
+                      borderRadius: '8px'
                     }}
                   >
                     <span>{isTeacherOrAdmin ? 'Quản Trị Bài Học' : isEnrolled ? 'Vào Lớp Học' : 'Khóa Ngoài Lớp'}</span>
-                    <i className={isTeacherOrAdmin ? "fa-solid fa-arrow-right" : isEnrolled ? "fa-solid fa-chevron-right" : "fa-solid fa-lock"} style={{ fontSize: '11px' }}></i>
+                    <i className={isTeacherOrAdmin ? "fa-solid fa-arrow-right" : isEnrolled ? "fa-solid fa-chevron-right" : "fa-solid fa-lock"} style={{ fontSize: '11px', marginLeft: '6px' }}></i>
                   </button>
                 </div>
               </div>

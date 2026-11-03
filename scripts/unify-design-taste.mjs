@@ -69,3 +69,4 @@ for (const relPath of files) {
 }
 
 console.log(`Finished: ${totalReplacements} files updated.`);
+
