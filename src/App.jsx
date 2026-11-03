@@ -608,7 +608,7 @@ export function AppContent() {
 
   // Guests may browse public previews, but private/detail views still require login.
   useEffect(() => {
-    const guestPreviewViews = ['home', 'courses', 'practice', 'exam', 'entertainment'];
+    const guestPreviewViews = ['home', 'courses', 'practice', 'exam', 'entertainment', 'leaderboard', 'forum'];
     if (!user && !guestPreviewViews.includes(currentView)) {
       setCurrentView('home');
       setIsAuthModalOpen(true);
@@ -626,7 +626,7 @@ export function AppContent() {
   }, [user, user?.role, currentView]);
 
   const handleNavigate = (view) => {
-    const guestPreviewViews = ['home', 'courses', 'practice', 'exam', 'entertainment'];
+    const guestPreviewViews = ['home', 'courses', 'practice', 'exam', 'entertainment', 'leaderboard', 'forum'];
     if (!user && !guestPreviewViews.includes(view)) {
       setIsAuthModalOpen(true);
       setRoleToast('Vui lòng đăng nhập để truy cập tính năng này!');
