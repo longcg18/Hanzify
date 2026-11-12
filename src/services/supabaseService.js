@@ -41,6 +41,7 @@ export async function loginWithSupabase(usernameOrEmail, password) {
     chineseName: data.chinese_name,
     chinese_name: data.chinese_name,
     role: data.role,
+    baseRole: data.role,
     avatar: data.avatar || (data.role === 'admin' ? '👑' : data.role === 'teacher' ? '怀' : '学'),
     phone: data.phone,
     badge: data.role === 'admin' ? 'Quản trị viên' : data.role === 'teacher' ? 'Giáo viên phụ trách' : 'Học viên',
@@ -157,6 +158,36 @@ export async function fetchUsers() {
     return { data: formatted, isLiveDb: true };
   } catch (err) {
     return { data: [], isLiveDb: false };
+  }
+}
+
+export async function updateUserProfileInSupabase(userId, updates = {}) {
+  if (!userId) return { success: false, error: 'Thiếu ID người dùng.' };
+  const payload = {};
+  if (updates.name !== undefined || updates.full_name !== undefined) {
+    payload.full_name = String(updates.full_name ?? updates.name).trim();
+  }
+  if (updates.chineseName !== undefined || updates.chinese_name !== undefined) {
+    payload.chinese_name = String(updates.chinese_name ?? updates.chineseName).trim();
+  }
+  if (updates.phone !== undefined) {
+    payload.phone = String(updates.phone).trim();
+  }
+  if (updates.avatar !== undefined) {
+    payload.avatar = String(updates.avatar).trim();
+  }
+
+  if (Object.keys(payload).length === 0) return { success: true };
+
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update(payload)
+      .eq('id', userId);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err?.message || 'Không thể cập nhật hồ sơ.' };
   }
 }
 
@@ -1130,8 +1161,9 @@ export async function fetchStudentSubmissions(studentId) {
   try {
     const { data, error } = await supabase
       .from('submissions')
-      .select('*')
-      .eq('student_id', studentId);
+      .select('*, lessons(title)')
+      .eq('student_id', studentId)
+      .order('submitted_at', { ascending: false });
     if (!error && data) {
       return {
         data: data.map((item) => {
@@ -1140,6 +1172,7 @@ export async function fetchStudentSubmissions(studentId) {
           return {
             id: item.id,
             lessonId: item.lesson_id,
+            lessonTitle: item.lessons?.title || answers.lessonTitle || 'Bài tập sau giờ',
             studentId: item.student_id,
             status: item.status,
             submissionState,

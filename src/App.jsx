@@ -579,8 +579,13 @@ export function AppContent() {
     setTimeout(() => setRoleToast(null), 3500);
   };
 
-  // Role Switch Handler with Smart Auto-Redirection
+  // Role Switch Handler with Smart Auto-Redirection (Admin preview only)
   const handleRoleSwitched = (newRole) => {
+    if ((user?.baseRole || user?.role) !== 'admin') {
+      setRoleToast('Chỉ Quản trị viên mới có quyền chuyển đổi vai trò xem thử.');
+      setTimeout(() => setRoleToast(null), 3500);
+      return;
+    }
     if (updateProfile) {
       updateProfile({ role: newRole });
     }

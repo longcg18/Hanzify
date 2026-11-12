@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import confetti from 'canvas-confetti';
+import { fetchStudentSubmissions } from '../services/supabaseService';
 
 const PRESET_AVATARS = [
   { label: '👑', name: 'Admin' },
@@ -17,8 +18,6 @@ const PRESET_AVATARS = [
   { label: '🍵', name: 'Trà đạo' }
 ];
 
-const RECENT_SUBMISSIONS = [];
-
 export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRoleSwitched, streakData, classrooms = [] }) => {
   const {
     user,
@@ -31,6 +30,8 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState(initialTab); // 'profile' | 'history' | 'notifications'
+  const [recentSubmissions, setRecentSubmissions] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const dropdownRef = useRef(null);
 
   // Get live streak and XP with local fallback
@@ -60,6 +61,25 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'history' || !user?.id) return;
+    let isMounted = true;
+    setIsLoadingHistory(true);
+    fetchStudentSubmissions(user.id)
+      .then(({ data }) => {
+        if (isMounted) setRecentSubmissions(Array.isArray(data) ? data.slice(0, 10) : []);
+      })
+      .catch(() => {
+        if (isMounted) setRecentSubmissions([]);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingHistory(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, activeTab, user?.id]);
 
   // Handle click outside to close
   useEffect(() => {
@@ -398,8 +418,8 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
               </div>
             </div>
 
-            {/* Quick Role Switcher for Testing & Inspection */}
-            {onRoleSwitched && (
+            {/* Quick Role Switcher (Admin Preview Only) */}
+            {onRoleSwitched && (user?.baseRole || user?.role) === 'admin' && (
               <div style={{ marginTop: '0.75rem' }}>
                 <div style={{
                   fontSize: '0.74rem',
@@ -490,7 +510,33 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {RECENT_SUBMISSIONS.map((item) => (
+              {isLoadingHistory ? (
+                <div style={{ padding: '1.25rem 0', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '6px', color: '#A11D24' }}></i>
+                  Đang tải lịch sử nộp bài...
+                </div>
+              ) : recentSubmissions.length === 0 ? (
+                <div style={{ padding: '1.25rem 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
+                  <i className="fa-regular fa-folder-open" style={{ fontSize: '1.4rem', marginBottom: '0.35rem', display: 'block', color: '#cbd5e1' }}></i>
+                  Chưa có lịch sử nộp bài nào
+                </div>
+              ) : recentSubmissions.map((item) => {
+                const statusLabel = item.status === 'graded' || item.submissionState === 'graded'
+                  ? 'Đã chấm'
+                  : item.submissionState === 'redo_requested'
+                    ? 'Cần làm lại'
+                    : item.submissionState === 'draft'
+                      ? 'Bản nháp'
+                      : 'Chờ chấm';
+                const statusColor = item.status === 'graded' || item.submissionState === 'graded'
+                  ? '#16a34a'
+                  : item.submissionState === 'redo_requested'
+                    ? '#dc2626'
+                    : '#d97706';
+                const dateLabel = item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—';
+                const scoreLabel = item.totalScore !== null && item.totalScore !== undefined ? `${item.totalScore}/10 điểm` : statusLabel;
+
+                return (
                 <div
                   key={item.id}
                   style={{
@@ -500,9 +546,9 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                     border: '1px solid #fee2e2'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3px', gap: '6px' }}>
                     <div style={{ fontWeight: 700, fontSize: '0.83rem', color: '#0f172a', lineHeight: 1.3 }}>
-                      {item.title}
+                      {item.lessonTitle || 'Bài tập sau giờ'}
                     </div>
                     <span style={{
                       fontWeight: 800,
@@ -513,19 +559,17 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                       borderRadius: '8px',
                       whiteSpace: 'nowrap'
                     }}>
-                      {item.score}
+                      {scoreLabel}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', fontSize: '0.72rem', color: '#64748b', marginBottom: '4px' }}>
-                    <span>{item.course}</span>
+                    <span>{dateLabel}</span>
                     <span>•</span>
-                    <span>{item.date}</span>
-                    <span>•</span>
-                    <span style={{ color: '#16a34a', fontWeight: 600 }}>{item.status}</span>
+                    <span style={{ color: statusColor, fontWeight: 600 }}>{statusLabel}</span>
                   </div>
 
-                  {item.comment && (
+                  {item.teacherComment && (
                     <div style={{
                       fontSize: '0.72rem',
                       color: '#475569',
@@ -535,11 +579,12 @@ export const ProfileDropdown = ({ isOpen, onClose, initialTab = 'profile', onRol
                       borderLeft: '3px solid #A11D24',
                       lineHeight: 1.4
                     }}>
-                      💬 <em>{item.comment}</em>
+                      💬 <em>{item.teacherComment}</em>
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

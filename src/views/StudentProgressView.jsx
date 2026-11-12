@@ -43,7 +43,7 @@ export const StudentProgressView = () => {
   const practice = activities.filter((item) => item.activity_type === 'practice');
   const games = activities.filter((item) => item.activity_type === 'game');
   const groups = [
-    { title: 'Bài tập sau giờ', icon: 'fa-book-open', rows: homework.map((item) => ({ id: item.id, title: item.lessonTitle, date: item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—', detail: item.totalScore == null ? (item.status === 'pending' ? 'Chờ chấm' : item.status) : `${item.totalScore}/10 điểm` })) },
+    { title: 'Bài tập sau giờ', icon: 'fa-book-open', rows: homework.map((item) => ({ id: item.id, title: item.lessonTitle, date: item.submittedAt || '—', detail: item.totalScore == null ? (item.status === 'pending' ? 'Chờ chấm' : item.status) : `${item.totalScore}/10 điểm` })) },
     { title: 'Luyện tập tự do', icon: 'fa-dumbbell', rows: practice.map((item) => ({ id: item.id, title: item.title, date: displayDate(item.completed_at), detail: `${item.score}/${item.max_score} câu · +${item.xp || 0} XP` })) },
     { title: 'Lịch sử thi thử HSK', icon: 'fa-flag-checkered', rows: attempts.map((item) => ({ id: item.id, title: item.exam_title, date: displayDate(item.completed_at), detail: `${item.total_score}/${item.max_score} điểm` })) },
     { title: 'Lịch sử chơi game giải trí', icon: 'fa-gamepad', rows: games.map((item) => ({ id: item.id, title: item.title, date: displayDate(item.completed_at), detail: `+${item.xp || 0} XP` })) },

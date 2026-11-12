@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { loginWithSupabase, logoutFromSupabase, registerStudentInSupabase } from '../services/supabaseService';
+import { loginWithSupabase, logoutFromSupabase, registerStudentInSupabase, updateUserProfileInSupabase } from '../services/supabaseService';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
@@ -173,7 +173,10 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = (userData) => {
-    setUser(userData);
+    setUser({
+      ...userData,
+      baseRole: userData.baseRole || userData.role
+    });
     setIsAuthModalOpen(false);
   };
 
@@ -183,11 +186,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('hanzify_user');
   };
 
-  const updateProfile = (updates) => {
-    setUser((prev) => ({
-      ...prev,
-      ...updates
-    }));
+  const updateProfile = async (updates) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const baseRole = prev.baseRole || prev.role;
+      const nextUpdates = { ...updates };
+      if (nextUpdates.role && baseRole !== 'admin') {
+        delete nextUpdates.role;
+      }
+      return {
+        ...prev,
+        ...nextUpdates,
+        baseRole
+      };
+    });
+
+    const hasDbProfileFields = ['name', 'full_name', 'chineseName', 'chinese_name', 'phone', 'avatar']
+      .some((key) => updates?.[key] !== undefined);
+    if (hasDbProfileFields && user?.id) {
+      await updateUserProfileInSupabase(user.id, updates);
+    }
   };
 
   // Verify credentials on login via Supabase Cloud
